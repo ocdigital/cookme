@@ -1,0 +1,132 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { ReceitasService } from './receitas.service';
+import { CurrentUser } from '@common/decorators/current-user.decorator';
+import { Usuario } from '../usuarios/entities/usuario.entity';
+import { Receita } from './entities/receita.entity';
+import { ReceitaExecutada } from './entities/receita-executada.entity';
+import { CreateReceitaDto } from './dto/create-receita.dto';
+import { ExecutarReceitaDto } from './dto/executar-receita.dto';
+
+@ApiTags('Receitas')
+@ApiBearerAuth()
+@Controller('receitas')
+export class ReceitasController {
+  constructor(private readonly receitasService: ReceitasService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Criar nova receita' })
+  @ApiResponse({
+    status: 201,
+    description: 'Receita criada com sucesso',
+    type: Receita,
+  })
+  async create(@Body() createReceitaDto: CreateReceitaDto): Promise<Receita> {
+    return this.receitasService.create(createReceitaDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Listar receitas com filtros' })
+  @ApiQuery({ name: 'search', required: false, description: 'Buscar por nome' })
+  @ApiQuery({ name: 'dificuldade', required: false, description: 'Filtrar por dificuldade' })
+  @ApiQuery({ name: 'categoria', required: false, description: 'Filtrar por categoria' })
+  @ApiQuery({ name: 'tags_dieta', required: false, description: 'Filtrar por tags de dieta (array)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de receitas',
+    type: [Receita],
+  })
+  async findAll(
+    @Query('search') search?: string,
+    @Query('dificuldade') dificuldade?: string,
+    @Query('categoria') categoria?: string,
+    @Query('tags_dieta') tags_dieta?: string | string[],
+  ): Promise<Receita[]> {
+    const tagsArray = tags_dieta
+      ? Array.isArray(tags_dieta)
+        ? tags_dieta
+        : [tags_dieta]
+      : undefined;
+
+    return this.receitasService.findAll({
+      search,
+      dificuldade,
+      categoria,
+      tags_dieta: tagsArray,
+    });
+  }
+
+  @Get('sugestoes')
+  @ApiOperation({ summary: 'Motor MOI - Sugestões inteligentes de receitas' })
+  @ApiResponse({
+    status: 200,
+    description: 'Receitas sugeridas baseadas no inventário',
+    type: [Receita],
+  })
+  async sugestoes(@CurrentUser() user: Usuario): Promise<Receita[]> {
+    return this.receitasService.sugerirReceitas(user.id);
+  }
+
+  @Get('executadas')
+  @ApiOperation({ summary: 'Histórico de receitas executadas' })
+  @ApiResponse({
+    status: 200,
+    description: 'Receitas executadas pelo usuário',
+    type: [ReceitaExecutada],
+  })
+  async executadas(@CurrentUser() user: Usuario): Promise<ReceitaExecutada[]> {
+    return this.receitasService.findExecutadas(user.id);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Buscar receita por ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Receita encontrada',
+    type: Receita,
+  })
+  @ApiResponse({ status: 404, description: 'Receita não encontrada' })
+  async findOne(@Param('id') id: string): Promise<Receita> {
+    return this.receitasService.findOne(id);
+  }
+
+  @Post(':id/executar')
+  @ApiOperation({ summary: 'Marcar receita como executada' })
+  @ApiResponse({
+    status: 201,
+    description: 'Receita marcada como executada',
+    type: ReceitaExecutada,
+  })
+  async executar(
+    @CurrentUser() user: Usuario,
+    @Param('id') id: string,
+    @Body() executarDto: ExecutarReceitaDto,
+  ): Promise<ReceitaExecutada> {
+    return this.receitasService.executar(id, user.id, executarDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Deletar receita' })
+  @ApiResponse({ status: 204, description: 'Receita deletada com sucesso' })
+  @ApiResponse({ status: 404, description: 'Receita não encontrada' })
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.receitasService.remove(id);
+  }
+}

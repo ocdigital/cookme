@@ -1,0 +1,970 @@
+{
+  "info": {
+    "name": "CookMe API",
+    "description": "Motor de Otimização de Inventário - API Documentation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "cookme-api"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', response.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@example.com\",\n  \"senha\": \"senha123\",\n  \"nome\": \"João Silva\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registrar novo usuário"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', response.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@example.com\",\n  \"senha\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Fazer login e obter access token"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"seu_refresh_token_aqui\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Renovar access token usando refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Fazer logout (remove refresh token)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Obter dados do usuário autenticado"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["usuarios", "me"]
+            },
+            "description": "Obter perfil do usuário autenticado"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva Santos\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["usuarios", "me"]
+            },
+            "description": "Atualizar perfil do usuário"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["usuarios", "me"]
+            },
+            "description": "Deletar conta do usuário"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Preferencias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/preferencias",
+              "host": ["{{baseUrl}}"],
+              "path": ["usuarios", "preferencias"]
+            },
+            "description": "Obter preferências do usuário"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Preferencias",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notificacoes_validade\": true,\n  \"dias_alerta_validade\": 7,\n  \"restricoes_alimentares\": [\"vegetariano\"],\n  \"preferencias_culinarias\": [\"italiana\", \"brasileira\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/preferencias",
+              "host": ["{{baseUrl}}"],
+              "path": ["usuarios", "preferencias"]
+            },
+            "description": "Atualizar preferências do usuário"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Produtos",
+      "item": [
+        {
+          "name": "Create Produto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Arroz Integral Tio João 1kg\",\n  \"codigo_barras\": \"7891234567890\",\n  \"unidade_padrao\": \"kg\",\n  \"validade_media_dias\": 365,\n  \"informacoes_nutricionais\": {\n    \"calorias\": 130,\n    \"proteinas\": 2.5,\n    \"carboidratos\": 28\n  },\n  \"tags\": [\"integral\", \"grãos\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/produtos",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos"]
+            },
+            "description": "Criar novo produto"
+          },
+          "response": []
+        },
+        {
+          "name": "List Produtos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/produtos",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "arroz",
+                  "disabled": true
+                },
+                {
+                  "key": "categoriaId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Listar produtos com filtros opcionais"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Produto by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/produtos/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "produto-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Buscar produto por ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Produto by Barcode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/produtos/barcode/:codigo",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "barcode", ":codigo"],
+              "variable": [
+                {
+                  "key": "codigo",
+                  "value": "7891234567890"
+                }
+              ]
+            },
+            "description": "Buscar produto por código de barras"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Produto",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Arroz Integral Tio João 1kg (Atualizado)\",\n  \"validade_media_dias\": 400\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/produtos/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "produto-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Atualizar produto"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Produto",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/produtos/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "produto-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Deletar produto"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Marca",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Tio João\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/produtos/marcas",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "marcas"]
+            },
+            "description": "Criar nova marca"
+          },
+          "response": []
+        },
+        {
+          "name": "List Marcas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/produtos/marcas/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "marcas", "all"]
+            },
+            "description": "Listar todas as marcas"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Marca by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/produtos/marcas/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "marcas", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "marca-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Buscar marca por ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Categoria",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Grãos\",\n  \"icone\": \"🌾\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/produtos/categorias",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "categorias"]
+            },
+            "description": "Criar nova categoria"
+          },
+          "response": []
+        },
+        {
+          "name": "List Categorias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/produtos/categorias/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "categorias", "all"]
+            },
+            "description": "Listar todas as categorias"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Categoria by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/produtos/categorias/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["produtos", "categorias", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "categoria-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Buscar categoria por ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Compras",
+      "item": [
+        {
+          "name": "Create Compra",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data_compra\": \"2025-01-15\",\n  \"local_compra\": \"Supermercado Pão de Açúcar\",\n  \"valor_total\": 150.50,\n  \"metodo_cadastro\": \"manual\",\n  \"itens\": [\n    {\n      \"produto_id\": \"produto-uuid-aqui\",\n      \"quantidade\": 2.5,\n      \"unidade\": \"kg\",\n      \"preco_unitario\": 15.99,\n      \"validade_final\": \"2025-06-15\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/compras",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras"]
+            },
+            "description": "Criar nova compra com itens"
+          },
+          "response": []
+        },
+        {
+          "name": "List Compras",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/compras",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Listar compras do usuário"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Compra by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/compras/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "compra-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Buscar compra por ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Compras Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/compras/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", "stats"]
+            },
+            "description": "Estatísticas de compras do usuário"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Compra",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/compras/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["compras", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "compra-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Deletar compra"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Inventario",
+      "item": [
+        {
+          "name": "Add Item Inventario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"produto_id\": \"produto-uuid-aqui\",\n  \"quantidade_disponivel\": 2.5,\n  \"unidade\": \"kg\",\n  \"data_validade\": \"2025-06-15\",\n  \"localizacao\": \"Geladeira\",\n  \"metodo_atualizacao\": \"manual\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventario",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario"]
+            },
+            "description": "Adicionar item ao inventário"
+          },
+          "response": []
+        },
+        {
+          "name": "List Inventario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventario",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario"]
+            },
+            "description": "Listar todo o inventário (ordenado por validade)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Inventario Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventario/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", "stats"]
+            },
+            "description": "Estatísticas do inventário"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Itens Vencendo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventario/vencendo",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", "vencendo"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Listar itens vencendo em breve (padrão: 7 dias)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Itens Vencidos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventario/vencidos",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", "vencidos"]
+            },
+            "description": "Listar itens vencidos"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Inventario Item by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventario/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "inventario-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Buscar item do inventário por ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Inventario Item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantidade_disponivel\": 1.5,\n  \"localizacao\": \"Despensa\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventario/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "inventario-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Atualizar item do inventário"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Inventario Item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventario/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventario", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "inventario-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Remover item do inventário"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Receitas",
+      "item": [
+        {
+          "name": "Create Receita",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Arroz com Feijão\",\n  \"modo_preparo\": \"1. Cozinhe o arroz...\\n2. Prepare o feijão...\",\n  \"tempo_preparo\": 30,\n  \"rendimento_porcoes\": 4,\n  \"dificuldade\": \"facil\",\n  \"tags_dieta\": [\"vegetariano\"],\n  \"tags_preparo\": [\"rapido\"],\n  \"categoria_receita\": \"almoco\",\n  \"ingredientes\": [\n    {\n      \"produto_id\": \"produto-uuid-aqui\",\n      \"quantidade\": 2,\n      \"unidade\": \"un\",\n      \"opcional\": false,\n      \"observacao\": \"picado\",\n      \"ordem\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/receitas",
+              "host": ["{{baseUrl}}"],
+              "path": ["receitas"]
+            },
+            "description": "Criar nova receita"
+          },
+          "response": []
+        },
+        {
+          "name": "List Receitas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/receitas",
+              "host": ["{{baseUrl}}"],
+              "path": ["receitas"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "arroz",
+                  "disabled": true
+                },
+                {
+                  "key": "dificuldade",
+                  "value": "facil",
+                  "disabled": true
+                },
+                {
+                  "key": "categoria",
+                  "value": "almoco",
+                  "disabled": true
+                },
+                {
+                  "key": "tags_dieta",
+                  "value": "vegetariano",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Listar receitas com filtros opcionais"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Receita by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/receitas/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["receitas", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "receita-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Buscar receita por ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sugestoes (MOI)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/receitas/sugestoes",
+              "host": ["{{baseUrl}}"],
+              "path": ["receitas", "sugestoes"]
+            },
+            "description": "Motor MOI - Sugestões inteligentes de receitas baseadas no inventário"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Receitas Executadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/receitas/executadas",
+              "host": ["{{baseUrl}}"],
+              "path": ["receitas", "executadas"]
+            },
+            "description": "Histórico de receitas executadas pelo usuário"
+          },
+          "response": []
+        },
+        {
+          "name": "Executar Receita",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"porcoes_preparadas\": 4,\n  \"avaliacao\": 5,\n  \"observacoes\": \"Ficou delicioso!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/receitas/:id/executar",
+              "host": ["{{baseUrl}}"],
+              "path": ["receitas", ":id", "executar"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "receita-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Marcar receita como executada"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Receita",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/receitas/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["receitas", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "receita-uuid-aqui"
+                }
+              ]
+            },
+            "description": "Deletar receita"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Barcode",
+      "item": [
+        {
+          "name": "Scan Barcode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/barcode/scan/:codigo",
+              "host": ["{{baseUrl}}"],
+              "path": ["barcode", "scan", ":codigo"],
+              "variable": [
+                {
+                  "key": "codigo",
+                  "value": "7891234567890"
+                }
+              ]
+            },
+            "description": "Buscar produto por código de barras"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

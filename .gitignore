@@ -1,0 +1,206 @@
+# CookMe - .gitignore
+
+# ===================================
+# Node.js / Backend
+# ===================================
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Prisma
+prisma/migrations/dev.db
+prisma/migrations/dev.db-journal
+
+# ===================================
+# Python / Scraper
+# ===================================
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# ===================================
+# Scraper - Arquivos Gerados
+# ===================================
+lib/cupom_dados_*.json
+lib/cupom_screenshot_*.png
+lib/debug_cupom_*.html
+lib/debug_texto_pagina_*.txt
+lib/config.json
+
+# ===================================
+# IDEs e Editores
+# ===================================
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+*~
+tags
+.netrwhist
+
+# ===================================
+# Sistema Operacional
+# ===================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===================================
+# Logs e Temporários
+# ===================================
+*.log
+logs/
+temp/
+tmp/
+
+# ===================================
+# Banco de Dados
+# ===================================
+*.sqlite
+*.sqlite3
+*.db
+
+# ===================================
+# Docker
+# ===================================
+.dockerignore
+
+# ===================================
+# Segurança - NÃO COMMITAR
+# ===================================
+# Credenciais
+credentials.json
+secrets.json
+*.pem
+*.key
+*.cert
+
+# Backups
+*.bak
+*.backup
+*.old
+
+# ===================================
+# Claude Code
+# ===================================
+.claude/

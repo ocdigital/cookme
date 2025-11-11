@@ -1,0 +1,24 @@
+🚀 CookMe Mobile - Quick Start
+
+1️⃣ BACKEND (outro terminal)
+   cd backend
+   docker-compose up -d
+   npm run start:dev
+   
+2️⃣ MOBILE
+   cd mobile
+   npm install
+   npm start
+   
+3️⃣ NO CELULAR
+   - Baixe "Expo Go" (Google Play ou App Store)
+   - Escaneie o QR Code que apareceu no terminal
+   
+⚠️  IMPORTANTE:
+   - Celular e computador na MESMA rede Wi-Fi
+   - Se não conectar, edite: src/config/api.js
+   - Seu IP atual: 192.168.86.7
+   
+✅ Pronto! O app carregará no celular.
+
+📚 Mais detalhes: veja SETUP-GUIDE.md

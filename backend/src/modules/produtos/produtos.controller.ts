@@ -1,0 +1,187 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { ProdutosService } from './produtos.service';
+import { Produto } from './entities/produto.entity';
+import { Marca } from './entities/marca.entity';
+import { Categoria } from './entities/categoria.entity';
+import { CreateProdutoDto } from './dto/create-produto.dto';
+import { UpdateProdutoDto } from './dto/update-produto.dto';
+import { CreateMarcaDto } from './dto/create-marca.dto';
+import { CreateCategoriaDto } from './dto/create-categoria.dto';
+
+@ApiTags('Produtos')
+@ApiBearerAuth()
+@Controller('produtos')
+export class ProdutosController {
+  constructor(private readonly produtosService: ProdutosService) {}
+
+  // ========== PRODUTOS ==========
+
+  @Post()
+  @ApiOperation({ summary: 'Criar novo produto' })
+  @ApiResponse({
+    status: 201,
+    description: 'Produto criado com sucesso',
+    type: Produto,
+  })
+  @ApiResponse({ status: 409, description: 'Código de barras já cadastrado' })
+  async create(@Body() createProdutoDto: CreateProdutoDto): Promise<Produto> {
+    return this.produtosService.create(createProdutoDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Listar produtos' })
+  @ApiQuery({ name: 'search', required: false, description: 'Buscar por nome' })
+  @ApiQuery({ name: 'categoriaId', required: false, description: 'Filtrar por categoria' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de produtos',
+    type: [Produto],
+  })
+  async findAll(
+    @Query('search') search?: string,
+    @Query('categoriaId') categoriaId?: string,
+  ): Promise<Produto[]> {
+    return this.produtosService.findAll(search, categoriaId);
+  }
+
+  @Get('barcode/:codigo')
+  @ApiOperation({ summary: 'Buscar produto por código de barras' })
+  @ApiResponse({
+    status: 200,
+    description: 'Produto encontrado',
+    type: Produto,
+  })
+  @ApiResponse({ status: 404, description: 'Produto não encontrado' })
+  async findByBarcode(@Param('codigo') codigo: string): Promise<Produto | null> {
+    return this.produtosService.findByBarcode(codigo);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Buscar produto por ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Produto encontrado',
+    type: Produto,
+  })
+  @ApiResponse({ status: 404, description: 'Produto não encontrado' })
+  async findOne(@Param('id') id: string): Promise<Produto> {
+    return this.produtosService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Atualizar produto' })
+  @ApiResponse({
+    status: 200,
+    description: 'Produto atualizado com sucesso',
+    type: Produto,
+  })
+  @ApiResponse({ status: 404, description: 'Produto não encontrado' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateProdutoDto: UpdateProdutoDto,
+  ): Promise<Produto> {
+    return this.produtosService.update(id, updateProdutoDto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Deletar produto' })
+  @ApiResponse({ status: 204, description: 'Produto deletado com sucesso' })
+  @ApiResponse({ status: 404, description: 'Produto não encontrado' })
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.produtosService.remove(id);
+  }
+
+  // ========== MARCAS ==========
+
+  @Post('marcas')
+  @ApiOperation({ summary: 'Criar nova marca' })
+  @ApiResponse({
+    status: 201,
+    description: 'Marca criada com sucesso',
+    type: Marca,
+  })
+  @ApiResponse({ status: 409, description: 'Marca já cadastrada' })
+  async createMarca(@Body() createMarcaDto: CreateMarcaDto): Promise<Marca> {
+    return this.produtosService.createMarca(createMarcaDto);
+  }
+
+  @Get('marcas/all')
+  @ApiOperation({ summary: 'Listar todas as marcas' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de marcas',
+    type: [Marca],
+  })
+  async findAllMarcas(): Promise<Marca[]> {
+    return this.produtosService.findAllMarcas();
+  }
+
+  @Get('marcas/:id')
+  @ApiOperation({ summary: 'Buscar marca por ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Marca encontrada',
+    type: Marca,
+  })
+  @ApiResponse({ status: 404, description: 'Marca não encontrada' })
+  async findOneMarca(@Param('id') id: string): Promise<Marca> {
+    return this.produtosService.findOneMarca(id);
+  }
+
+  // ========== CATEGORIAS ==========
+
+  @Post('categorias')
+  @ApiOperation({ summary: 'Criar nova categoria' })
+  @ApiResponse({
+    status: 201,
+    description: 'Categoria criada com sucesso',
+    type: Categoria,
+  })
+  async createCategoria(
+    @Body() createCategoriaDto: CreateCategoriaDto,
+  ): Promise<Categoria> {
+    return this.produtosService.createCategoria(createCategoriaDto);
+  }
+
+  @Get('categorias/all')
+  @ApiOperation({ summary: 'Listar todas as categorias' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de categorias (com hierarquia)',
+    type: [Categoria],
+  })
+  async findAllCategorias(): Promise<Categoria[]> {
+    return this.produtosService.findAllCategorias();
+  }
+
+  @Get('categorias/:id')
+  @ApiOperation({ summary: 'Buscar categoria por ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Categoria encontrada',
+    type: Categoria,
+  })
+  @ApiResponse({ status: 404, description: 'Categoria não encontrada' })
+  async findOneCategoria(@Param('id') id: string): Promise<Categoria> {
+    return this.produtosService.findOneCategoria(id);
+  }
+}

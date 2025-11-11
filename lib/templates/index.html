@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultor SAT - Web</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        .captcha-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .captcha-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #2196F3, #21CBF3);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2196F3;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .item-list {
+            margin-top: 15px;
+        }
+        
+        .item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧾 Consultor SAT</h1>
+            <p>Consulte cupons fiscais de forma simples</p>
+        </div>
+        
+        <div class="content">
+            <div class="form-group">
+                <label for="qrcode">📋 Cole o QR Code ou Chave de Acesso:</label>
+                <textarea 
+                    id="qrcode" 
+                    placeholder="35251005088303000121590006146504781051248106|20251031103830|83.09||..."
+                ></textarea>
+            </div>
+            
+            <button class="btn" onclick="parseQRCode()" id="parseBtn">
+                🔍 Extrair Chave
+            </button>
+            
+            <div class="form-group" style="display: none;" id="chaveGroup">
+                <label for="chave">🔑 Chave de Acesso:</label>
+                <input type="text" id="chave" readonly>
+            </div>
+            
+            <div class="captcha-container" id="captchaContainer" style="display: none;">
+                <h3>🔍 Código de Verificação</h3>
+                <img id="captchaImage" class="captcha-image" src="" alt="CAPTCHA">
+                <div class="form-group">
+                    <label for="captchaInput">Digite o código que você vê acima:</label>
+                    <input type="text" id="captchaInput" placeholder="ABC123" maxlength="10">
+                </div>
+                <button class="btn" onclick="getNewCaptcha()">
+                    🔄 Novo CAPTCHA
+                </button>
+            </div>
+            
+            <button class="btn" onclick="consultarSAT()" id="consultarBtn" style="display: none;">
+                🚀 Consultar Cupom
+            </button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processando consulta...</p>
+            </div>
+            
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentFormData = {};
+        let currentCookies = {};
+        
+        async function parseQRCode() {
+            const qrcode = document.getElementById('qrcode').value.trim();
+            const parseBtn = document.getElementById('parseBtn');
+            
+            if (!qrcode) {
+                alert('Por favor, cole o QR Code');
+                return;
+            }
+            
+            parseBtn.disabled = true;
+            parseBtn.textContent = '🔍 Processando...';
+            
+            try {
+                const response = await fetch('/parse-qrcode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ qrcode })
+                });
+                
+                const data = await response.json();
+                
+                if (data.chave_acesso) {
+                    document.getElementById('chave').value = data.chave_acesso;
+                    document.getElementById('chaveGroup').style.display = 'block';
+                    parseBtn.style.display = 'none';
+                    
+                    // Obter CAPTCHA automaticamente
+                    await getCaptcha();
+                } else {
+                    alert('Erro: ' + (data.error || 'QR Code inválido'));
+                }
+                
+            } catch (error) {
+                alert('Erro ao processar QR Code: ' + error.message);
+            } finally {
+                parseBtn.disabled = false;
+                parseBtn.textContent = '🔍 Extrair Chave';
+            }
+        }
+        
+        async function getCaptcha() {
+            const captchaContainer = document.getElementById('captchaContainer');
+            const consultarBtn = document.getElementById('consultarBtn');
+            
+            captchaContainer.style.display = 'block';
+            consultarBtn.style.display = 'none';
+            
+            try {
+                const response = await fetch('/get-captcha');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('captchaImage').src = data.captcha_image;
+                    currentFormData = {
+                        viewstate: data.viewstate,
+                        viewstategenerator: data.viewstategenerator,
+                        eventvalidation: data.eventvalidation
+                    };
+                    currentCookies = data.session_cookies;
+                    
+                    consultarBtn.style.display = 'block';
+                } else {
+                    alert('Erro: ' + data.error);
+                }
+                
+            } catch (error) {
+                alert('Erro ao carregar CAPTCHA: ' + error.message);
+            }
+        }
+        
+        async function getNewCaptcha() {
+            await getCaptcha();
+            document.getElementById('captchaInput').value = '';
+        }
+        
+        async function consultarSAT() {
+            const chave = document.getElementById('chave').value.trim();
+            const captcha = document.getElementById('captchaInput').value.trim();
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const consultarBtn = document.getElementById('consultarBtn');
+            
+            if (!chave) {
+                alert('Chave de acesso é obrigatória');
+                return;
+            }
+            
+            if (!captcha) {
+                alert('Por favor, digite o código do CAPTCHA');
+                return;
+            }
+            
+            consultarBtn.disabled = true;
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            
+            try {
+                const response = await fetch('/consultar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chave_acesso: chave,
+                        captcha_text: captcha,
+                        form_data: currentFormData,
+                        cookies: currentCookies
+                    })
+                });
+                
+                const data = await response.json();
+                
+                loading.style.display = 'none';
+                result.style.display = 'block';
+                
+                if (data.status === 'success') {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <h3>✅ Consulta Realizada com Sucesso!</h3>
+                        <p><strong>Chave:</strong> ${data.chave_acesso}</p>
+                        ${data.data.numero_cupom ? `<p><strong>Número do Cupom:</strong> ${data.data.numero_cupom}</p>` : ''}
+                        ${data.data.data_emissao ? `<p><strong>Data de Emissão:</strong> ${data.data.data_emissao}</p>` : ''}
+                        ${data.data.valor_total ? `<p><strong>Valor Total:</strong> R$ ${data.data.valor_total}</p>` : ''}
+                        ${data.data.itens ? `
+                            <div class="item-list">
+                                <h4>🛒 Itens do Cupom:</h4>
+                                ${data.data.itens.map(item => `
+                                    <div class="item">
+                                        <strong>${item.descricao}</strong><br>
+                                        Quantidade: ${item.quantidade} | Valor: ${item.valor}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        <button class="btn" onclick="location.reload()" style="margin-top: 15px;">
+                            🔄 Nova Consulta
+                        </button>
+                    `;
+                } else {
+                    result.className = 'result error';
+                    result.innerHTML = `
+                        <h3>❌ Erro na Consulta</h3>
+                        <p><strong>Chave:</strong> ${data.chave_acesso}</p>
+                        <p><strong>Erro:</strong> ${data.message || data.error}</p>
+                        <button class="btn" onclick="getNewCaptcha()" style="margin-top: 15px;">
+                            🔄 Tentar Novamente
+                        </button>
+                    `;
+                }
+                
+            } catch (error) {
+                loading.style.display = 'none';
+                result.style.display = 'block';
+                result.className = 'result error';
+                result.innerHTML = `
+                    <h3>❌ Erro de Conexão</h3>
+                    <p>${error.message}</p>
+                `;
+            } finally {
+                consultarBtn.disabled = false;
+            }
+        }
+        
+        // Enter key support
+        document.getElementById('qrcode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                parseQRCode();
+            }
+        });
+        
+        document.getElementById('captchaInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                consultarSAT();
+            }
+        });
+    </script>
+</body>
+</html>

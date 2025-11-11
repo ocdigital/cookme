@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "CookMe",
+    "slug": "cookme-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#4CAF50"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cookme.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4CAF50"
+      },
+      "package": "com.cookme.app",
+      "permissions": [
+        "CAMERA"
+      ]
+    },
+    "web": {},
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir que o CookMe acesse a câmera para escanear cupons fiscais."
+        }
+      ],
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}

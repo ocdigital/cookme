@@ -1,0 +1,796 @@
+{
+  "estabelecimento": {
+    "nome": "HIGA PRODUTOS ALIMENTICIOS LTDA",
+    "cnpj": "46.029.724/0007-54",
+    "endereco": "AVENIDA OSWALDO VEIGA, Nº 628 - Nao Informado",
+    "bairro": "RESIDENCIAL BELA ALIANCA -  CEP: 13059-520 -  CAMPINAS - SP"
+  },
+  "itens": [
+    {
+      "numero": 1,
+      "codigo": "362585",
+      "descricao": "PAPEL HIG FAMILIAR 16X30M FD",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 23.98,
+      "valor_total": 23.98
+    },
+    {
+      "numero": 2,
+      "codigo": "355165",
+      "descricao": "SACOLA RETORNAVEL CAPROLA SORT",
+      "quantidade": 2.0,
+      "unidade": "UN",
+      "valor_unitario": 8.98,
+      "valor_total": 17.96
+    },
+    {
+      "numero": 3,
+      "codigo": "365895",
+      "descricao": "TOALHA UMED LARA BABY RN C/120",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 10.39,
+      "valor_total": 10.39
+    },
+    {
+      "numero": 4,
+      "codigo": "361426",
+      "descricao": "PANO MICROFIBRA LUXCAR C/10",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 28.98,
+      "valor_total": 28.98
+    },
+    {
+      "numero": 5,
+      "codigo": "353529",
+      "descricao": "ESP SCOTCH BRITE EMB ECON C/4",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 6.98,
+      "valor_total": 6.98
+    },
+    {
+      "numero": 6,
+      "codigo": "342833",
+      "descricao": "AMAC YPE CONC BRISA LILAS 500ML",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 9.19,
+      "valor_total": 9.19
+    },
+    {
+      "numero": 7,
+      "codigo": "350049",
+      "descricao": "SAB LIQ LUX 200ML ROSAS FRANC REF",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 8.98,
+      "valor_total": 8.98
+    },
+    {
+      "numero": 8,
+      "codigo": "352047",
+      "descricao": "DET LIQ OMO LAVAG PERF 900ML",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 12.79,
+      "valor_total": 12.79
+    },
+    {
+      "numero": 9,
+      "codigo": "345547",
+      "descricao": "DET YPE CAPIM LIM 500ML",
+      "quantidade": 2.0,
+      "unidade": "UN",
+      "valor_unitario": 2.39,
+      "valor_total": 4.78
+    },
+    {
+      "numero": 10,
+      "codigo": "341965",
+      "descricao": "DESOD REXONA AERO F EMOTION 150ML",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 14.59,
+      "valor_total": 14.59
+    },
+    {
+      "numero": 11,
+      "codigo": "353123",
+      "descricao": "PASSATA FUGINI 300G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 3.29,
+      "valor_total": 3.29
+    },
+    {
+      "numero": 12,
+      "codigo": "353123",
+      "descricao": "PASSATA FUGINI 300G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 3.29,
+      "valor_total": 3.29
+    },
+    {
+      "numero": 13,
+      "codigo": "242950",
+      "descricao": "KETCHUP KISABOR 380G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 3.98,
+      "valor_total": 3.98
+    },
+    {
+      "numero": 14,
+      "codigo": "59080",
+      "descricao": "FARINHA TRIGO RENATA 1KG",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 7.29,
+      "valor_total": 7.29
+    },
+    {
+      "numero": 15,
+      "codigo": "338826",
+      "descricao": "MANT MATILAT C/SAL 200G",
+      "quantidade": 2.0,
+      "unidade": "UN",
+      "valor_unitario": 9.89,
+      "valor_total": 19.78
+    },
+    {
+      "numero": 16,
+      "codigo": "361008",
+      "descricao": "PANETTONE PARATI CHOC 400G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 20.9,
+      "valor_total": 20.9
+    },
+    {
+      "numero": 17,
+      "codigo": "342390",
+      "descricao": "CEBOLA NACIONAL KG",
+      "quantidade": 0.5448,
+      "unidade": "KG",
+      "valor_unitario": 2.79,
+      "valor_total": 1.52
+    },
+    {
+      "numero": 18,
+      "codigo": "364766",
+      "descricao": "MAIONESE CEPERA TRAD 200G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 3.49,
+      "valor_total": 3.49
+    },
+    {
+      "numero": 19,
+      "codigo": "351117",
+      "descricao": "MOSTARDA QUERO 190G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 6.19,
+      "valor_total": 6.19
+    },
+    {
+      "numero": 20,
+      "codigo": "344213",
+      "descricao": "LEITE ITALAC INT C/TAMPA 1L",
+      "quantidade": 4.0,
+      "unidade": "UN",
+      "valor_unitario": 4.29,
+      "valor_total": 17.16
+    },
+    {
+      "numero": 21,
+      "codigo": "360891",
+      "descricao": "OVOS CAIPIRA NATUREGG VERM C/10",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 11.89,
+      "valor_total": 11.89
+    },
+    {
+      "numero": 22,
+      "codigo": "360891",
+      "descricao": "OVOS CAIPIRA NATUREGG VERM C/10",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 11.89,
+      "valor_total": 11.89
+    },
+    {
+      "numero": 23,
+      "codigo": "322881",
+      "descricao": "OVOS SATOSHI VERM PVC C/12",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 9.39,
+      "valor_total": 9.39
+    },
+    {
+      "numero": 24,
+      "codigo": "354238",
+      "descricao": "PAO DE QUEIJO MASSA BOA 1KG",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 13.98,
+      "valor_total": 13.98
+    },
+    {
+      "numero": 25,
+      "codigo": "354241",
+      "descricao": "KIBE MASSA BOA 1KG",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 19.98,
+      "valor_total": 19.98
+    },
+    {
+      "numero": 26,
+      "codigo": "364893",
+      "descricao": "IOG FRUTAP MOR C/L COND 1,25KG",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 12.39,
+      "valor_total": 12.39
+    },
+    {
+      "numero": 27,
+      "codigo": "339930",
+      "descricao": "REQ CATUPIRY TRAD 200G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 7.49,
+      "valor_total": 7.49
+    },
+    {
+      "numero": 28,
+      "codigo": "364507",
+      "descricao": "CAPELETTI MASSA LEVE CARNE 1KG",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 24.98,
+      "valor_total": 24.98
+    },
+    {
+      "numero": 29,
+      "codigo": "111350",
+      "descricao": "POLVILHO KISABOR AZEDO 500G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 11.79,
+      "valor_total": 11.79
+    },
+    {
+      "numero": 30,
+      "codigo": "55247",
+      "descricao": "POLVILHO YOKI DOCE 500G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 12.59,
+      "valor_total": 12.59
+    },
+    {
+      "numero": 31,
+      "codigo": "342429",
+      "descricao": "MARACUJA AZEDO KG",
+      "quantidade": 0.5624,
+      "unidade": "KG",
+      "valor_unitario": 8.98,
+      "valor_total": 5.05
+    },
+    {
+      "numero": 32,
+      "codigo": "342395",
+      "descricao": "LIMAO TAITI KG",
+      "quantidade": 0.3454,
+      "unidade": "KG",
+      "valor_unitario": 4.98,
+      "valor_total": 1.72
+    },
+    {
+      "numero": 33,
+      "codigo": "355165",
+      "descricao": "SACOLA RETORNAVEL CAPROLA SORT",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 8.98,
+      "valor_total": 8.98
+    },
+    {
+      "numero": 34,
+      "codigo": "350373",
+      "descricao": "ALHO A GRANEL KG",
+      "quantidade": 0.2819,
+      "unidade": "KG",
+      "valor_unitario": 29.9,
+      "valor_total": 8.43
+    },
+    {
+      "numero": 35,
+      "codigo": "342074",
+      "descricao": "BANANA NANICA KG",
+      "quantidade": 1.1882,
+      "unidade": "KG",
+      "valor_unitario": 6.59,
+      "valor_total": 7.83
+    },
+    {
+      "numero": 36,
+      "codigo": "342389",
+      "descricao": "BATATA KG",
+      "quantidade": 1.3875,
+      "unidade": "KG",
+      "valor_unitario": 2.89,
+      "valor_total": 4.01
+    },
+    {
+      "numero": 37,
+      "codigo": "342115",
+      "descricao": "PIPOCA VOVOZINHA DOCE 150G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 4.69,
+      "valor_total": 4.69
+    },
+    {
+      "numero": 38,
+      "codigo": "235717",
+      "descricao": "AMENDOIM YOKI BCO 500G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 19.19,
+      "valor_total": 19.19
+    },
+    {
+      "numero": 39,
+      "codigo": "363314",
+      "descricao": "FAROFA MANDIOCA YOKI COSTELINHA DEF 200G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 4.99,
+      "valor_total": 4.99
+    },
+    {
+      "numero": 40,
+      "codigo": "363916",
+      "descricao": "BATATA PALHA YOKI 105G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 7.29,
+      "valor_total": 7.29
+    },
+    {
+      "numero": 41,
+      "codigo": "340710",
+      "descricao": "BISC CLUB SOCIAL ORIG 6X24G",
+      "quantidade": 2.0,
+      "unidade": "UN",
+      "valor_unitario": 4.98,
+      "valor_total": 9.96
+    },
+    {
+      "numero": 42,
+      "codigo": "363357",
+      "descricao": "BISC BAUDUCCO BAN C/CANELA 354G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 6.29,
+      "valor_total": 6.29
+    },
+    {
+      "numero": 43,
+      "codigo": "360527",
+      "descricao": "BISC BONO RECH CHOC 90G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 2.69,
+      "valor_total": 2.69
+    },
+    {
+      "numero": 44,
+      "codigo": "361556",
+      "descricao": "BISC PIRAQUE LEITE MALTADO 132G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 2.89,
+      "valor_total": 2.89
+    },
+    {
+      "numero": 45,
+      "codigo": "351936",
+      "descricao": "BISC TRAKINAS RECH CHOC/MOR 126G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 2.39,
+      "valor_total": 2.39
+    },
+    {
+      "numero": 46,
+      "codigo": "360527",
+      "descricao": "BISC BONO RECH CHOC 90G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 2.69,
+      "valor_total": 2.69
+    },
+    {
+      "numero": 47,
+      "codigo": "361556",
+      "descricao": "BISC PIRAQUE LEITE MALTADO 132G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 2.89,
+      "valor_total": 2.89
+    },
+    {
+      "numero": 48,
+      "codigo": "360500",
+      "descricao": "ACHOC TODDY EMB ECON 700G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 16.98,
+      "valor_total": 16.98
+    },
+    {
+      "numero": 49,
+      "codigo": "365593",
+      "descricao": "PANETTONE PARATI FR 400G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 20.9,
+      "valor_total": 20.9
+    },
+    {
+      "numero": 50,
+      "codigo": "344933",
+      "descricao": "NISSIN COSTELA 85G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 1.98,
+      "valor_total": 1.98
+    },
+    {
+      "numero": 51,
+      "codigo": "344933",
+      "descricao": "NISSIN COSTELA 85G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 1.98,
+      "valor_total": 1.98
+    },
+    {
+      "numero": 52,
+      "codigo": "54917",
+      "descricao": "MAC INS NISSIN LAMEN CARNE/TOM 85G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 1.98,
+      "valor_total": 1.98
+    },
+    {
+      "numero": 53,
+      "codigo": "54917",
+      "descricao": "MAC INS NISSIN LAMEN CARNE/TOM 85G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 1.98,
+      "valor_total": 1.98
+    },
+    {
+      "numero": 54,
+      "codigo": "272159",
+      "descricao": "MASSA PRONTA RAP10 INT 297G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 11.98,
+      "valor_total": 11.98
+    },
+    {
+      "numero": 55,
+      "codigo": "361253",
+      "descricao": "MILHO PIPOCA YOKI 400G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 5.98,
+      "valor_total": 5.98
+    },
+    {
+      "numero": 56,
+      "codigo": "353161",
+      "descricao": "TEMP TOM/CEB/SALSA KININO 15G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 2.98,
+      "valor_total": 2.98
+    },
+    {
+      "numero": 57,
+      "codigo": "353164",
+      "descricao": "TEMP ALHO/CEB/SALSA KININO 20G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 2.69,
+      "valor_total": 2.69
+    },
+    {
+      "numero": 58,
+      "codigo": "362881",
+      "descricao": "ESC DENT ORAL-B 123 C/3",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 10.79,
+      "valor_total": 10.79
+    },
+    {
+      "numero": 59,
+      "codigo": "133906",
+      "descricao": "SACO LIXO ENROLADINHO 50L C/10",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 8.59,
+      "valor_total": 8.59
+    },
+    {
+      "numero": 60,
+      "codigo": "219614",
+      "descricao": "HASTES FLEX COTONETES C/75",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 5.98,
+      "valor_total": 5.98
+    },
+    {
+      "numero": 61,
+      "codigo": "302252",
+      "descricao": "CR LEITE ITALAC 200G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 3.29,
+      "valor_total": 3.29
+    },
+    {
+      "numero": 62,
+      "codigo": "302252",
+      "descricao": "CR LEITE ITALAC 200G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 3.29,
+      "valor_total": 3.29
+    },
+    {
+      "numero": 63,
+      "codigo": "239828",
+      "descricao": "AB CLAMEL BABY 160G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 7.98,
+      "valor_total": 7.98
+    },
+    {
+      "numero": 64,
+      "codigo": "355915",
+      "descricao": "SACOLA EXT OXI-BIOD 50X60",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 0.25,
+      "valor_total": 0.25
+    },
+    {
+      "numero": 65,
+      "codigo": "207551",
+      "descricao": "LEITE CONDENSADO ITALAC SEMI 395G",
+      "quantidade": 4.0,
+      "unidade": "UN",
+      "valor_unitario": 6.49,
+      "valor_total": 25.96
+    },
+    {
+      "numero": 66,
+      "codigo": "358620",
+      "descricao": "BIFINHO BAW WAW PORTE PQ CAR 300G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 15.98,
+      "valor_total": 15.98
+    },
+    {
+      "numero": 67,
+      "codigo": "360434",
+      "descricao": "CAPSULA D GUSTO LUGO 70G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 18.9,
+      "valor_total": 18.9
+    },
+    {
+      "numero": 68,
+      "codigo": "360433",
+      "descricao": "CAPSULA D GUSTO CAFEE MATINAL 80G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 18.9,
+      "valor_total": 18.9
+    },
+    {
+      "numero": 69,
+      "codigo": "255823",
+      "descricao": "FILTRO PAPEL 3 CORACOES 102 C/30",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 3.79,
+      "valor_total": 3.79
+    },
+    {
+      "numero": 70,
+      "codigo": "255823",
+      "descricao": "FILTRO PAPEL 3 CORACOES 102 C/30",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 3.79,
+      "valor_total": 3.79
+    },
+    {
+      "numero": 71,
+      "codigo": "61069",
+      "descricao": "FEIJAO BROTO LEGAL CARIOCA 1KG",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 7.69,
+      "valor_total": 7.69
+    },
+    {
+      "numero": 72,
+      "codigo": "361133",
+      "descricao": "CHOC NEUGEBAUER 40% CACAU 80G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 4.49,
+      "valor_total": 4.49
+    },
+    {
+      "numero": 73,
+      "codigo": "365240",
+      "descricao": "CHOC CLASSIC AO LEITE 20% 80G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 7.59,
+      "valor_total": 7.59
+    },
+    {
+      "numero": 74,
+      "codigo": "365240",
+      "descricao": "CHOC CLASSIC AO LEITE 20% 80G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 7.59,
+      "valor_total": 7.59
+    },
+    {
+      "numero": 75,
+      "codigo": "365280",
+      "descricao": "CHOC TRENTO MOMENTOS 168G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 11.9,
+      "valor_total": 11.9
+    },
+    {
+      "numero": 76,
+      "codigo": "365280",
+      "descricao": "CHOC TRENTO MOMENTOS 168G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 11.9,
+      "valor_total": 11.9
+    },
+    {
+      "numero": 77,
+      "codigo": "355493",
+      "descricao": "MEL HOLANDA BISNAGA 200G",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 12.98,
+      "valor_total": 12.98
+    },
+    {
+      "numero": 78,
+      "codigo": "70173",
+      "descricao": "SARDINHA COQUEIRO OLEO 125G",
+      "quantidade": 2.0,
+      "unidade": "UN",
+      "valor_unitario": 5.98,
+      "valor_total": 11.96
+    },
+    {
+      "numero": 79,
+      "codigo": "352442",
+      "descricao": "MILHO VERDE QUERO 170G",
+      "quantidade": 2.0,
+      "unidade": "UN",
+      "valor_unitario": 3.19,
+      "valor_total": 6.38
+    },
+    {
+      "numero": 80,
+      "codigo": "352174",
+      "descricao": "ATUM R CRUSOE SOLIDO NAT 170G",
+      "quantidade": 2.0,
+      "unidade": "UN",
+      "valor_unitario": 8.98,
+      "valor_total": 17.96
+    },
+    {
+      "numero": 81,
+      "codigo": "360221",
+      "descricao": "AZEITE SACCIALI EX VIRGEM 500ML",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 29.98,
+      "valor_total": 29.98
+    },
+    {
+      "numero": 82,
+      "codigo": "345985",
+      "descricao": "OLEO VILA VELHA SOJA 900ML",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 7.59,
+      "valor_total": 7.59
+    },
+    {
+      "numero": 83,
+      "codigo": "363828",
+      "descricao": "SACO MICROFREEZER MAIS UTIL 27X40CM",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 5.69,
+      "valor_total": 5.69
+    },
+    {
+      "numero": 84,
+      "codigo": "361679",
+      "descricao": "TOALHA PAPEL KITCHEN C/3",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 15.98,
+      "valor_total": 15.98
+    },
+    {
+      "numero": 85,
+      "codigo": "37001",
+      "descricao": "ARROZ BROTO LEGAL 5KG",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 23.98,
+      "valor_total": 23.98
+    },
+    {
+      "numero": 86,
+      "codigo": "34673",
+      "descricao": "ACUCAR REFINADO UNIAO 1KG",
+      "quantidade": 1.0,
+      "unidade": "UN",
+      "valor_unitario": 4.49,
+      "valor_total": 4.49
+    }
+  ],
+  "totais": {
+    "total": 848.93,
+    "cartao_debito": 848.93
+  },
+  "informacoes_fiscais": {
+    "numero_extrato": "109238",
+    "numero_sat": "001455440-28",
+    "data": "22/10/2025",
+    "hora": "13:56:54",
+    "chave_acesso": "35251046029724000754590014554401092387563589"
+  },
+  "data_extracao": "2025-11-10T01:31:01.127931"
+}

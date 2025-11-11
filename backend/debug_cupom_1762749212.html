@@ -1,0 +1,2266 @@
+<html xmlns="http://www.w3.org/1999/xhtml"><head id="Head1"><title>
+	Secretaria da Fazenda - Governo do Estado de São Paulo
+</title><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"><meta name="author" content="DTI"><meta name="description" content="Secretaria da Fazenda do Estado de São Paulo"><meta name="keywords" content="secretaria, fazenda, sefaz, ICMS, IPVA, governo, São Paulo"><meta name="copyright" content="Copyright © 2010 Secretaria da Fazenda do Estado de São Paulo - Todos os direitos reservados"><meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    
+    <!--PBI 339321 - [satsp][website] Atualização da biblioteca AjaxControlToolKit -->
+    <!--Alterado em: 19/03/2024.-->
+    <!--Foi mantida a versão atual do AjaxControlToolkit para manutenção do ToolkitScriptManager. Utilização do composite script e atributo EnableCdn=false-->
+    <!--Alterado por: MP Dantas.-->
+
+    <!--PBI 287466 - [satsp][web-site] Atualizações de componentes-->
+    <!--Alterado em: 14/11/2023.-->
+    <!--Alterado por: MP Dantas.-->
+    
+    <!--PBI 287467 - [satsp][web-site] Minificar os recursos carregados na página-->
+    <!--Criado em: 02/10/2023-->
+    <!--Criado por: MP Dantas-->
+    <!--Página PublicExtranet.Master-->
+    
+    <!--Arquivo BundlerCSS.min.css - Minificado contemplendo os arquivos - CSS-->
+    <link href="../../App_Themes/Minifier/BundlerCSS.min.css" rel="stylesheet" type="text/css">    
+    
+     <!--Arquivo BundlerJS.min.js - Minificado contemplendo os arquivos - JS -->
+    <script type="text/javascript" src="../../App_Themes/Minifier/BundlerJS.min.js"></script>
+       
+    <!--PBI 287467 - [satsp][web-site] Minificar os recursos carregados na página-->
+    <!--Criado em: 02/10/2023-->
+    <!--Criado por: MP Dantas-->   
+       
+    <!--Fim Jquery-->
+    <link type="/images/x-icon" href="../../App_Themes/Default/extranet/images/favicon_novo.ico" rel="shortcut icon">
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+
+        #tableItens td {
+            padding-top: .3em;
+            padding-bottom: .3em;
+        }
+
+        #tableItens th {
+            border-right: 1px solid black;
+            height: 5px;
+            border-bottom: 1px dotted black;
+            padding-bottom: 2px;
+            font-weight: normal;
+        }
+
+        #tableItens tr {
+            word-break: keep-all;
+        }
+    </style>
+
+    
+
+    
+
+    
+<meta http-equiv="Cache-Control" content="No-Cache"><meta http-equiv="Pragma" content="No-Cache"><meta http-equiv="Expires" content="0">
+      <script type="text/javascript" language="javascript">
+          window.history.forward(); function noBack() { window.history.forward(); }
+    </script>
+</head>
+<body onload="noBack();" onpageshow="if (event.persisted) noBack();" onunload=""><map name="imlogoMap">
+    <area shape="rect" coords="32,0,114,74" href="http://www.saopaulo.sp.gov.br/home/index.htm" target="_blank" alt="Governo do Estado de São Paulo">
+</map>
+
+    <div class="wrapper">
+        <form method="post" action="./ConsultaCupomFiscalEletronico.aspx" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="ToolkitScriptManager1_HiddenField" id="ToolkitScriptManager1_HiddenField" value="">
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="">
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="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">
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['form1'];
+if (!theForm) {
+    theForm = document.form1;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+
+<script type="text/javascript">
+//<![CDATA[
+var __cultureInfo = {"name":"pt-BR","numberFormat":{"CurrencyDecimalDigits":2,"CurrencyDecimalSeparator":",","IsReadOnly":true,"CurrencyGroupSizes":[3],"NumberGroupSizes":[3],"PercentGroupSizes":[3],"CurrencyGroupSeparator":".","CurrencySymbol":"R$","NaNSymbol":"NaN","CurrencyNegativePattern":1,"NumberNegativePattern":1,"PercentPositivePattern":1,"PercentNegativePattern":1,"NegativeInfinitySymbol":"-∞","NegativeSign":"-","NumberDecimalDigits":2,"NumberDecimalSeparator":",","NumberGroupSeparator":".","CurrencyPositivePattern":0,"PositiveInfinitySymbol":"∞","PositiveSign":"+","PercentDecimalDigits":2,"PercentDecimalSeparator":",","PercentGroupSeparator":".","PercentSymbol":"%","PerMilleSymbol":"‰","NativeDigits":["0","1","2","3","4","5","6","7","8","9"],"DigitSubstitution":1},"dateTimeFormat":{"AMDesignator":"","Calendar":{"MinSupportedDateTime":"\/Date(-62135589600000)\/","MaxSupportedDateTime":"\/Date(253402300799999)\/","AlgorithmType":1,"CalendarType":1,"Eras":[1],"TwoDigitYearMax":2049,"IsReadOnly":true},"DateSeparator":"/","FirstDayOfWeek":0,"CalendarWeekRule":0,"FullDateTimePattern":"dddd, d\u0027 de \u0027MMMM\u0027 de \u0027yyyy HH:mm:ss","LongDatePattern":"dddd, d\u0027 de \u0027MMMM\u0027 de \u0027yyyy","LongTimePattern":"HH:mm:ss","MonthDayPattern":"d \u0027de\u0027 MMMM","PMDesignator":"","RFC1123Pattern":"ddd, dd MMM yyyy HH\u0027:\u0027mm\u0027:\u0027ss \u0027GMT\u0027","ShortDatePattern":"dd/MM/yyyy","ShortTimePattern":"HH:mm","SortableDateTimePattern":"yyyy\u0027-\u0027MM\u0027-\u0027dd\u0027T\u0027HH\u0027:\u0027mm\u0027:\u0027ss","TimeSeparator":":","UniversalSortableDateTimePattern":"yyyy\u0027-\u0027MM\u0027-\u0027dd HH\u0027:\u0027mm\u0027:\u0027ss\u0027Z\u0027","YearMonthPattern":"MMMM\u0027 de \u0027yyyy","AbbreviatedDayNames":["dom","seg","ter","qua","qui","sex","sáb"],"ShortestDayNames":["D","S","T","Q","Q","S","S"],"DayNames":["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"],"AbbreviatedMonthNames":["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez",""],"MonthNames":["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro",""],"IsReadOnly":true,"NativeCalendarName":"Calendário gregoriano","AbbreviatedMonthGenitiveNames":["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez",""],"MonthGenitiveNames":["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro",""]},"eras":[1,"d.C.",null,0]};//]]>
+</script>
+
+<script src="/COMSAT/ScriptResource.axd?d=pCPbBHxUbR_wEaFg8usOcrxj9_3gaQh6mTaiu-C_aDLi9IJv4my-PR2vak72DITve2foyBtyAOnileDq1IflbchLhcMwvBLyGyz3SOSxpaa4nFeFhGxKV56YUGvBWVJZtoL_GN_5LytZ2CjpWroJmCER7jJoqz1iFaZuekrs4egpssbOsg2r4NIVZSzAAx0dTESuXKPQ-3U3Mxb_h49XA13g8OSzo6biUrDcY2i7WYa4pNPCmtosfnkToM1Y-tq06s1iQoLgWuq4Wo6dMAeII9RGbc41" type="text/javascript"></script>
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="E9A34A73">
+	<input type="hidden" name="__SCROLLPOSITIONX" id="__SCROLLPOSITIONX" value="0">
+	<input type="hidden" name="__SCROLLPOSITIONY" id="__SCROLLPOSITIONY" value="3765">
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="6+D9LAAMoAMmKBrpwomdxu52rnkFU9qoKK19v0a5tM+lncLHdDU39cwYADs1TuOChq8D/VMoOgrorNl1aULtIZbko8MIsdi6Emn6kY9+uMU/oK0JBy7HlTzKVZZ6lU8rZZBM9zgUMVKEHC3rY8oW9VFDcs9p3FYUlN43/D+2B4XUCpZi/sCJEB7Q8R/HBmB0cC4shA==">
+</div>
+        <script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('ctl00$ToolkitScriptManager1', 'form1', [], [], [], 90, 'ctl00');
+//]]>
+</script>
+
+        <div class="BodyStyle">
+            <div class="TopStyle">
+                <div class="TobBannerStyle">
+                    <div style="height: 65px; border-bottom-color: #000000; border-bottom-width: 1px; border-bottom-style: solid; margin-top: 0px; margin-bottom: 0px; padding-top: 0px; padding-bottom: 25px;">
+                        <div style="float: left; text-align: left;">
+                            <a name="topo"></a>
+                            <h1 id="logo" style="margin: 0px;">
+                                                                      
+                                    <a id="imgLogoFazenda_sprite" class="sprite_ logo" alternatetext="Secretaria da Fazenda" href="http://www.fazenda.sp.gov.br" style="display:inline-block;height:65px;width:255px;margin-top: 10px;"></a>   
+                            </h1>
+                        </div>
+                        <div style="float: right;">
+                             
+                            <a id="imgHeader_sprite" class="sprite_ header_bg" alternatetext="Secretaria da Fazenda" href="http://www.fazenda.sp.gov.br" style="display:inline-block;height:70px;width:410px;margin-top: 10px;"></a>  
+                        </div>
+                    </div>
+                    <div style="height: 50px; border-bottom-color: #000000; border-bottom-style: solid; border-bottom-width: 1px;">
+                        <div style="float: right; padding-top: 15px; padding-left: 15px;" class="titulo_pagina">
+                            
+
+                        </div>
+                        <div class="titulo_sistema_extra" style="padding-top: 10px; padding-left: 15px; float: left;">
+                            Cupom Fiscal Eletrônico SAT
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div class="ContentStyle" style="margin-top: 50px;">
+                <div class="centerSpace">
+                </div>
+                <div class="center" style="margin-top: 40px;">
+                    <table align="center" cellspacing="0" cellpadding="0.8px" class="bordaTabela">
+                        <tbody><tr>
+                           
+                        </tr>
+                        <tr>
+                           
+                            <td class="formContent" style="border-radius:8px">
+                                <div class="BoxLineStyle">                                   
+                                    <div class="titulo_pagina" style="text-align: center; padding: 10px;">                                        
+                                        
+
+                                    </div>
+                                    <div class="BoxLineItemStyle_1x" style="text-align: center;">
+                                        
+
+                                    </div>
+                                    <div class="BoxClose">
+                                    </div>
+                                </div>
+                                <div>
+                                    
+    <div style="text-align: center;">
+        <div id="divTelaImpressao">
+            <div id="conteudo_divMovimento" style="border: 1px solid #000; min-height: 300px; text-align: center; padding: 5px; background-color: #ffffcc; width: 500px;">
+                <center>
+                    <div id="DadosEmitente1" style="width: 330px;">
+                        <div id="DadosEmitenteContent" style="text-align: center">
+                            <div>
+                                <span id="conteudo_lblNomeFantasiaEmitente"></span>
+                            </div>
+                            <div>
+                                <span id="conteudo_lblNomeEmitente">HIGA PRODUTOS ALIMENTICIOS LTDA</span>
+                            </div>
+                            <div>
+                                <span>Endereço: </span>
+                                <span id="conteudo_lblEnderecoEmintente">AVENIDA OSWALDO VEIGA, Nº 628 - Nao Informado</span><br>
+                                <span>Bairro: </span>
+                                <span id="conteudo_lblBairroEmitente">RESIDENCIAL BELA ALIANCA</span>&nbsp;-&nbsp; <span>CEP:
+                                </span>
+                                <span id="conteudo_lblCepEmitente">13059-520</span>&nbsp;-&nbsp;
+                                <span id="conteudo_lblMunicipioEmitente">CAMPINAS</span>
+                                <span>- SP</span>
+                            </div>
+                        </div>
+                    </div>
+                </center>
+                <div id="DadosEmitente2" style="text-align: center; width: 100%; padding-top: 8px">
+                    <span>&nbsp;CNPJ:&nbsp;</span>
+                    <span id="conteudo_lblCnpjEmitente">46.029.724/0007-54</span>
+                    <span>&nbsp;I.E.:&nbsp;</span>
+                    <span id="conteudo_lblIeEmitente">124677127112 </span>
+                    <span>&nbsp;I.M.:&nbsp;</span>
+                    <span id="conteudo_lblImEmintente"></span>
+                </div>
+                <span>--------------------------------------------------------------------------------------------------------------</span>
+                <div>
+                    <div style="font-weight: bold;">
+                        <div>
+                            <span>Extrato Nº:</span>
+                            <span id="conteudo_lblNumeroCfe">109238</span>
+                        </div>
+                        <div>
+                            <span>CUPOM FISCAL ELETRÔNICO - SAT</span>
+                        </div>
+                    </div>
+                </div>
+                <span>--------------------------------------------------------------------------------------------------------------</span>
+                <div id="Consumidor1" style="text-align: left; padding-left: 30px;">
+                    <span>CPF/CNPJ do Consumidor: </span>
+                    <span id="conteudo_lblCpfConsumidor"></span>
+                </div>
+                <div id="divRazaoSocial" style="text-align: left; padding-left: 30px;">
+                    <span>Razão Social/ Nome: </span>
+                    <span id="conteudo_lblRazaoSocial">XXX</span>
+                </div>
+                <span>--------------------------------------------------------------------------------------------------------------</span>
+                <div>
+                    
+                            <table cellspacing="0" id="tableItens" cellpadding="0">
+                                <colgroup>
+                                    <col width="5%">
+                                    <col width="5%">
+                                    <col width="15%">
+                                    <col width="5%">
+                                    <col width="5%">
+                                    <col width="10%">
+                                    <col width="10%">
+                                    <col width="10%">
+                                    <col width="5%">
+                                    </colgroup><thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>COD</th>
+                                            <th>DESCRIÇÃO</th>
+                                            <th>QTD</th>
+                                            <th>UN</th>
+                                            <th>VL UN R$</th>
+                                            <th>(VL TR R$)* </th>
+                                            <th style="border-right: 0px">VL ITEM R$</th>
+                                        </tr>
+                                        <tr>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        
+
+                            <tr>
+                                <td>1</td>
+                                <td>362585</td>
+                                <td>PAPEL HIG FAMILIAR 16X30M FD</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    23,98</td>
+                                <td>(3,88)</td>
+                                <td>23,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>2</td>
+                                <td>355165</td>
+                                <td>SACOLA RETORNAVEL CAPROLA SORT</td>
+                                <td>2,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    8,98</td>
+                                <td>(6,18)</td>
+                                <td>17,96</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>3</td>
+                                <td>365895</td>
+                                <td>TOALHA UMED LARA BABY RN C/120</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    10,39</td>
+                                <td>(3,76)</td>
+                                <td>10,39</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>4</td>
+                                <td>361426</td>
+                                <td>PANO MICROFIBRA LUXCAR C/10</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    28,98</td>
+                                <td>(6,43)</td>
+                                <td>28,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>5</td>
+                                <td>353529</td>
+                                <td>ESP SCOTCH BRITE EMB ECON C/4</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    6,98</td>
+                                <td>(2,20)</td>
+                                <td>6,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>6</td>
+                                <td>342833</td>
+                                <td>AMAC YPE CONC BRISA LILAS 500ML</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    9,19</td>
+                                <td>(2,34)</td>
+                                <td>9,19</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>7</td>
+                                <td>350049</td>
+                                <td>SAB LIQ LUX 200ML ROSAS FRANC REF</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    8,98</td>
+                                <td>(3,64)</td>
+                                <td>8,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>8</td>
+                                <td>352047</td>
+                                <td>DET LIQ OMO LAVAG PERF 900ML</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    12,79</td>
+                                <td>(0,00)</td>
+                                <td>12,79</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>9</td>
+                                <td>345547</td>
+                                <td>DET YPE CAPIM LIM 500ML</td>
+                                <td>2,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,39</td>
+                                <td>(0,00)</td>
+                                <td>4,78</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>10</td>
+                                <td>341965</td>
+                                <td>DESOD REXONA AERO F EMOTION 150ML</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    14,59</td>
+                                <td>(6,56)</td>
+                                <td>14,59</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>11</td>
+                                <td>353123</td>
+                                <td>PASSATA FUGINI 300G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    3,29</td>
+                                <td>(0,00)</td>
+                                <td>3,29</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>12</td>
+                                <td>353123</td>
+                                <td>PASSATA FUGINI 300G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    3,29</td>
+                                <td>(0,00)</td>
+                                <td>3,29</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>13</td>
+                                <td>242950</td>
+                                <td>KETCHUP KISABOR 380G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    3,98</td>
+                                <td>(1,25)</td>
+                                <td>3,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>14</td>
+                                <td>59080</td>
+                                <td>FARINHA TRIGO RENATA 1KG</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    7,29</td>
+                                <td>(0,82)</td>
+                                <td>7,29</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>15</td>
+                                <td>338826</td>
+                                <td>MANT MATILAT C/SAL 200G</td>
+                                <td>2,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    9,89</td>
+                                <td>(2,22)</td>
+                                <td>19,78</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>16</td>
+                                <td>361008</td>
+                                <td>PANETTONE PARATI CHOC 400G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    20,90</td>
+                                <td>(5,32)</td>
+                                <td>20,90</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>17</td>
+                                <td>342390</td>
+                                <td>CEBOLA NACIONAL KG</td>
+                                <td>0,5448</td>
+                                <td>KG</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,79</td>
+                                <td>(0,34)</td>
+                                <td>1,52</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>18</td>
+                                <td>364766</td>
+                                <td>MAIONESE CEPERA TRAD 200G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    3,49</td>
+                                <td>(1,10)</td>
+                                <td>3,49</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>19</td>
+                                <td>351117</td>
+                                <td>MOSTARDA QUERO 190G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    6,19</td>
+                                <td>(1,95)</td>
+                                <td>6,19</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>20</td>
+                                <td>344213</td>
+                                <td>LEITE ITALAC INT C/TAMPA 1L</td>
+                                <td>4,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    4,29</td>
+                                <td>(0,72)</td>
+                                <td>17,16</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>21</td>
+                                <td>360891</td>
+                                <td>OVOS CAIPIRA NATUREGG VERM C/10</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    11,89</td>
+                                <td>(1,33)</td>
+                                <td>11,89</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>22</td>
+                                <td>360891</td>
+                                <td>OVOS CAIPIRA NATUREGG VERM C/10</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    11,89</td>
+                                <td>(1,33)</td>
+                                <td>11,89</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>23</td>
+                                <td>322881</td>
+                                <td>OVOS SATOSHI VERM PVC C/12</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    9,39</td>
+                                <td>(1,05)</td>
+                                <td>9,39</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>24</td>
+                                <td>354238</td>
+                                <td>PAO DE QUEIJO MASSA BOA 1KG</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    13,98</td>
+                                <td>(0,00)</td>
+                                <td>13,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>25</td>
+                                <td>354241</td>
+                                <td>KIBE MASSA BOA 1KG</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    19,98</td>
+                                <td>(4,44)</td>
+                                <td>19,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>26</td>
+                                <td>364893</td>
+                                <td>IOG FRUTAP MOR C/L COND 1,25KG</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    12,39</td>
+                                <td>(0,00)</td>
+                                <td>12,39</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>27</td>
+                                <td>339930</td>
+                                <td>REQ CATUPIRY TRAD 200G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    7,49</td>
+                                <td>(1,21)</td>
+                                <td>7,49</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>28</td>
+                                <td>364507</td>
+                                <td>CAPELETTI MASSA LEVE CARNE 1KG</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    24,98</td>
+                                <td>(5,55)</td>
+                                <td>24,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>29</td>
+                                <td>111350</td>
+                                <td>POLVILHO KISABOR AZEDO 500G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    11,79</td>
+                                <td>(3,71)</td>
+                                <td>11,79</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>30</td>
+                                <td>55247</td>
+                                <td>POLVILHO YOKI DOCE 500G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    12,59</td>
+                                <td>(3,96)</td>
+                                <td>12,59</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>31</td>
+                                <td>342429</td>
+                                <td>MARACUJA AZEDO KG</td>
+                                <td>0,5624</td>
+                                <td>KG</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    8,98</td>
+                                <td>(0,00)</td>
+                                <td>5,05</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>32</td>
+                                <td>342395</td>
+                                <td>LIMAO TAITI KG</td>
+                                <td>0,3454</td>
+                                <td>KG</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    4,98</td>
+                                <td>(0,38)</td>
+                                <td>1,72</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>33</td>
+                                <td>355165</td>
+                                <td>SACOLA RETORNAVEL CAPROLA SORT</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    8,98</td>
+                                <td>(3,09)</td>
+                                <td>8,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>34</td>
+                                <td>350373</td>
+                                <td>ALHO A GRANEL KG</td>
+                                <td>0,2819</td>
+                                <td>KG</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    29,90</td>
+                                <td>(0,94)</td>
+                                <td>8,43</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>35</td>
+                                <td>342074</td>
+                                <td>BANANA NANICA KG</td>
+                                <td>1,1882</td>
+                                <td>KG</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    6,59</td>
+                                <td>(1,74)</td>
+                                <td>7,83</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>36</td>
+                                <td>342389</td>
+                                <td>BATATA KG</td>
+                                <td>1,3875</td>
+                                <td>KG</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,89</td>
+                                <td>(0,89)</td>
+                                <td>4,01</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>37</td>
+                                <td>342115</td>
+                                <td>PIPOCA VOVOZINHA DOCE 150G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    4,69</td>
+                                <td>(1,48)</td>
+                                <td>4,69</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>38</td>
+                                <td>235717</td>
+                                <td>AMENDOIM YOKI BCO 500G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    19,19</td>
+                                <td>(6,04)</td>
+                                <td>19,19</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>39</td>
+                                <td>363314</td>
+                                <td>FAROFA MANDIOCA YOKI COSTELINHA DEF 200G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    4,99</td>
+                                <td>(0,56)</td>
+                                <td>4,99</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>40</td>
+                                <td>363916</td>
+                                <td>BATATA PALHA YOKI 105G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    7,29</td>
+                                <td>(1,49)</td>
+                                <td>7,29</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>41</td>
+                                <td>340710</td>
+                                <td>BISC CLUB SOCIAL ORIG 6X24G</td>
+                                <td>2,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    4,98</td>
+                                <td>(2,53)</td>
+                                <td>9,96</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>42</td>
+                                <td>363357</td>
+                                <td>BISC BAUDUCCO BAN C/CANELA 354G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    6,29</td>
+                                <td>(1,29)</td>
+                                <td>6,29</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>43</td>
+                                <td>360527</td>
+                                <td>BISC BONO RECH CHOC 90G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,69</td>
+                                <td>(0,55)</td>
+                                <td>2,69</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>44</td>
+                                <td>361556</td>
+                                <td>BISC PIRAQUE LEITE MALTADO 132G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,89</td>
+                                <td>(0,59)</td>
+                                <td>2,89</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>45</td>
+                                <td>351936</td>
+                                <td>BISC TRAKINAS RECH CHOC/MOR 126G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,39</td>
+                                <td>(0,49)</td>
+                                <td>2,39</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>46</td>
+                                <td>360527</td>
+                                <td>BISC BONO RECH CHOC 90G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,69</td>
+                                <td>(0,55)</td>
+                                <td>2,69</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>47</td>
+                                <td>361556</td>
+                                <td>BISC PIRAQUE LEITE MALTADO 132G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,89</td>
+                                <td>(0,59)</td>
+                                <td>2,89</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>48</td>
+                                <td>360500</td>
+                                <td>ACHOC TODDY EMB ECON 700G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    16,98</td>
+                                <td>(6,15)</td>
+                                <td>16,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>49</td>
+                                <td>365593</td>
+                                <td>PANETTONE PARATI FR 400G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    20,90</td>
+                                <td>(5,32)</td>
+                                <td>20,90</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>50</td>
+                                <td>344933</td>
+                                <td>NISSIN COSTELA 85G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    1,98</td>
+                                <td>(0,44)</td>
+                                <td>1,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>51</td>
+                                <td>344933</td>
+                                <td>NISSIN COSTELA 85G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    1,98</td>
+                                <td>(0,44)</td>
+                                <td>1,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>52</td>
+                                <td>54917</td>
+                                <td>MAC INS NISSIN LAMEN CARNE/TOM 85G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    1,98</td>
+                                <td>(0,44)</td>
+                                <td>1,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>53</td>
+                                <td>54917</td>
+                                <td>MAC INS NISSIN LAMEN CARNE/TOM 85G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    1,98</td>
+                                <td>(0,44)</td>
+                                <td>1,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>54</td>
+                                <td>272159</td>
+                                <td>MASSA PRONTA RAP10 INT 297G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    11,98</td>
+                                <td>(3,05)</td>
+                                <td>11,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>55</td>
+                                <td>361253</td>
+                                <td>MILHO PIPOCA YOKI 400G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    5,98</td>
+                                <td>(1,33)</td>
+                                <td>5,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>56</td>
+                                <td>353161</td>
+                                <td>TEMP TOM/CEB/SALSA KININO 15G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,98</td>
+                                <td>(0,94)</td>
+                                <td>2,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>57</td>
+                                <td>353164</td>
+                                <td>TEMP ALHO/CEB/SALSA KININO 20G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    2,69</td>
+                                <td>(0,85)</td>
+                                <td>2,69</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>58</td>
+                                <td>362881</td>
+                                <td>ESC DENT ORAL-B 123 C/3</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    10,79</td>
+                                <td>(2,75)</td>
+                                <td>10,79</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>59</td>
+                                <td>133906</td>
+                                <td>SACO LIXO ENROLADINHO 50L C/10</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    8,59</td>
+                                <td>(2,43)</td>
+                                <td>8,59</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>60</td>
+                                <td>219614</td>
+                                <td>HASTES FLEX COTONETES C/75</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    5,98</td>
+                                <td>(1,88)</td>
+                                <td>5,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>61</td>
+                                <td>302252</td>
+                                <td>CR LEITE ITALAC 200G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    3,29</td>
+                                <td>(0,37)</td>
+                                <td>3,29</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>62</td>
+                                <td>302252</td>
+                                <td>CR LEITE ITALAC 200G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    3,29</td>
+                                <td>(0,37)</td>
+                                <td>3,29</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>63</td>
+                                <td>239828</td>
+                                <td>AB CLAMEL BABY 160G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    7,98</td>
+                                <td>(1,63)</td>
+                                <td>7,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>64</td>
+                                <td>355915</td>
+                                <td>SACOLA EXT OXI-BIOD 50X60</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    0,25</td>
+                                <td>(0,07)</td>
+                                <td>,25</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>65</td>
+                                <td>207551</td>
+                                <td>LEITE CONDENSADO ITALAC SEMI 395G</td>
+                                <td>4,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    6,49</td>
+                                <td>(2,91)</td>
+                                <td>25,96</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>66</td>
+                                <td>358620</td>
+                                <td>BIFINHO BAW WAW PORTE PQ CAR 300G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    15,98</td>
+                                <td>(0,67)</td>
+                                <td>15,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>67</td>
+                                <td>360434</td>
+                                <td>CAPSULA D GUSTO LUGO 70G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    18,90</td>
+                                <td>(2,12)</td>
+                                <td>18,90</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>68</td>
+                                <td>360433</td>
+                                <td>CAPSULA D GUSTO CAFEE MATINAL 80G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    18,90</td>
+                                <td>(2,12)</td>
+                                <td>18,90</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>69</td>
+                                <td>255823</td>
+                                <td>FILTRO PAPEL 3 CORACOES 102 C/30</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    3,79</td>
+                                <td>(0,83)</td>
+                                <td>3,79</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>70</td>
+                                <td>255823</td>
+                                <td>FILTRO PAPEL 3 CORACOES 102 C/30</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    3,79</td>
+                                <td>(0,83)</td>
+                                <td>3,79</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>71</td>
+                                <td>61069</td>
+                                <td>FEIJAO BROTO LEGAL CARIOCA 1KG</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    7,69</td>
+                                <td>(0,86)</td>
+                                <td>7,69</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>72</td>
+                                <td>361133</td>
+                                <td>CHOC NEUGEBAUER 40% CACAU 80G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    4,49</td>
+                                <td>(1,63)</td>
+                                <td>4,49</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>73</td>
+                                <td>365240</td>
+                                <td>CHOC CLASSIC AO LEITE 20% 80G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    7,59</td>
+                                <td>(2,75)</td>
+                                <td>7,59</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>74</td>
+                                <td>365240</td>
+                                <td>CHOC CLASSIC AO LEITE 20% 80G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    7,59</td>
+                                <td>(2,75)</td>
+                                <td>7,59</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>75</td>
+                                <td>365280</td>
+                                <td>CHOC TRENTO MOMENTOS 168G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    11,90</td>
+                                <td>(3,74)</td>
+                                <td>11,90</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>76</td>
+                                <td>365280</td>
+                                <td>CHOC TRENTO MOMENTOS 168G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    11,90</td>
+                                <td>(3,74)</td>
+                                <td>11,90</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>77</td>
+                                <td>355493</td>
+                                <td>MEL HOLANDA BISNAGA 200G</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    12,98</td>
+                                <td>(1,45)</td>
+                                <td>12,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>78</td>
+                                <td>70173</td>
+                                <td>SARDINHA COQUEIRO OLEO 125G</td>
+                                <td>2,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    5,98</td>
+                                <td>(2,45)</td>
+                                <td>11,96</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>79</td>
+                                <td>352442</td>
+                                <td>MILHO VERDE QUERO 170G</td>
+                                <td>2,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    3,19</td>
+                                <td>(1,30)</td>
+                                <td>6,38</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>80</td>
+                                <td>352174</td>
+                                <td>ATUM R CRUSOE SOLIDO NAT 170G</td>
+                                <td>2,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    8,98</td>
+                                <td>(2,42)</td>
+                                <td>17,96</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>81</td>
+                                <td>360221</td>
+                                <td>AZEITE SACCIALI EX VIRGEM 500ML</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    29,98</td>
+                                <td>(0,00)</td>
+                                <td>29,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>82</td>
+                                <td>345985</td>
+                                <td>OLEO VILA VELHA SOJA 900ML</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    7,59</td>
+                                <td>(0,85)</td>
+                                <td>7,59</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>83</td>
+                                <td>363828</td>
+                                <td>SACO MICROFREEZER MAIS UTIL 27X40CM</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    5,69</td>
+                                <td>(1,61)</td>
+                                <td>5,69</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>84</td>
+                                <td>361679</td>
+                                <td>TOALHA PAPEL KITCHEN C/3</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    15,98</td>
+                                <td>(4,11)</td>
+                                <td>15,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>85</td>
+                                <td>37001</td>
+                                <td>ARROZ BROTO LEGAL 5KG</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    23,98</td>
+                                <td>(2,69)</td>
+                                <td>23,98</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+
+                            <tr>
+                                <td>86</td>
+                                <td>34673</td>
+                                <td>ACUCAR REFINADO UNIAO 1KG</td>
+                                <td>1,0000</td>
+                                <td>UN</td>
+                                <td>
+                                    <div style="position: relative; float: left;">X</div>
+                                    4,49</td>
+                                <td>(0,50)</td>
+                                <td>4,49</td>
+                            </tr>
+                            <tr>
+                                <td colspan="7" style="text-align: left;">
+                                    
+                                </td>
+                                <td>
+                                    <div style="text-align: right; margin-right: 24px;"><br></div>
+                                </td>
+                            </tr>
+                        
+                            </tbody>
+                </table>
+                        
+                </div>
+                
+                <br>
+                <div id="CupomDetalhe1" style="float: left; width: 100%;">
+                    <div id="CupomLineTDA"><div style="float:left;">    Total de descontos/ acréscimos sobre o item</div><div style="text-align:right;">    <asp:label id="lblDesconto" runat="server" style="margin-right: 24px;">0,00</asp:label></div></div>
+                    <div id="CupomLine4">
+                        <div style="float: left;">
+                            TOTAL R$
+                        </div>
+                        <div style="text-align: right; margin-right: 24px;">
+                            <span id="conteudo_lblTotal">848,93</span>
+                        </div>
+                    </div>
+                    <div>
+                    </div>
+                </div>
+                <br>
+                <div id="conteudo_DivMeiosPagamento">
+                    <div style="float: left; width: 100%;"> <div style="float:left;">Cartão de Débito</div><div style="float:right; margin-right: 24px;">848,93</div></div><br><div style="float: left; width: 100%;"> <div id="CupomDetalhe2" style="float:left;">Troco R$: </div><div style="float:right; margin-right: 24px;"><asp:label id="lblTroco" runat="server">0,00</asp:label></div></div><br>
+                </div>
+                <div style="text-align:left; padding-left:30px;"> MIGRE PARA A NFC-e ATE 31.12.2025</div><span>--------------------------------------------------------------------------------------------------------------</span><br>
+                
+
+                <div style="text-align: left;">
+                    OBSERVAÇÕES DO CONTRIBUINTE
+                </div>
+                <div style="text-align: left;">
+                    <span id="conteudo_lblObservacaoContribuinte" style="display:inline-block;width:95%;"></span>
+                </div>
+                <br>
+
+                <div style="text-align: left;">
+                    *Valor aproximado dos tributos do item
+                </div>
+                <br>
+                <div style="text-align: left; float: left; position: relative;">
+                    Valor aproximado dos tributos deste cupom R$
+                </div>
+                <div style="float: right; position: relative; margin-right: 24px;">
+                    <span id="conteudo_lblTotal12741"><div style="text-align:left; padding-left:30px;"> 165,72</div></span>
+                </div>
+                <br>
+                <div style="text-align: left;">
+                    (conforme Lei Fed. 12.741/2012)
+                </div>
+
+
+                <span>--------------------------------------------------------------------------------------------------------------</span>
+                
+                <div>
+                    <div style="font-weight: bold;">
+                        <span>SAT Nº </span>
+                        <span id="conteudo_lblSatNumeroSerie">001455440-28</span>
+                    </div>
+                    <div>
+                        <span id="conteudo_lblDataEmissao">22/10/2025 - 13:56:54</span>
+                    </div>
+                    <div>
+                        <span id="conteudo_lblIdCfe">3525 1046 0297 2400 0754 5900 1455 4401 0923 8756 3589</span>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        <div>
+            &nbsp;
+        </div>
+        
+        <br>
+        <div style="text-align: center;">
+            <input type="submit" name="ctl00$conteudo$btnDetalhe" value="Detalhes" id="conteudo_btnDetalhe" class="cssButton">
+            <input type="submit" name="ctl00$conteudo$btnImprimir" value="Imprimir" onclick="$('#divTelaImpressao').printElement({printMode:'popup'});" id="conteudo_btnImprimir" class="cssButton">
+            <input type="submit" name="ctl00$conteudo$btnSair" value="Sair" id="conteudo_btnSair" class="cssButton">
+        </div>
+    </div>
+
+                                    <div id="divMensagem">
+                                    </div>
+                                    <input type="hidden" id="__LASTFOCUS" value="">
+                                </div>
+                            </td>
+                            
+                        </tr>
+                        <tr>
+                           
+                        </tr>
+                    </tbody></table>
+                </div>
+            </div>
+            
+<div style="float: right; padding-top: 10px; padding-right: 15px;">
+<p style="color: #C0C0C0">  </p>
+</div>
+
+            &nbsp;<div class="BottomStyle">
+                <div id="footer">
+                    <p>
+                        Secretaria da Fazenda do Estado de São Paulo</p>
+                </div>
+            </div>
+        </div>
+        
+
+<script type="text/javascript">
+//<![CDATA[
+(function() {var fn = function() {$get("ToolkitScriptManager1_HiddenField").value = '';Sys.Application.remove_init(fn);};Sys.Application.add_init(fn);})();
+theForm.oldSubmit = theForm.submit;
+theForm.submit = WebForm_SaveScrollPositionSubmit;
+
+theForm.oldOnSubmit = theForm.onsubmit;
+theForm.onsubmit = WebForm_SaveScrollPositionOnSubmit;
+
+theForm.oldOnLoad = window.onload;
+window.onload = WebForm_RestoreScrollPosition;
+//]]>
+</script>
+</form>
+    </div>
+
+
+</body></html>

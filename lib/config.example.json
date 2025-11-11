@@ -1,0 +1,16 @@
+{
+  "api": {
+    "base_url": "http://localhost:3000/api",
+    "email": "seu@email.com",
+    "senha": "suaSenha123"
+  },
+  "scraper": {
+    "timeout_captcha": 120,
+    "headless": false,
+    "save_screenshots": true,
+    "save_debug_files": true
+  },
+  "sat": {
+    "url": "https://satsp.fazenda.sp.gov.br/COMSAT/Public/ConsultaPublica/ConsultaPublicaCfe.aspx"
+  }
+}
