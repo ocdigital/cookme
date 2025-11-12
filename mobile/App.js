@@ -1,7 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { TouchableOpacity, Text, View } from 'react-native';
 import { AuthProvider } from './src/contexts/AuthContext';
+
+// Global error handler
+if (!global.onError) {
+  global.onError = (error) => {
+    console.error('GLOBAL ERROR:', error);
+  };
+}
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -19,18 +28,166 @@ import RecipesScreen from './src/screens/RecipesScreen';
 import RecipesListScreen from './src/screens/RecipesListScreen';
 import RecipeDetailsScreen from './src/screens/RecipeDetailsScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+// Simple Error Boundary
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    console.error('ERROR BOUNDARY CAUGHT:', error);
+    console.error('Stack:', error.stack);
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error details:', errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Erro na Aplicação</Text>
+          <Text style={{ fontSize: 14, color: 'red', marginBottom: 10 }}>
+            {this.state.error?.message}
+          </Text>
+          <Text style={{ fontSize: 12, color: '#666' }}>
+            {this.state.error?.stack}
+          </Text>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Função para criar o BottomTabNavigator com as screens principais
+function MainAppTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#FF8C42',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        tabBarActiveTintColor: '#FF8C42',
+        tabBarInactiveTintColor: '#999',
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          borderTopColor: '#e0e0e0',
+          paddingBottom: 5,
+          paddingTop: 5,
+        },
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreenRecipes}
+        options={{
+          title: 'Início',
+          tabBarLabel: 'Início',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          headerLeft: () => null,
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => {}}
+              style={{ marginRight: 16, padding: 12 }}
+              activeOpacity={0.6}
+            >
+              <Text style={{ fontSize: 20 }}>⚙️</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="RecipesList"
+        component={RecipesListScreen}
+        options={{
+          title: 'Receitas',
+          tabBarLabel: 'Receitas',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🍳</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Inventory"
+        component={InventoryScreen}
+        options={{
+          title: 'Inventário',
+          tabBarLabel: 'Inventário',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>📦</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="QRScanner"
+        component={QRScannerScreen}
+        options={{
+          title: 'Scanner',
+          tabBarLabel: 'Scanner',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔍</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{
+          title: 'Histórico',
+          tabBarLabel: 'Histórico',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Favorites"
+        component={FavoritesScreen}
+        options={{
+          title: 'Favoritas',
+          tabBarLabel: 'Favoritas',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>❤️</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: 'Perfil',
+          tabBarLabel: 'Perfil',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          title: 'Configurações',
+          tabBarLabel: 'Config',
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚙️</Text>,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
 
 export default function App() {
   return (
-    <AuthProvider>
-      <NavigationContainer>
-        <Stack.Navigator
+    <ErrorBoundary>
+      <AuthProvider>
+        <NavigationContainer>
+          <Stack.Navigator
           initialRouteName="Login"
           screenOptions={{
             headerStyle: {
-              backgroundColor: '#4CAF50',
+              backgroundColor: '#FF8C42',
             },
             headerTintColor: '#fff',
             headerTitleStyle: {
@@ -49,24 +206,17 @@ export default function App() {
             options={{ title: 'Criar Conta' }}
           />
           <Stack.Screen
-            name="Home"
-            component={HomeScreenRecipes}
-            options={{
-              title: 'CookMe',
-              headerLeft: () => null, // Remove back button
-            }}
+            name="MainApp"
+            component={MainAppTabs}
+            options={{ headerShown: false }}
           />
-          <Stack.Screen
-            name="QRScanner"
-            component={QRScannerScreen}
-            options={{ title: 'Escanear Cupom' }}
-          />
+          {/* Detail Screens (que aparecem por cima do drawer) */}
           <Stack.Screen
             name="Processing"
             component={ProcessingScreen}
             options={{
               title: 'Processando Cupom',
-              headerLeft: () => null, // Prevent going back
+              headerLeft: () => null,
             }}
           />
           <Stack.Screen
@@ -86,27 +236,9 @@ export default function App() {
             }}
           />
           <Stack.Screen
-            name="History"
-            component={HistoryScreen}
-            options={{ title: 'Histórico de Consultas' }}
-          />
-          <Stack.Screen
             name="PurchaseDetails"
             component={PurchaseDetailsScreen}
             options={{ title: 'Detalhes da Compra' }}
-          />
-          <Stack.Screen
-            name="Recipes"
-            component={RecipesScreen}
-            options={{
-              title: 'Receitas',
-              headerLeft: () => null,
-            }}
-          />
-          <Stack.Screen
-            name="RecipesList"
-            component={RecipesListScreen}
-            options={{ title: 'Receitas' }}
           />
           <Stack.Screen
             name="RecipeDetails"
@@ -118,18 +250,9 @@ export default function App() {
             component={ProductsScreen}
             options={{ title: 'Produtos' }}
           />
-          <Stack.Screen
-            name="Inventory"
-            component={InventoryScreen}
-            options={{ title: 'Meu Inventário' }}
-          />
-          <Stack.Screen
-            name="Favorites"
-            component={FavoritesScreen}
-            options={{ title: 'Minhas Favoritas' }}
-          />
         </Stack.Navigator>
-      </NavigationContainer>
-    </AuthProvider>
+        </NavigationContainer>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
