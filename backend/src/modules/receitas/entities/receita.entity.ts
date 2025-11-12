@@ -10,6 +10,7 @@ import {
 import { DificuldadeReceita } from '@common/enums/dificuldade-receita.enum';
 import { ReceitaIngrediente } from './receita-ingrediente.entity';
 import { ReceitaExecutada } from './receita-executada.entity';
+import { AffiliateLink } from '../../affiliate/entities/affiliate-link.entity';
 
 @Entity('receitas')
 export class Receita {
@@ -99,4 +100,7 @@ export class Receita {
 
     @OneToMany(() => ReceitaExecutada, (executada) => executada.receita)
     execucoes: ReceitaExecutada[];
+
+    @OneToMany(() => AffiliateLink, (link) => link.receita)
+    affiliate_links: AffiliateLink[];
 }

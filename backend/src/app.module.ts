@@ -13,6 +13,7 @@ import { InventarioModule } from './modules/inventario/inventario.module';
 import { ReceitasModule } from './modules/receitas/receitas.module';
 import { BarcodeModule } from './modules/barcode/barcode.module';
 import { ScraperModule } from './modules/scraper/scraper.module';
+import { AffiliateModule } from './modules/affiliate/affiliate.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ScraperModule } from './modules/scraper/scraper.module';
     ReceitasModule,
     BarcodeModule,
     ScraperModule,
+    AffiliateModule,
   ],
 })
 export class AppModule { }
