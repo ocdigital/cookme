@@ -854,6 +854,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   spacer: {
-    height: 30,
+    height: 80,
   },
 });

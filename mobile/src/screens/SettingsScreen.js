@@ -363,6 +363,6 @@ const styles = StyleSheet.create({
     color: '#2C1810',
   },
   spacer: {
-    height: 30,
+    height: 80,
   },
 });

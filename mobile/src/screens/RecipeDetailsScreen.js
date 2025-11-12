@@ -13,7 +13,7 @@ import { mockRecipesCarousel, mockRecipeDetails } from '../services/mockRecipesD
 import { receitasService } from '../services/api';
 
 export default function RecipeDetailsScreen({ navigation, route }) {
-  const { recipeId } = route.params;
+  const { recipeId } = route?.params || {};
   const [isFavorite, setIsFavorite] = useState(false);
   const [portions, setPortions] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -617,6 +617,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   spacer: {
-    height: 30,
+    height: 80,
   },
 });

@@ -352,6 +352,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   spacer: {
-    height: 30,
+    height: 80,
   },
 });
