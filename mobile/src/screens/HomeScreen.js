@@ -88,14 +88,32 @@ export default function HomeScreen({ navigation }) {
         </Text>
       </TouchableOpacity>
 
-      {/* History Button */}
-      <TouchableOpacity
-        style={styles.historyButton}
-        onPress={() => navigation.navigate('History')}
-      >
-        <Text style={styles.historyIcon}>📋</Text>
-        <Text style={styles.historyText}>Ver Histórico & Logs</Text>
-      </TouchableOpacity>
+      {/* Quick Navigation */}
+      <View style={styles.quickNavContainer}>
+        <TouchableOpacity
+          style={styles.quickNavButton}
+          onPress={() => navigation.navigate('History')}
+        >
+          <Text style={styles.quickNavIcon}>📋</Text>
+          <Text style={styles.quickNavText}>Histórico</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.quickNavButton}
+          onPress={() => navigation.navigate('Recipes')}
+        >
+          <Text style={styles.quickNavIcon}>👨‍🍳</Text>
+          <Text style={styles.quickNavText}>Receitas</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.quickNavButton}
+          onPress={() => navigation.navigate('Products')}
+        >
+          <Text style={styles.quickNavIcon}>🛒</Text>
+          <Text style={styles.quickNavText}>Produtos</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Stats Cards */}
       {stats && (
@@ -224,26 +242,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  historyButton: {
-    backgroundColor: '#fff',
+  quickNavContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     marginHorizontal: 20,
     marginBottom: 20,
-    padding: 15,
-    borderRadius: 8,
-    flexDirection: 'row',
+    gap: 10,
+  },
+  quickNavButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  historyIcon: {
-    fontSize: 24,
-    marginRight: 10,
+  quickNavIcon: {
+    fontSize: 28,
+    marginBottom: 6,
   },
-  historyText: {
-    fontSize: 16,
+  quickNavText: {
+    fontSize: 12,
     fontWeight: '500',
-    color: '#666',
+    color: '#333',
+    textAlign: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
