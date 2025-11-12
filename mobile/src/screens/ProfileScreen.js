@@ -188,7 +188,7 @@ export default function ProfileScreen({ navigation }) {
 
       {/* Seção de Preferências */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferências</Text>
+        <Text style={styles.sectionTitle}>Mais</Text>
 
         <TouchableOpacity
           style={styles.linkButton}
@@ -197,7 +197,31 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.linkButtonIcon}>⚙️</Text>
           <View style={styles.linkButtonContent}>
             <Text style={styles.linkButtonText}>Configurações</Text>
-            <Text style={styles.linkButtonSubtext}>Preferências e notificações</Text>
+            <Text style={styles.linkButtonSubtext}>Preferências, notificações e mais</Text>
+          </View>
+          <Text style={styles.linkButtonArrow}>→</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => navigation.navigate('History')}
+        >
+          <Text style={styles.linkButtonIcon}>📋</Text>
+          <View style={styles.linkButtonContent}>
+            <Text style={styles.linkButtonText}>Histórico</Text>
+            <Text style={styles.linkButtonSubtext}>Seu histórico de atividades</Text>
+          </View>
+          <Text style={styles.linkButtonArrow}>→</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => navigation.navigate('QRScanner')}
+        >
+          <Text style={styles.linkButtonIcon}>🔍</Text>
+          <View style={styles.linkButtonContent}>
+            <Text style={styles.linkButtonText}>Scanner QR</Text>
+            <Text style={styles.linkButtonSubtext}>Escanear cupons e produtos</Text>
           </View>
           <Text style={styles.linkButtonArrow}>→</Text>
         </TouchableOpacity>

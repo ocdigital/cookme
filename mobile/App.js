@@ -71,10 +71,10 @@ class ErrorBoundary extends React.Component {
 }
 
 // Função para criar o BottomTabNavigator com as screens principais
-function MainAppTabs() {
+function MainAppTabs({ navigation }) {
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
         headerStyle: {
           backgroundColor: '#FF8C42',
         },
@@ -90,7 +90,17 @@ function MainAppTabs() {
           paddingBottom: 5,
           paddingTop: 5,
         },
-      }}
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Profile')}
+            style={{ marginRight: 16, padding: 12 }}
+            activeOpacity={0.6}
+          >
+            <Text style={{ fontSize: 20 }}>👤</Text>
+          </TouchableOpacity>
+        ),
+        headerLeft: () => null,
+      })}
     >
       <Tab.Screen
         name="Home"
@@ -99,52 +109,24 @@ function MainAppTabs() {
           title: 'Início',
           tabBarLabel: 'Início',
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
-          headerLeft: () => null,
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => {}}
-              style={{ marginRight: 16, padding: 12 }}
-              activeOpacity={0.6}
-            >
-              <Text style={{ fontSize: 20 }}>⚙️</Text>
-            </TouchableOpacity>
-          ),
         }}
       />
       <Tab.Screen
-        name="RecipesList"
+        name="Categorias"
         component={RecipesListScreen}
         options={{
-          title: 'Receitas',
-          tabBarLabel: 'Receitas',
+          title: 'Categorias',
+          tabBarLabel: 'Categorias',
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🍳</Text>,
         }}
       />
       <Tab.Screen
-        name="Inventory"
+        name="Pesquisa"
         component={InventoryScreen}
         options={{
-          title: 'Inventário',
-          tabBarLabel: 'Inventário',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>📦</Text>,
-        }}
-      />
-      <Tab.Screen
-        name="QRScanner"
-        component={QRScannerScreen}
-        options={{
-          title: 'Scanner',
-          tabBarLabel: 'Scanner',
+          title: 'Pesquisa',
+          tabBarLabel: 'Pesquisa',
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔍</Text>,
-        }}
-      />
-      <Tab.Screen
-        name="History"
-        component={HistoryScreen}
-        options={{
-          title: 'Histórico',
-          tabBarLabel: 'Histórico',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text>,
         }}
       />
       <Tab.Screen
@@ -152,26 +134,8 @@ function MainAppTabs() {
         component={FavoritesScreen}
         options={{
           title: 'Favoritas',
-          tabBarLabel: 'Favoritas',
+          tabBarLabel: 'Favoritos',
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>❤️</Text>,
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          title: 'Perfil',
-          tabBarLabel: 'Perfil',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>👤</Text>,
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          title: 'Configurações',
-          tabBarLabel: 'Config',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>⚙️</Text>,
         }}
       />
     </Tab.Navigator>
@@ -249,6 +213,26 @@ export default function App() {
             name="Products"
             component={ProductsScreen}
             options={{ title: 'Produtos' }}
+          />
+          <Stack.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={{ title: 'Meu Perfil' }}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{ title: 'Configurações' }}
+          />
+          <Stack.Screen
+            name="QRScanner"
+            component={QRScannerScreen}
+            options={{ title: 'Scanner de QR' }}
+          />
+          <Stack.Screen
+            name="History"
+            component={HistoryScreen}
+            options={{ title: 'Histórico' }}
           />
         </Stack.Navigator>
         </NavigationContainer>
