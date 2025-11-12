@@ -617,6 +617,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   spacer: {
-    height: 80,
+    height: 50,
   },
 });

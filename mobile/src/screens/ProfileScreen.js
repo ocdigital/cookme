@@ -504,6 +504,6 @@ const styles = StyleSheet.create({
     color: '#FF6B35',
   },
   spacer: {
-    height: 80,
+    height: 50,
   },
 });
