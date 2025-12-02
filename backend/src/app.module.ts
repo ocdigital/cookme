@@ -14,6 +14,8 @@ import { ReceitasModule } from './modules/receitas/receitas.module';
 import { BarcodeModule } from './modules/barcode/barcode.module';
 import { ScraperModule } from './modules/scraper/scraper.module';
 import { AffiliateModule } from './modules/affiliate/affiliate.module';
+import { ProductClassificationModule } from './modules/product-classification/product-classification.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { AffiliateModule } from './modules/affiliate/affiliate.module';
     BarcodeModule,
     ScraperModule,
     AffiliateModule,
+    ProductClassificationModule,
+    AdminModule,
   ],
 })
 export class AppModule { }

@@ -15,4 +15,6 @@ export const getDatabaseConfig = (
     logging: configService.get('NODE_ENV') === 'development' ? ['error', 'warn', 'migration'] : false,
     migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
     migrationsRun: false,
+    // Disable native enum types to avoid conflicts
+    dropSchema: configService.get('NODE_ENV') === 'development' && configService.get('DB_DROP_SCHEMA') === 'true',
 });

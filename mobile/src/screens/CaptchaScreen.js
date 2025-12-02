@@ -11,7 +11,7 @@ import { WebView } from 'react-native-webview';
 import { scraperService } from '../services/api';
 
 export default function CaptchaScreen({ route, navigation }) {
-  const { sessionId, captchaUrl, chaveAcesso } = route.params;
+  const { sessionId, captchaUrl, chaveAcesso } = route?.params || {};
   const [loading, setLoading] = useState(true);
   const webViewRef = React.useRef(null);
   const paginaInicialCarregada = React.useRef(false);
@@ -23,7 +23,7 @@ export default function CaptchaScreen({ route, navigation }) {
     console.log('Página inicial carregada:', paginaInicialCarregada.current);
 
     // Detectar se o cupom fiscal foi carregado
-    if (navState.url.includes('ConsultaPublicaCfe.aspx') && !navState.loading) {
+    if (navState.url && navState.url.includes('ConsultaPublicaCfe.aspx') && !navState.loading) {
 
       // Primeira vez que carrega = página com CAPTCHA
       // Ignorar a primeira carga

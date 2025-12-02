@@ -10,6 +10,8 @@ import { AffiliateService } from './services/affiliate.service';
 import { AffiliateController } from './affiliate.controller';
 import { RecommendationService } from './services/recommendation.service';
 import { SubscriptionService } from './services/subscription.service';
+import { ReceitasModule } from '../receitas/receitas.module';
+import { InventarioModule } from '../inventario/inventario.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { SubscriptionService } from './services/subscription.service';
       Subscription,
       Transaction,
     ]),
+    ReceitasModule,
+    InventarioModule,
   ],
   providers: [AffiliateService, RecommendationService, SubscriptionService],
   controllers: [AffiliateController],

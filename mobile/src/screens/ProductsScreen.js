@@ -67,7 +67,7 @@ export default function ProductsScreen({ navigation }) {
   const categories = ['Todos', 'Grãos e Cereais', 'Carnes e Peixes', 'Laticínios', 'Frutas e Vegetais'];
 
   const filteredProducts = mockProducts.filter((product) => {
-    const matchesSearch = product.nome.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = product?.nome?.toLowerCase()?.includes(searchQuery.toLowerCase()) ?? true;
     const matchesCategory = !selectedCategory || selectedCategory === 'Todos' || product.categoria === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -85,7 +85,7 @@ export default function ProductsScreen({ navigation }) {
         </Text>
         <Text style={styles.productCategory}>{item.categoria}</Text>
         <View style={styles.productFooter}>
-          <Text style={styles.productPrice}>R$ {item.preco.toFixed(2)}</Text>
+          <Text style={styles.productPrice}>R$ {(item?.preco || 0).toFixed(2)}</Text>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => addToCart(item)}

@@ -13,7 +13,7 @@ import {
 import { comprasService } from '../services/api';
 
 const PurchaseDetailsScreen = ({ route, navigation }) => {
-  const { compraId } = route.params;
+  const { compraId } = route?.params || {};
   const [compra, setCompra] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,7 +87,7 @@ const PurchaseDetailsScreen = ({ route, navigation }) => {
         <View style={styles.priceInfo}>
           <Text style={styles.priceLabel}>Total</Text>
           <Text style={styles.priceValueTotal}>
-            R$ {(parseFloat(item.quantidade) * parseFloat(item.preco_unitario || 0)).toFixed(2)}
+            R$ {(parseFloat(item?.quantidade || 0) * parseFloat(item?.preco_unitario || 0)).toFixed(2)}
           </Text>
         </View>
       </View>

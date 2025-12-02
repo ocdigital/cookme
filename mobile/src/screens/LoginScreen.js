@@ -20,7 +20,7 @@ export default function LoginScreen({ navigation }) {
 
   useEffect(() => {
     if (isAuthenticated && !loading) {
-      navigation.replace('Home');
+      navigation.replace('MainApp');
     }
   }, [isAuthenticated, loading]);
 
@@ -35,7 +35,7 @@ export default function LoginScreen({ navigation }) {
     setSubmitting(false);
 
     if (result.success) {
-      navigation.replace('Home');
+      navigation.replace('MainApp');
     } else {
       Alert.alert('Erro ao fazer login', result.error);
     }

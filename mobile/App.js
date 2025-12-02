@@ -76,7 +76,7 @@ function MainAppTabs({ navigation }) {
     <Tab.Navigator
       screenOptions={({ navigation }) => ({
         headerStyle: {
-          backgroundColor: '#FF8C42',
+          backgroundColor: '#fd7e29ff',
         },
         headerTintColor: '#fff',
         headerTitleStyle: {
@@ -89,11 +89,12 @@ function MainAppTabs({ navigation }) {
           borderTopColor: '#e0e0e0',
           paddingBottom: 5,
           paddingTop: 5,
+          marginBottom: 45,
         },
         headerRight: () => (
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
-            style={{ marginRight: 16, padding: 12 }}
+            style={{ marginRight: 16, padding: 5 }}
             activeOpacity={0.6}
           >
             <Text style={{ fontSize: 20 }}>👤</Text>

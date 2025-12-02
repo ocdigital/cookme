@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 
 export default function ResultScreen({ route, navigation }) {
-  const { success, data, error } = route.params;
+  const { success, data, error } = route?.params || {};
 
   const handleGoHome = () => {
     navigation.reset({

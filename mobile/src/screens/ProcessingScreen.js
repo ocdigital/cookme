@@ -23,7 +23,7 @@ const STATUS_MESSAGES = {
 };
 
 export default function ProcessingScreen({ route, navigation }) {
-  const { sessionId } = route.params;
+  const { sessionId } = route?.params || {};
   const [status, setStatus] = useState('iniciando');
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState(STATUS_MESSAGES.iniciando);

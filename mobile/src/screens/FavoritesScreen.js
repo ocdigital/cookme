@@ -50,13 +50,13 @@ export default function FavoritesScreen({ navigation }) {
 
   const filteredFavorites = favorites
     .filter((recipe) =>
-      recipe.nome.toLowerCase().includes(searchQuery.toLowerCase())
+      recipe?.nome?.toLowerCase()?.includes(searchQuery.toLowerCase()) ?? true
     )
     .sort((a, b) => {
       if (sortBy === 'tempo') {
-        return a.tempoPreparo + a.tempoCozimento - (b.tempoPreparo + b.tempoCozimento);
+        return (a.tempoPreparo || 0) + (a.tempoCozimento || 0) - ((b.tempoPreparo || 0) + (b.tempoCozimento || 0));
       } else if (sortBy === 'avaliacao') {
-        return b.avaliacoes - a.avaliacoes;
+        return (b.avaliacoes || 0) - (a.avaliacoes || 0);
       }
       return 0;
     });

@@ -30,13 +30,14 @@ export class RecommendationService {
     // Busca inventário do usuário
     const inventario = await this.inventarioRepository.find({
       where: { usuario_id: usuarioId },
+      relations: ['produto'],
     });
 
-    const ingredientesUsuario = inventario.map((item) => item.nome?.toLowerCase() || '');
+    const ingredientesUsuario = inventario.map((item) => item.produto?.nome?.toLowerCase() || '');
 
     // Busca todas as receitas
     const receitas = await this.receitaRepository.find({
-      relations: ['ingredientes'],
+      relations: ['ingredientes', 'ingredientes.produto'],
     });
 
     const recomendacoes: RecipeRecommendation[] = [];
@@ -45,7 +46,7 @@ export class RecommendationService {
       if (!receita.ingredientes || receita.ingredientes.length === 0) continue;
 
       const ingredientesReceita = receita.ingredientes.map((ing) =>
-        ing.nome?.toLowerCase() || '',
+        ing.produto?.nome?.toLowerCase() || '',
       );
 
       // Conta quantos ingredientes o usuário tem
@@ -66,7 +67,7 @@ export class RecommendationService {
           ingredientes_faltantes: null,
           categoria_recomendacao: RecommendationType.WITH_YOUR_ITEMS,
           percentual_alimentos_disponiveis: Math.round(percentualDisponivel),
-        } as RecipeRecommendation);
+        } as unknown as RecipeRecommendation);
 
         recomendacoes.push(recomendacao);
       }
@@ -98,13 +99,14 @@ export class RecommendationService {
     // Busca inventário do usuário
     const inventario = await this.inventarioRepository.find({
       where: { usuario_id: usuarioId },
+      relations: ['produto'],
     });
 
-    const ingredientesUsuario = inventario.map((item) => item.nome?.toLowerCase() || '');
+    const ingredientesUsuario = inventario.map((item) => item.produto?.nome?.toLowerCase() || '');
 
     // Busca todas as receitas
     const receitas = await this.receitaRepository.find({
-      relations: ['ingredientes'],
+      relations: ['ingredientes', 'ingredientes.produto'],
     });
 
     const recomendacoes: any[] = [];
@@ -116,10 +118,10 @@ export class RecommendationService {
 
       // Calcula ingredientes faltantes e preço estimado
       const ingredientesFaltantes = ingredientesReceita
-        .filter((ing) => !ingredientesUsuario.includes(ing.nome?.toLowerCase() || ''))
+        .filter((ing) => !ingredientesUsuario.includes(ing.produto?.nome?.toLowerCase() || ''))
         .map((ing) => ({
-          nome: ing.nome,
-          preco_estimado: this.estimarPrecoIngrediente(ing.nome),
+          nome: ing.produto?.nome,
+          preco_estimado: this.estimarPrecoIngrediente(ing.produto?.nome || ''),
         }));
 
       const precoTotal = ingredientesFaltantes.reduce(

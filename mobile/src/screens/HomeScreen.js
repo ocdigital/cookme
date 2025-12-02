@@ -31,8 +31,8 @@ export default function HomeScreen({ navigation }) {
       ]);
 
       setStats(statsData);
-      setVencendo(vencendoData);
-      setSugestoes(sugestoesData.slice(0, 3)); // Top 3 sugestões
+      setVencendo(vencendoData || []);
+      setSugestoes((sugestoesData && Array.isArray(sugestoesData)) ? sugestoesData.slice(0, 3) : []); // Top 3 sugestões
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     }

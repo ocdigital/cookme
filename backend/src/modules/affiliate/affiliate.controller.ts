@@ -50,6 +50,7 @@ export class AffiliateController {
       affiliate_link_id: string;
       receita_id: string;
       device_info?: any;
+      ip_address?: string;
     },
   ) {
     if (!body.affiliate_link_id) {
@@ -61,7 +62,7 @@ export class AffiliateController {
       user.id,
       body.receita_id,
       body.device_info,
-      null,
+      body.ip_address,
     );
   }
 

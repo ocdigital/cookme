@@ -42,7 +42,7 @@ export default function RegisterScreen({ navigation }) {
     setSubmitting(false);
 
     if (result.success) {
-      navigation.replace('Home');
+      navigation.replace('MainApp');
     } else {
       Alert.alert('Erro ao criar conta', result.error);
     }

@@ -59,20 +59,20 @@ export default function RecipesListScreen({ navigation, route }) {
     if (searchQuery.trim() !== '') {
       filtered = filtered.filter(
         (recipe) =>
-          recipe.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          recipe.descricao.toLowerCase().includes(searchQuery.toLowerCase())
+          recipe?.nome?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+          recipe?.descricao?.toLowerCase()?.includes(searchQuery.toLowerCase())
       );
     }
 
     // Ordenar
     if (sortBy === 'tempo') {
-      filtered.sort((a, b) => a.tempoPreparo + a.tempoCozimento - (b.tempoPreparo + b.tempoCozimento));
+      filtered.sort((a, b) => (a.tempoPreparo || 0) + (a.tempoCozimento || 0) - ((b.tempoPreparo || 0) + (b.tempoCozimento || 0)));
     } else if (sortBy === 'avaliacao') {
-      filtered.sort((a, b) => b.avaliacoes - a.avaliacoes);
+      filtered.sort((a, b) => (b.avaliacoes || 0) - (a.avaliacoes || 0));
     } else if (sortBy === 'calorias') {
-      filtered.sort((a, b) => a.calorias - b.calorias);
+      filtered.sort((a, b) => (a.calorias || 0) - (b.calorias || 0));
     } else {
-      filtered.sort((a, b) => a.nome.localeCompare(b.nome));
+      filtered.sort((a, b) => (a?.nome || '').localeCompare(b?.nome || ''));
     }
 
     setFilteredRecipes(filtered);
@@ -217,8 +217,8 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
