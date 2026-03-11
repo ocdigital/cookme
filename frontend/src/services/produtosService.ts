@@ -202,10 +202,10 @@ export const produtosService = {
   // ===== STATS =====
 
   /**
-   * Obtém estatísticas de produtos
+   * Obtém estatísticas de produtos (admin only)
    */
   getStats: async (): Promise<ProdutoStats> => {
-    const response = await api.get<ProdutoStats>('/produtos/stats');
+    const response = await api.get<ProdutoStats>('/admin/produtos/stats');
     return response.data;
   },
 };
