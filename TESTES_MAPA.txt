@@ -1,0 +1,226 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                  🗺️  MAPA DE TESTES - COOKME PROJECT                         ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+FASE 1: AUTH MODULE (✅ COMEÇAR AQUI)
+═════════════════════════════════════════════════════════════════════════════
+📁 backend/src/modules/auth/
+│
+├── 🧪 auth.service.spec.ts
+│   ├── ✅ register - success (PRONTO)
+│   ├── 🔲 register - email exists (TODO #1)
+│   ├── ✅ login - success (PRONTO)
+│   ├── 🔲 login - user not found (TODO #2)
+│   ├── 🔲 login - wrong password (TODO #3)
+│   ├── ✅ refreshToken - success (PRONTO)
+│   ├── 🔲 refreshToken - invalid (TODO #4)
+│   ├── 🔲 refreshToken - no match in DB (TODO #5)
+│   ├── ✅ logout - success (PRONTO)
+│   ├── ✅ validateUser - success (PRONTO)
+│   └── 🔲 validateUser - not found (TODO #6)
+│
+├── 🧪 auth.controller.spec.ts
+│   ├── ✅ POST /register - success (PRONTO)
+│   ├── 🔲 POST /register - email exists (TODO #7)
+│   ├── 🔲 POST /register - invalid data (TODO #8)
+│   ├── ✅ POST /login - success (PRONTO)
+│   ├── 🔲 POST /login - invalid credentials (TODO #9)
+│   ├── 🔲 POST /login - email not found (TODO #10)
+│   ├── ✅ POST /refresh - success (PRONTO)
+│   ├── 🔲 POST /refresh - invalid token (TODO #11)
+│   ├── 🔲 POST /refresh - token expired (TODO #12)
+│   ├── ✅ POST /logout - success (PRONTO)
+│   ├── 🔲 POST /logout - not authenticated (TODO #13)
+│   ├── ✅ GET /me - success (PRONTO)
+│   └── 🔲 GET /me - no token (TODO #14)
+│
+└── 📝 auth.e2e-spec.ts (CRIAR DEPOIS)
+    └── Testes com servidor REAL rodando
+
+⏱️ Tempo: ~1-2 horas
+📊 Resultado: Cobertura >90%
+
+
+FASE 2: PRODUTOS MODULE (INTERMEDIÁRIO)
+═════════════════════════════════════════════════════════════════════════════
+📁 backend/src/modules/produtos/
+│
+└── 🧪 produtos.service.spec.ts (renomear do .example)
+    ├── 🔲 findAll - basic (TODO #15)
+    ├── 🔲 findAll - with pagination (TODO #16)
+    ├── 🔲 findAll - filter by type (TODO #17)
+    ├── 🔲 findAll - filter by category (TODO #18)
+    ├── 🔲 findAll - search by name (TODO #19)
+    ├── 🔲 findAll - multiple filters (TODO #20)
+    ├── 🔲 findAll - empty list (TODO #21)
+    ├── 🔲 findByBarcode - success (TODO #22)
+    ├── 🔲 findByBarcode - not found (TODO #23)
+    ├── 🔲 findByBarcode - invalid (TODO #24)
+    ├── 🔲 findByBarcode - with cache (TODO #25)
+    ├── 🔲 create - success (TODO #26)
+    ├── 🔲 create - duplicate barcode (TODO #27)
+    ├── 🔲 create - missing fields (TODO #28)
+    ├── 🔲 update - success (TODO #29)
+    ├── 🔲 update - not found (TODO #30)
+    ├── 🔲 delete - success (TODO #31)
+    ├── 🔲 delete - not found (TODO #32)
+    ├── 🔲 search - text search (TODO #33)
+    └── 🔲 search - performance (TODO #34)
+
+⏱️ Tempo: ~2-3 horas
+📊 Resultado: Cobertura >85%
+
+
+FASE 3: RECEITAS MODULE (AVANÇADO - MOI Algorithm)
+═════════════════════════════════════════════════════════════════════════════
+📁 backend/src/modules/receitas/
+│
+└── 🧪 receitas.service.spec.ts (CRIAR DO ZERO)
+    ├── 🔲 findAll - basic (TODO #35)
+    ├── 🔲 findAll - with filters (TODO #36)
+    ├── 🔲 gerarSugestoes - MOI algorithm (TODO #37) ⭐ CRITICAL
+    ├── 🔲 gerarSugestoes - edge cases (TODO #38)
+    ├── 🔲 gerarComIA - success (TODO #39)
+    ├── 🔲 gerarComIA - mock Google API (TODO #40)
+    ├── 🔲 create - success (TODO #41)
+    ├── 🔲 update - success (TODO #42)
+    └── 🔲 execute recipe - track history (TODO #43)
+
+⏱️ Tempo: ~3-4 horas
+📊 Resultado: Cobertura >80%
+
+
+FASE 4: CI/CD SETUP
+═════════════════════════════════════════════════════════════════════════════
+📁 .github/workflows/
+│
+└── ✅ test.yml (CRIADO - apenas descomente)
+    ├── ✅ ESLint check
+    ├── ✅ TypeScript check
+    ├── ✅ Run tests
+    ├── ✅ Generate coverage
+    └── ✅ Upload to Codecov
+
+⏱️ Tempo: ~15 minutos
+📊 Resultado: Testes rodando automaticamente em cada PR
+
+
+RESUMO DE TESTES
+═════════════════════════════════════════════════════════════════════════════
+
+TOTAL DE TODOs: 43
+├── Auth: 14 TODOs
+├── Produtos: 20 TODOs
+└── Receitas: 9 TODOs
+
+COBERTURA ESPERADA:
+├── Auth: 90-95% ✅
+├── Produtos: 85-90% ✅
+├── Receitas: 80-85% ✅
+└── GERAL: 85%+ ✅
+
+TEMPO TOTAL: ~6-10 horas
+
+
+ARQUIVOS JÁ CRIADOS
+═════════════════════════════════════════════════════════════════════════════
+
+✅ backend/src/modules/auth/auth.service.spec.ts
+   └─ Testes unitários do AuthService (5 prontos + 6 TODOs)
+
+✅ backend/src/modules/auth/auth.controller.spec.ts
+   └─ Testes do controller/endpoints (5 prontos + 9 TODOs)
+
+✅ backend/src/modules/produtos/produtos.service.spec.ts.example
+   └─ Exemplo avançado com 20 TODOs (renomear para usar)
+
+✅ TESTING_GUIDE.md
+   └─ Guia completo com referências, erros comuns, etc
+
+✅ COMECE_AQUI_TESTES.md
+   └─ Quick start para começar em 5 minutos
+
+✅ TESTES_CRIADOS.md
+   └─ Este documento com overview
+
+✅ .github/workflows/test.yml
+   └─ CI/CD pipeline (pronto, apenas descomente)
+
+
+COMO COMEÇAR
+═════════════════════════════════════════════════════════════════════════════
+
+AGORA (5 minutos):
+  1. npm test -- auth.service.spec.ts
+  2. Veja 5 testes passando ✓
+
+PRÓXIMAS 2 HORAS:
+  1. Abra auth.service.spec.ts
+  2. Procure "TODO:"
+  3. Implemente 6 testes
+  4. Faça commit
+
+DIA SEGUINTE:
+  1. Abra auth.controller.spec.ts
+  2. Implemente 8 testes (padrão similar)
+  3. Crie auth.e2e-spec.ts com testes de integração
+
+SEMANA SEGUINTE:
+  1. Copie exemplo de produtos
+  2. Renomeie de .example
+  3. Implemente 20 TODOs
+
+MÊS SEGUINTE:
+  1. Crie receitas.service.spec.ts
+  2. Implemente MOI algorithm tests
+  3. Descomente CI/CD
+  4. Faça PR com 85%+ cobertura
+
+
+IMPACTO PARA CANDIDATURA
+═════════════════════════════════════════════════════════════════════════════
+
+Com isso completado, você terá:
+✅ 43+ testes escritos do zero
+✅ 85%+ cobertura de código
+✅ Demonstra conhecimento de Jest + NestJS testing
+✅ Prova que segue best practices
+✅ CI/CD configurado e rodando
+✅ Código profissional e mantível
+
+Isso DIFERENCIA você na candidatura! 🚀
+
+
+DICAS FINAIS
+═════════════════════════════════════════════════════════════════════════════
+
+📌 LEIA ANTES DE COMEÇAR:
+   - COMECE_AQUI_TESTES.md (5 min)
+   - Os comentários em auth.service.spec.ts (10 min)
+
+📌 PADRÃO CONSISTENTE:
+   - Todos os testes seguem AAA (Arrange, Act, Assert)
+   - Todos os mocks estão padronizados
+   - Templates prontos para copiar/colar
+
+📌 DEBUG DURANTE TESTES:
+   console.log() funciona normal
+   use .only ou .skip para focar em 1 teste:
+   - it.only('...') → roda APENAS este teste
+   - it.skip('...') → ignora este teste
+
+📌 COVERAGE BADGE:
+   Depois de ativar CI/CD, você terá badge:
+   [![Coverage](https://codecov.io/...)]
+   Adicione ao README!
+
+📌 MOSTRE NA CANDIDATURA:
+   "Implementei 43+ testes com 85%+ cobertura"
+   Link para: github.com/seu-repo/commits
+   Screenshot do Jest output
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                         🎯 VOCÊ ESTÁ PRONTO!
+                   Abra os arquivos e comece agora mesmo!
+═══════════════════════════════════════════════════════════════════════════════

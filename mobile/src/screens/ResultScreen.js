@@ -11,20 +11,11 @@ export default function ResultScreen({ route, navigation }) {
   const { success, data, error } = route?.params || {};
 
   const handleGoHome = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Home' }],
-    });
+    navigation.navigate('MainApp', { screen: 'Home' });
   };
 
   const handleTryAgain = () => {
-    navigation.reset({
-      index: 0,
-      routes: [
-        { name: 'Home' },
-        { name: 'QRScanner' },
-      ],
-    });
+    navigation.navigate('QRScanner');
   };
 
   if (success) {

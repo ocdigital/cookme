@@ -1,38 +1,36 @@
 import api from './api';
 
-export interface Product {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  codigo_barras: string | null;
-  categoria: {
+type ListProductsResponse = {
+  data: Array<{
     id: string;
     nome: string;
-    icone?: string;
-  } | null;
-  marca: {
-    id: string;
-    nome: string;
-  } | null;
-  unidade_padrao: string;
-  validade_media_dias: number | null;
-  origem: string;
-  verificado: boolean;
-  criado_em: Date;
-  atualizado_em: Date;
-}
-
-export interface ListProductsResponse {
-  data: Product[];
+    descricao: string | null;
+    codigo_barras: string | null;
+    categoria: {
+      id: string;
+      nome: string;
+      icone?: string;
+    } | null;
+    marca: {
+      id: string;
+      nome: string;
+    } | null;
+    unidade_padrao: string;
+    validade_media_dias: number | null;
+    origem: string;
+    verificado: boolean;
+    criado_em: Date;
+    atualizado_em: Date;
+  }>;
   total: number;
   page: number;
   limit: number;
   totalPages: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
-}
+};
 
-export interface ProductStats {
+type ProductStats = {
   totalProdutos: number;
   produtosPorCategoria: Array<{
     categoria: string;
@@ -42,13 +40,10 @@ export interface ProductStats {
     marca: string;
     total: number;
   }>;
-}
+};
 
 export const adminService = {
-  /**
-   * Lista produtos com filtros e paginação
-   */
-  async listProducts(
+  listProducts: async (
     page: number = 1,
     limit: number = 20,
     filters?: {
@@ -58,7 +53,7 @@ export const adminService = {
       sort?: string;
       order?: 'ASC' | 'DESC';
     },
-  ): Promise<ListProductsResponse> {
+  ): Promise<ListProductsResponse> => {
     const params = new URLSearchParams();
     params.append('page', String(page));
     params.append('limit', String(limit));
@@ -85,10 +80,7 @@ export const adminService = {
     return response.data;
   },
 
-  /**
-   * Obter estatísticas de produtos
-   */
-  async getProductStats(): Promise<ProductStats> {
+  getProductStats: async (): Promise<ProductStats> => {
     const response = await api.get<ProductStats>('/admin/produtos/stats');
     return response.data;
   },

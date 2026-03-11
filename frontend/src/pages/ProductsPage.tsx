@@ -1,71 +1,132 @@
-import React, { useState } from 'react';
-import { Package, Edit2, Trash2, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Package, Edit2, Trash2, Search, AlertCircle, ChevronLeft, ChevronRight, Tag, Layers } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
+import { StatsBar } from '../components/StatsBar';
+import { adminService } from '../services/adminService';
 
-interface Product {
-  id: number;
+type Product = {
+  id: string;
   nome: string;
-  categoria: string;
-  preco: number;
-  estoque: number;
-  dataCriacao: string;
-}
+  descricao: string | null;
+  codigo_barras: string | null;
+  categoria: { id: string; nome: string; icone?: string } | null;
+  marca: { id: string; nome: string } | null;
+  unidade_padrao: string;
+  validade_media_dias: number | null;
+  origem: string;
+  verificado: boolean;
+  criado_em: Date;
+  atualizado_em: Date;
+};
+
+type ProductStats = {
+  totalProdutos: number;
+  produtosPorCategoria: Array<{ categoria: string; total: number }>;
+  produtosPorMarca: Array<{ marca: string; total: number }>;
+};
 
 export const ProductsPage: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [stats, setStats] = useState<ProductStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'todos' | 'frutas' | 'vegetais' | 'especiarias'>('todos');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
 
-  const products: Product[] = [
-    { id: 1, nome: 'Tomate Cereja', categoria: 'vegetais', preco: 8.50, estoque: 45, dataCriacao: '2024-01-20' },
-    { id: 2, nome: 'Alface Crocante', categoria: 'vegetais', preco: 5.00, estoque: 60, dataCriacao: '2024-01-22' },
-    { id: 3, nome: 'Maçã Gala', categoria: 'frutas', preco: 4.20, estoque: 120, dataCriacao: '2024-01-18' },
-    { id: 4, nome: 'Banana Nanica', categoria: 'frutas', preco: 3.50, estoque: 200, dataCriacao: '2024-01-19' },
-    { id: 5, nome: 'Orégano', categoria: 'especiarias', preco: 12.00, estoque: 15, dataCriacao: '2024-02-01' },
-  ];
+  useEffect(() => {
+    loadProducts();
+    loadStats();
+  }, [page, searchTerm, categoryFilter]);
 
-  const stats = [
-    { label: 'Total de Produtos', value: products.length, icon: '📦' },
-    { label: 'Em Estoque', value: products.filter(p => p.estoque > 0).length, icon: '✓' },
-    { label: 'Baixo Estoque', value: products.filter(p => p.estoque < 20).length, icon: '⚠' },
-  ];
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await adminService.listProducts(page, limit, {
+        search: searchTerm,
+        categoriaId: categoryFilter,
+        sort: 'criado_em',
+        order: 'DESC',
+      });
+      console.log('📦 Produtos carregados:', {
+        total: response.total,
+        dataLength: response.data.length,
+        firstProduct: response.data[0]?.nome,
+      });
+      setProducts(response.data);
+      setTotalPages(response.totalPages);
+      setTotalProducts(response.total);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Erro ao carregar produtos',
+      );
+      console.error('❌ Erro ao carregar produtos:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.nome.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'todos' || product.categoria === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  const loadStats = async () => {
+    try {
+      const statsData = await adminService.getProductStats();
+      console.log('📊 Estatísticas de produtos:', statsData);
+      setStats(statsData);
+    } catch (err) {
+      console.error('Erro ao carregar estatísticas:', err);
+    }
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
+    setPage(1);
+  };
+
+  const handlePreviousPage = () => {
+    if (page > 1) setPage(page - 1);
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) setPage(page + 1);
+  };
+
+  const filteredProducts = products;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {/* Header */}
       <header>
-        <h1 className="text-4xl font-bold text-gray-800 tracking-tight">Produtos</h1>
-        <p className="text-gray-500 mt-1">Gerencie o catálogo de produtos da CookMe</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white tracking-tight">Produtos</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie o catálogo de produtos da CookMe</p>
       </header>
 
-      {/* Stats */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="stat-card">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">{stat.label}</p>
-                <p className="text-4xl font-bold text-gray-800 mt-2">{stat.value}</p>
-              </div>
-              <div className="text-2xl">{stat.icon}</div>
-            </div>
-          </div>
-        ))}
-      </section>
+      {/* Stats Bar */}
+      {stats && (
+        <StatsBar
+          items={[
+            { icon: <Package className="w-5 h-5" />, label: 'Total de Produtos', value: stats.totalProdutos },
+            { icon: <Tag className="w-5 h-5" />, label: 'Categorias', value: stats.produtosPorCategoria.length },
+            { icon: <Layers className="w-5 h-5" />, label: 'Marcas', value: stats.produtosPorMarca.length },
+          ]}
+        />
+      )}
 
       {/* Table */}
       <Card>
         <div className="flex justify-between items-center mb-6">
           <CardTitle>Lista de Produtos</CardTitle>
-          <button className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 text-sm font-medium">
-            <Package size={16} />
-            Novo Produto
-          </button>
+          <span className="text-sm text-gray-500">
+            Total: {totalProducts} produtos
+          </span>
         </div>
 
         {/* Filters */}
@@ -74,78 +135,136 @@ export const ProductsPage: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Buscar por nome..."
+              placeholder="Buscar por nome ou código de barras..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm"
             />
           </div>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value as any)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary text-sm"
-          >
-            <option value="todos">Todas</option>
-            <option value="frutas">Frutas</option>
-            <option value="vegetais">Vegetais</option>
-            <option value="especiarias">Especiarias</option>
-          </select>
+          {stats && stats.produtosPorCategoria.length > 0 && (
+            <select
+              value={categoryFilter}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary text-sm min-w-max"
+            >
+              <option value="">Todas as Categorias</option>
+              {stats.produtosPorCategoria.map((cat) => (
+                <option key={cat.categoria} value={cat.categoria}>
+                  {cat.categoria} ({cat.total})
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Table Content */}
         <CardContent>
-          {filteredProducts.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Produto</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Categoria</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Preço</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Estoque</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Data</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((product) => (
-                    <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="py-3 px-4 text-gray-800 font-medium">{product.nome}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                          {product.categoria}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-800 font-semibold">R$ {product.preco.toFixed(2)}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          product.estoque > 20
-                            ? 'bg-green-100 text-green-700'
-                            : product.estoque > 0
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {product.estoque} un.
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-gray-600 text-xs">{product.dataCriacao}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex gap-2">
-                          <button className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors">
-                            <Edit2 size={16} />
-                          </button>
-                          <button className="p-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-800 font-semibold">Erro</p>
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
             </div>
+          )}
+
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-gray-500">Carregando produtos...</p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Produto</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Categoria</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Marca</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Unidade</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Verificado</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Data</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((product) => (
+                      <tr
+                        key={product.id}
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-3 px-4 text-gray-800 font-medium">{product.nome}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            {product.categoria?.nome || '-'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-gray-600 text-sm">
+                          {product.marca?.nome || '-'}
+                        </td>
+                        <td className="py-3 px-4 text-gray-600 text-sm">
+                          {product.unidade_padrao}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              product.verificado
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-yellow-100 text-yellow-700'
+                            }`}
+                          >
+                            {product.verificado ? '✓ Verificado' : '⊘ Não verificado'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-gray-600 text-xs">
+                          {new Date(product.criado_em).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex gap-2">
+                            <button className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors">
+                              <Edit2 size={16} />
+                            </button>
+                            <button className="p-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+                <p className="text-sm text-gray-600">
+                  Página {page} de {totalPages} ({totalProducts} total)
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handlePreviousPage}
+                    disabled={page === 1}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft size={16} />
+                    Anterior
+                  </button>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={page === totalPages}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Próximo
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </>
           ) : (
             <div className="text-center py-8">
+              <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">Nenhum produto encontrado</p>
             </div>
           )}

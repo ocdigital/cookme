@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Produto } from '@modules/produtos/entities/produto.entity';
+import { Usuario } from '@modules/usuarios/entities/usuario.entity';
+import { Receita } from '@modules/receitas/entities/receita.entity';
+import { Compra } from '@modules/compras/entities/compra.entity';
 import { ListProductsQueryDto } from '../dto/list-products-query.dto';
 import { ListProductsResponseDto, ProductListDto } from '../dto/product-list.dto';
 
@@ -10,6 +13,12 @@ export class AdminService {
   constructor(
     @InjectRepository(Produto)
     private readonly produtoRepository: Repository<Produto>,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepository: Repository<Usuario>,
+    @InjectRepository(Receita)
+    private readonly receitaRepository: Repository<Receita>,
+    @InjectRepository(Compra)
+    private readonly compraRepository: Repository<Compra>,
   ) {}
 
   /**
@@ -176,6 +185,136 @@ export class AdminService {
         marca: row.marca || 'Sem marca',
         total: parseInt(row.total, 10),
       })),
+    };
+  }
+
+  /**
+   * Lista usuários com paginação e filtros
+   */
+  async listUsers(page: number = 1, limit: number = 20, filters?: {
+    search?: string;
+    role?: string;
+  }) {
+    const qb = this.usuarioRepository
+      .createQueryBuilder('usuario')
+      .select([
+        'usuario.id',
+        'usuario.email',
+        'usuario.nome',
+        'usuario.role',
+        'usuario.email_verificado',
+        'usuario.alertas_habilitados',
+        'usuario.avatar_url',
+        'usuario.ultimo_acesso',
+        'usuario.criado_em',
+        'usuario.atualizado_em',
+      ]);
+
+    // Aplicar filtros
+    if (filters?.search) {
+      qb.andWhere(
+        '(usuario.email ILIKE :search OR usuario.nome ILIKE :search)',
+        { search: `%${filters.search}%` },
+      );
+    }
+
+    if (filters?.role) {
+      qb.andWhere('usuario.role = :role', { role: filters.role });
+    }
+
+    // Contar total antes de paginar
+    const total = await qb.getCount();
+
+    // Aplicar paginação
+    const skip = (page - 1) * limit;
+    qb.skip(skip).take(limit);
+
+    // Ordenar por data de criação (mais recentes primeiro)
+    qb.orderBy('usuario.criado_em', 'DESC');
+
+    const usuarios = await qb.getMany();
+
+    // Calcular paginação
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+
+    return {
+      data: usuarios,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    };
+  }
+
+  /**
+   * Obter estatísticas de usuários
+   */
+  async getUserStats() {
+    const totalUsuarios = await this.usuarioRepository.count();
+
+    const usuariosPorRole = await this.usuarioRepository
+      .createQueryBuilder('usuario')
+      .select('usuario.role', 'role')
+      .addSelect('COUNT(usuario.id)', 'total')
+      .groupBy('usuario.role')
+      .orderBy('COUNT(usuario.id)', 'DESC')
+      .getRawMany();
+
+    // Contar usuários que têm ultimo_acesso não nulo (ativos)
+    const usuarioAtivos = await this.usuarioRepository
+      .createQueryBuilder('usuario')
+      .where('usuario.ultimo_acesso IS NOT NULL')
+      .getCount();
+
+    return {
+      totalUsuarios,
+      usuariosPorRole: usuariosPorRole.map((row) => ({
+        role: row.role || 'user',
+        total: parseInt(row.total, 10),
+      })),
+      usuarioAtivos,
+    };
+  }
+
+  /**
+   * Obter estatísticas gerais do dashboard
+   */
+  async getDashboardStats() {
+    const [
+      totalUsuarios,
+      totalProdutos,
+      totalReceitas,
+      totalCompras,
+      usuariosAtivos,
+    ] = await Promise.all([
+      this.usuarioRepository.count(),
+      this.produtoRepository.count(),
+      this.receitaRepository.count(),
+      this.compraRepository.count(),
+      this.usuarioRepository
+        .createQueryBuilder('usuario')
+        .where('usuario.ultimo_acesso IS NOT NULL')
+        .getCount(),
+    ]);
+
+    return {
+      usuarios: {
+        total: totalUsuarios,
+        ativos: usuariosAtivos,
+      },
+      produtos: {
+        total: totalProdutos,
+      },
+      receitas: {
+        total: totalReceitas,
+      },
+      compras: {
+        total: totalCompras,
+      },
     };
   }
 }

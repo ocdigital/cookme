@@ -9,6 +9,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +18,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ProdutosService } from './produtos.service';
 import { Produto } from './entities/produto.entity';
 import { Marca } from './entities/marca.entity';
@@ -47,19 +49,49 @@ export class ProdutosController {
   }
 
   @Get()
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(300) // 5 minutos
   @ApiOperation({ summary: 'Listar produtos' })
   @ApiQuery({ name: 'search', required: false, description: 'Buscar por nome' })
   @ApiQuery({ name: 'categoriaId', required: false, description: 'Filtrar por categoria' })
+  @ApiQuery({ name: 'page', required: false, description: 'Página (padrão: 1)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Itens por página (padrão: 50)' })
   @ApiResponse({
     status: 200,
-    description: 'Lista de produtos',
-    type: [Produto],
+    description: 'Lista paginada de produtos',
   })
   async findAll(
     @Query('search') search?: string,
     @Query('categoriaId') categoriaId?: string,
-  ): Promise<Produto[]> {
-    return this.produtosService.findAll(search, categoriaId);
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 50,
+  ) {
+    return this.produtosService.findAll(search, categoriaId, +page, +limit);
+  }
+
+  @Get('search')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(600) // 10 minutos
+  @ApiOperation({ summary: 'Buscar produtos para autocomplete (typeahead)' })
+  @ApiQuery({
+    name: 'q',
+    required: true,
+    description: 'Termo de busca (mínimo 2 caracteres)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Limite de resultados (padrão: 10)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de produtos para autocomplete',
+  })
+  async searchProducts(
+    @Query('q') query: string,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.produtosService.searchForAutocomplete(query, limit);
   }
 
   @Get('barcode/:codigo')
@@ -125,6 +157,8 @@ export class ProdutosController {
   }
 
   @Get('marcas/all')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(600) // 10 minutos
   @ApiOperation({ summary: 'Listar todas as marcas' })
   @ApiResponse({
     status: 200,
@@ -163,6 +197,8 @@ export class ProdutosController {
   }
 
   @Get('categorias/all')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(600) // 10 minutos
   @ApiOperation({ summary: 'Listar todas as categorias' })
   @ApiResponse({
     status: 200,

@@ -13,6 +13,7 @@ import { CreateProdutoDto } from './dto/create-produto.dto';
 import { UpdateProdutoDto } from './dto/update-produto.dto';
 import { CreateMarcaDto } from './dto/create-marca.dto';
 import { CreateCategoriaDto } from './dto/create-categoria.dto';
+import { ProductType } from '@common/enums/product-type.enum';
 
 @Injectable()
 export class ProdutosService {
@@ -23,7 +24,7 @@ export class ProdutosService {
     private readonly marcaRepository: Repository<Marca>,
     @InjectRepository(Categoria)
     private readonly categoriaRepository: Repository<Categoria>,
-  ) {}
+  ) { }
 
   // ========== PRODUTOS ==========
 
@@ -38,6 +39,12 @@ export class ProdutosService {
       }
     }
 
+    // Define tipo padrão como ALIMENTO se não fornecido
+    const tipo = createProdutoDto.tipo || ProductType.ALIMENTO;
+
+    // Validar campos obrigatórios para produtos alimentícios
+    this.validateFoodProduct(tipo, createProdutoDto);
+
     // Validar se a categoria é de alimentos (quando fornecida)
     if (createProdutoDto.categoria_id) {
       const categoria = await this.categoriaRepository.findOne({
@@ -48,33 +55,88 @@ export class ProdutosService {
         throw new NotFoundException('Categoria não encontrada');
       }
 
-      if (!categoria.is_food) {
+      // Validar consistência entre tipo do produto e categoria
+      if (tipo === ProductType.ALIMENTO && !categoria.is_food) {
         throw new BadRequestException(
-          'Apenas produtos de categorias de alimentos são permitidos',
+          'Produtos alimentícios devem ter uma categoria de alimentos',
         );
       }
+
+      if (tipo === ProductType.NAO_ALIMENTO && categoria.is_food) {
+        throw new BadRequestException(
+          'Produtos não alimentícios não podem ter categoria de alimentos',
+        );
+      }
+    } else if (tipo === ProductType.ALIMENTO) {
+      // Produtos alimentícios devem ter categoria
+      throw new BadRequestException(
+        'Produtos alimentícios devem ter uma categoria definida',
+      );
     }
 
-    const produto = this.produtoRepository.create(createProdutoDto);
+    const produto = this.produtoRepository.create({
+      ...createProdutoDto,
+      tipo,
+    });
     return this.produtoRepository.save(produto);
   }
 
-  async findAll(search?: string, categoriaId?: string): Promise<Produto[]> {
-    const where: any = {};
+  /**
+   * Valida campos obrigatórios para produtos alimentícios
+   */
+  private validateFoodProduct(
+    tipo: ProductType,
+    data: CreateProdutoDto | UpdateProdutoDto,
+  ): void {
+    if (tipo === ProductType.ALIMENTO) {
+      // Produtos alimentícios devem ter unidade de medida
+      if (!data.unidade_padrao) {
+        throw new BadRequestException(
+          'Produtos alimentícios devem ter uma unidade de medida',
+        );
+      }
+
+      // Validar se tem validade média (recomendado)
+      // Deixando como warning apenas, não bloqueando
+    }
+  }
+
+  async findAll(
+    search?: string,
+    categoriaId?: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<{
+    data: Produto[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const query = this.produtoRepository
+      .createQueryBuilder('produto')
+      .leftJoinAndSelect('produto.marca', 'marca')
+      .leftJoinAndSelect('produto.categoria', 'categoria');
 
     if (search) {
-      where.nome = Like(`%${search}%`);
+      query.andWhere('produto.nome ILIKE :search', { search: `%${search}%` });
     }
 
     if (categoriaId) {
-      where.categoria_id = categoriaId;
+      query.andWhere('produto.categoria_id = :categoriaId', { categoriaId });
     }
 
-    return this.produtoRepository.find({
-      where,
-      relations: ['marca', 'categoria'],
-      take: 50, // Limite de resultados
-    });
+    const total = await query.getCount();
+    const data = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    return {
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: string): Promise<Produto> {
@@ -95,6 +157,33 @@ export class ProdutosService {
       where: { codigo_barras },
       relations: ['marca', 'categoria'],
     });
+  }
+
+  async searchForAutocomplete(query: string, limit: number = 10) {
+    if (!query || query.length < 2) {
+      return [];
+    }
+
+    const produtos = await this.produtoRepository
+      .createQueryBuilder('produto')
+      .leftJoinAndSelect('produto.marca', 'marca')
+      .leftJoinAndSelect('produto.categoria', 'categoria')
+      .where(
+        '(produto.nome ILIKE :query OR produto.codigo_barras ILIKE :query)',
+        { query: `%${query}%` },
+      )
+      .orderBy('produto.nome', 'ASC')
+      .take(limit)
+      .getMany();
+
+    return produtos.map((p) => ({
+      id: p.id,
+      nome: p.nome,
+      codigo_barras: p.codigo_barras,
+      categoria: p.categoria?.nome || null,
+      marca: p.marca?.nome || null,
+      unidade_padrao: p.unidade_padrao,
+    }));
   }
 
   async update(id: string, updateProdutoDto: UpdateProdutoDto): Promise<Produto> {

@@ -6,6 +6,7 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Post,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -52,6 +53,23 @@ export class UsuariosController {
     @Body() updateUsuarioDto: UpdateUsuarioDto,
   ): Promise<Usuario> {
     return this.usuariosService.update(user.id, updateUsuarioDto);
+  }
+
+  @Post('me/avatar')
+  @ApiOperation({ summary: 'Atualizar avatar do usuário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Avatar atualizado com sucesso',
+    type: Usuario,
+  })
+  @ApiResponse({ status: 401, description: 'Não autenticado' })
+  async updateAvatar(
+    @CurrentUser() user: Usuario,
+    @Body() body: { avatar_url: string },
+  ): Promise<Usuario> {
+    return this.usuariosService.update(user.id, {
+      avatar_url: body.avatar_url,
+    });
   }
 
   @Delete('me')

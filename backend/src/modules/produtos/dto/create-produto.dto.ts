@@ -11,6 +11,7 @@ import {
   IsObject,
 } from 'class-validator';
 import { UnidadeMedida } from '@common/enums/unidade-medida.enum';
+import { ProductType } from '@common/enums/product-type.enum';
 
 export class CreateProdutoDto {
   @ApiProperty({
@@ -20,6 +21,16 @@ export class CreateProdutoDto {
   @IsString()
   @IsNotEmpty()
   nome: string;
+
+  @ApiProperty({
+    description: 'Tipo do produto',
+    enum: ProductType,
+    example: ProductType.ALIMENTO,
+    default: ProductType.ALIMENTO,
+  })
+  @IsEnum(ProductType)
+  @IsOptional()
+  tipo?: ProductType;
 
   @ApiProperty({
     description: 'Código de barras EAN-13',

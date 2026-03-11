@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CacheModule } from '@nestjs/cache-manager';
 import appConfig from './config/app.config';
 import { getDatabaseConfig } from './config/database.config';
+import { getCacheConfig } from './config/cache.config';
 
 // Módulos (vamos criar depois)
 import { AuthModule } from './modules/auth/auth.module';
@@ -16,6 +18,9 @@ import { ScraperModule } from './modules/scraper/scraper.module';
 import { AffiliateModule } from './modules/affiliate/affiliate.module';
 import { ProductClassificationModule } from './modules/product-classification/product-classification.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
+import { IAModule } from './modules/ia/ia.module';
+import { ComparacoesModule } from './modules/comparacoes/comparacoes.module';
 
 @Module({
   imports: [
@@ -32,6 +37,14 @@ import { AdminModule } from './modules/admin/admin.module';
       inject: [ConfigService],
     }),
 
+    // Cache
+    CacheModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: getCacheConfig,
+      inject: [ConfigService],
+      isGlobal: true,
+    }),
+
     // Feature Modules
     AuthModule,
     UsuariosModule,
@@ -44,6 +57,9 @@ import { AdminModule } from './modules/admin/admin.module';
     AffiliateModule,
     ProductClassificationModule,
     AdminModule,
+    NotificacoesModule,
+    IAModule,
+    ComparacoesModule,
   ],
 })
 export class AppModule { }

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { UtensilsCrossed, Edit2, Trash2, Search, Eye, Plus, Sparkles } from 'lucide-react';
+import { UtensilsCrossed, Edit2, Trash2, Search, Eye, Plus, Sparkles, BookOpen } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { AnimatedModal } from '../components/AnimatedModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SkeletonTable } from '../components/SkeletonLoader';
+import { StatsBar } from '../components/StatsBar';
 import { useToast } from '../hooks/useToast';
 import recipesService from '../services/recipesService';
 import type { Receita } from '../services/recipesService';
@@ -127,18 +128,12 @@ export const RecipesPage: React.FC = () => {
     }
   };
 
-  const stats = [
-    { label: 'Total de Receitas', value: total, icon: '👨‍🍳' },
-    { label: 'Página Atual', value: `${currentPage}/${totalPages}`, icon: '📄' },
-    { label: 'Receitas na Página', value: recipes.length, icon: '📋' },
-  ];
-
   if (loading && recipes.length === 0) {
     return (
-      <div className="space-y-10">
+      <div className="space-y-6">
         <header>
-          <h1 className="text-4xl font-bold text-gray-800 tracking-tight">Receitas</h1>
-          <p className="text-gray-500 mt-1">Gerencie o acervo de receitas da CookMe</p>
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-white tracking-tight">Receitas</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie o acervo de receitas da CookMe</p>
         </header>
         <SkeletonTable rows={5} cols={6} />
       </div>
@@ -146,27 +141,21 @@ export const RecipesPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {/* Header */}
       <header>
-        <h1 className="text-4xl font-bold text-gray-800 tracking-tight">Receitas</h1>
-        <p className="text-gray-500 mt-1">Gerencie o acervo de receitas da CookMe</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white tracking-tight">Receitas</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie o acervo de receitas da CookMe</p>
       </header>
 
-      {/* Stats */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="stat-card">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">{stat.label}</p>
-                <p className="text-4xl font-bold text-gray-800 mt-2">{stat.value}</p>
-              </div>
-              <div className="text-2xl">{stat.icon}</div>
-            </div>
-          </div>
-        ))}
-      </section>
+      {/* Stats Bar */}
+      <StatsBar
+        items={[
+          { icon: <UtensilsCrossed className="w-5 h-5" />, label: 'Total de Receitas', value: total },
+          { icon: <BookOpen className="w-5 h-5" />, label: 'Página Atual', value: `${currentPage}/${totalPages}` },
+          { icon: <UtensilsCrossed className="w-5 h-5" />, label: 'Receitas na Página', value: recipes.length },
+        ]}
+      />
 
       {/* Table */}
       <Card>
@@ -476,8 +465,6 @@ export const RecipesPage: React.FC = () => {
                   <p className="text-lg font-semibold text-gray-800 mt-1">{selectedRecipe.vezes_executada}x</p>
                 </div>
               </div>
-            </div>
-
           </div>
         )}
       </AnimatedModal>

@@ -5,6 +5,7 @@ import { Receita } from './entities/receita.entity';
 import { ReceitaIngrediente } from './entities/receita-ingrediente.entity';
 import { ReceitaExecutada } from './entities/receita-executada.entity';
 import { CreateReceitaDto } from './dto/create-receita.dto';
+import { UpdateReceitaDto } from './dto/update-receita.dto';
 import { ExecutarReceitaDto } from './dto/executar-receita.dto';
 
 @Injectable()
@@ -58,37 +59,57 @@ export class ReceitasService {
   /**
    * Lista receitas com filtros
    */
-  async findAll(filters?: {
-    search?: string;
-    dificuldade?: string;
-    tags_dieta?: string[];
-    categoria?: string;
-  }): Promise<Receita[]> {
-    const query = this.receitaRepository.createQueryBuilder('receita')
+  async findAll(
+    filters?: {
+      search?: string;
+      dificuldade?: string;
+      tags_dieta?: string[];
+      categoria?: string;
+    },
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{ data: Receita[]; total: number; page: number; totalPages: number }> {
+    const query = this.receitaRepository
+      .createQueryBuilder('receita')
       .leftJoinAndSelect('receita.ingredientes', 'ingredientes')
       .leftJoinAndSelect('ingredientes.produto', 'produto');
 
     if (filters?.search) {
-      query.andWhere('receita.nome ILIKE :search', { search: `%${filters.search}%` });
+      query.andWhere('receita.nome ILIKE :search', {
+        search: `%${filters.search}%`,
+      });
     }
 
     if (filters?.dificuldade) {
-      query.andWhere('receita.dificuldade = :dificuldade', { dificuldade: filters.dificuldade });
+      query.andWhere('receita.dificuldade = :dificuldade', {
+        dificuldade: filters.dificuldade,
+      });
     }
 
     if (filters?.categoria) {
-      query.andWhere('receita.categoria_receita = :categoria', { categoria: filters.categoria });
+      query.andWhere('receita.categoria_receita = :categoria', {
+        categoria: filters.categoria,
+      });
     }
 
     if (filters?.tags_dieta && filters.tags_dieta.length > 0) {
       query.andWhere('receita.tags_dieta && :tags', { tags: filters.tags_dieta });
     }
 
-    return query
+    const total = await query.getCount();
+    const data = await query
       .orderBy('receita.avaliacao_media', 'DESC')
       .addOrderBy('receita.vezes_executada', 'DESC')
-      .take(50)
+      .skip((page - 1) * limit)
+      .take(limit)
       .getMany();
+
+    return {
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   /**
@@ -105,6 +126,50 @@ export class ReceitasService {
     }
 
     return receita;
+  }
+
+  /**
+   * Atualiza uma receita
+   */
+  async update(id: string, updateReceitaDto: UpdateReceitaDto): Promise<Receita> {
+    const receita = await this.findOne(id);
+
+    // Atualiza os campos da receita
+    if (updateReceitaDto.nome !== undefined) receita.nome = updateReceitaDto.nome;
+    if (updateReceitaDto.modo_preparo !== undefined) receita.modo_preparo = updateReceitaDto.modo_preparo;
+    if (updateReceitaDto.tempo_preparo !== undefined) receita.tempo_preparo = updateReceitaDto.tempo_preparo;
+    if (updateReceitaDto.rendimento_porcoes !== undefined) receita.rendimento_porcoes = updateReceitaDto.rendimento_porcoes;
+    if (updateReceitaDto.dificuldade !== undefined) receita.dificuldade = updateReceitaDto.dificuldade;
+    if (updateReceitaDto.tags_dieta !== undefined) receita.tags_dieta = updateReceitaDto.tags_dieta;
+    if (updateReceitaDto.tags_preparo !== undefined) receita.tags_preparo = updateReceitaDto.tags_preparo;
+    if (updateReceitaDto.categoria_receita !== undefined) receita.categoria_receita = updateReceitaDto.categoria_receita;
+    if (updateReceitaDto.descricao !== undefined) receita.descricao = updateReceitaDto.descricao;
+    if (updateReceitaDto.imagem_url !== undefined) receita.imagem_url = updateReceitaDto.imagem_url;
+
+    await this.receitaRepository.save(receita);
+
+    // Se ingredientes foram enviados, atualiza
+    if (updateReceitaDto.ingredientes) {
+      // Remove ingredientes antigos
+      await this.ingredienteRepository.delete({ receita_id: id });
+
+      // Cria novos ingredientes
+      const ingredientes = updateReceitaDto.ingredientes.map((ing, index) =>
+        this.ingredienteRepository.create({
+          receita_id: id,
+          produto_id: ing.produto_id,
+          quantidade: ing.quantidade,
+          unidade: ing.unidade,
+          opcional: ing.opcional || false,
+          observacao: ing.observacao,
+          ordem: ing.ordem || index + 1,
+        }),
+      );
+
+      await this.ingredienteRepository.save(ingredientes);
+    }
+
+    return this.findOne(id);
   }
 
   /**

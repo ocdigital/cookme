@@ -15,7 +15,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   height = 'h-4',
   width = 'w-full',
   circle = false,
-  variant = 'rect',
+  // variant = 'rect',
 }) => {
   const skeletons = Array.from({ length: count });
 

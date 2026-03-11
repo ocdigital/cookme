@@ -1,0 +1,32 @@
+{
+  "name": "cookme",
+  "version": "1.0.0",
+  "description": "CookMe - Platform for recipes and ingredient management",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "dev": "npm run docs:dev",
+    "build": "npm run docs:build",
+    "preview": "npm run docs:preview"
+  },
+  "keywords": [
+    "recipes",
+    "ingredients",
+    "cooking",
+    "meal-planning",
+    "food"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.27"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

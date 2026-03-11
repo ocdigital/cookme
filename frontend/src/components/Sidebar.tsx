@@ -10,13 +10,13 @@ import {
   ShoppingCart,
   BarChart3,
   LogOut,
-  ChevronDown,
+  // ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Sidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -25,7 +25,6 @@ export const Sidebar: React.FC = () => {
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: Users, label: 'Usuários', path: '/users' },
     { icon: Package, label: 'Produtos', path: '/products' },
-    { icon: Package, label: 'Gestão de Produtos', path: '/admin/products' },
     { icon: UtensilsCrossed, label: 'Receitas', path: '/recipes' },
     { icon: ShoppingCart, label: 'Compras', path: '/purchases' },
     { icon: BarChart3, label: 'Relatórios', path: '/reports' },
@@ -59,21 +58,21 @@ export const Sidebar: React.FC = () => {
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-100 shadow-sm
+          fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 shadow-sm
           transition-all duration-300 z-40 flex flex-col overflow-hidden
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:static lg:translate-x-0 lg:relative
         `}
       >
         {/* Logo */}
-        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              C
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm">
+              🍳
             </div>
             <div>
-              <span className="text-lg font-bold text-dark block">CookMe</span>
-              <span className="text-xs text-gray-500 font-medium">Admin</span>
+              <span className="text-lg font-bold text-dark dark:text-white block">CookMe</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Admin</span>
             </div>
           </div>
         </div>
@@ -90,8 +89,8 @@ export const Sidebar: React.FC = () => {
                     flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-sm font-medium
                     ${
                       isActive(item.path)
-                        ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-md'
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'bg-primary/10 dark:bg-primary/20 text-primary border-l-4 border-primary'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }
                   `}
                 >
@@ -104,10 +103,10 @@ export const Sidebar: React.FC = () => {
         </nav>
 
         {/* Logout */}
-        <div className="border-t border-gray-100 p-4">
+        <div className="border-t border-gray-100 dark:border-gray-700 p-4">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 text-sm font-medium"
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 text-sm font-medium"
           >
             <LogOut size={18} />
             <span>Sair</span>

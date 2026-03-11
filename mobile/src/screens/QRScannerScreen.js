@@ -37,7 +37,7 @@ export default function QRScannerScreen({ navigation }) {
       if (!qrcodeTexto || qrcodeTexto.length < 100) {
         Alert.alert(
           'QR Code Inválido',
-          'Este não parece ser um QR Code de cupom fiscal SAT válido.',
+          'Este não parece ser um QR Code de cupom fiscal SAT válido. Verifique o código e tente novamente.',
           [{ text: 'OK', onPress: () => setScanned(false) }]
         );
         return;
@@ -46,6 +46,10 @@ export default function QRScannerScreen({ navigation }) {
       // Iniciar consulta no backend
       const response = await scraperService.startConsulta(qrcodeTexto);
 
+      if (!response || !response.sessionId) {
+        throw new Error('Resposta inválida do servidor');
+      }
+
       // Navegar para tela de processamento
       navigation.replace('Processing', {
         sessionId: response.sessionId,
@@ -53,16 +57,31 @@ export default function QRScannerScreen({ navigation }) {
       });
     } catch (error) {
       console.error('Erro ao iniciar consulta:', error);
+      console.error('Erro completo:', JSON.stringify(error, null, 2));
 
       let errorMessage = 'Erro ao processar QR Code. Tente novamente.';
+      let errorDetails = '';
 
-      if (error.response?.status === 400) {
-        errorMessage = error.response.data.message || 'Limite de consultas simultâneas atingido. Aguarde alguns minutos.';
+      // Erro de resposta do servidor
+      if (error.response) {
+        errorMessage = error.response.data?.message || `Erro ${error.response.status}: ${error.response.statusText}`;
+        errorDetails = error.response.data?.details || '';
+      }
+      // Erro de conexão
+      else if (error.message) {
+        errorMessage = error.message;
       }
 
-      Alert.alert('Erro', errorMessage, [
-        { text: 'OK', onPress: () => setScanned(false) }
-      ]);
+      console.error('Mensagem de erro:', errorMessage);
+      console.error('Detalhes:', errorDetails);
+
+      Alert.alert(
+        'Erro ao processar QR Code',
+        errorDetails ? `${errorMessage}
+
+${errorDetails}` : errorMessage,
+        [{ text: 'OK', onPress: () => setScanned(false) }]
+      );
     }
   };
 

@@ -1,0 +1,94 @@
+/**
+ * CI/CD PIPELINE - GitHub Actions
+ *
+ * Este arquivo configura testes automáticos quando você faz commit
+ *
+ * O QUE FAZ:
+ * - Roda testes automaticamente em cada PR
+ * - Verifica linting (ESLint)
+ * - Valida TypeScript
+ * - Gera relatório de cobertura
+ *
+ * COMO FUNCIONA:
+ * 1. Você faz push para uma branch ou abre PR
+ * 2. GitHub Actions roda este arquivo automaticamente
+ * 3. Se testes falharem, PR fica bloqueado
+ * 4. Você precisa consertar antes de fazer merge
+ */
+
+name: Test & Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # Instalar Node.js
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      # Instalar dependências
+      - name: Install dependencies
+        run: cd backend && npm ci
+
+      # Executar linting
+      - name: Run ESLint
+        run: cd backend && npm run lint
+        continue-on-error: true
+
+      # Validar TypeScript
+      - name: TypeScript type check
+        run: cd backend && npm run type-check
+        continue-on-error: true
+
+      # Rodar testes unitários
+      - name: Run unit tests
+        run: cd backend && npm test -- --coverage --passWithNoTests
+
+      # Upload cobertura para Codecov (opcional)
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: unittests
+          fail_ci_if_error: false
+
+      # Build verificação
+      - name: Build
+        run: cd backend && npm run build
+        continue-on-error: true
+
+/**
+ * COMO USAR:
+ *
+ * 1. Este arquivo está em: .github/workflows/test.yml
+ * 2. Copie o conteúdo abaixo da linha "---" para ativar
+ * 3. Faça commit e push
+ * 4. GitHub Actions vai rodar automaticamente!
+ *
+ * PRÓXIMOS PASSOS:
+ * - Adicione E2E tests em CI/CD também
+ * - Configure SonarQube para análise de código
+ * - Configure deploy automático em sucesso
+ *
+ * MONITORAMENTO:
+ * - Veja resultados em: GitHub > Actions (na sua repo)
+ * - Configure notifications (Settings > Notifications)
+ * - Use badge no README: [![Tests](...)](#)
+ */

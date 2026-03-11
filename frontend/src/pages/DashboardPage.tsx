@@ -1,15 +1,8 @@
 import React from 'react';
 import { Users, Package, UtensilsCrossed, ShoppingCart } from 'lucide-react';
-import { StatCard } from '../components/StatCard';
+import { StatsBar } from '../components/StatsBar';
 
 export const DashboardPage: React.FC = () => {
-  const stats = [
-    { icon: <Users className="w-6 h-6" />, label: 'Usuários', value: 24, change: '+12% este mês' },
-    { icon: <Package className="w-6 h-6" />, label: 'Produtos', value: 156, change: '+8% este mês' },
-    { icon: <UtensilsCrossed className="w-6 h-6" />, label: 'Receitas', value: 42, change: '+5% este mês' },
-    { icon: <ShoppingCart className="w-6 h-6" />, label: 'Compras', value: 89, change: '+25% este mês' },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -18,19 +11,15 @@ export const DashboardPage: React.FC = () => {
         <p className="text-gray-500 dark:text-gray-400 mt-1">Bem-vindo ao painel de administração da CookMe</p>
       </header>
 
-      {/* Stats */}
-      <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s, i) => (
-          <StatCard
-            key={i}
-            icon={s.icon}
-            label={s.label}
-            value={s.value}
-            change={s.change}
-            changeType="positive"
-          />
-        ))}
-      </section>
+      {/* Stats Bar */}
+      <StatsBar
+        items={[
+          { icon: <Users className="w-5 h-5" />, label: 'Usuários', value: 24 },
+          { icon: <Package className="w-5 h-5" />, label: 'Produtos', value: 156 },
+          { icon: <UtensilsCrossed className="w-5 h-5" />, label: 'Receitas', value: 42 },
+          { icon: <ShoppingCart className="w-5 h-5" />, label: 'Compras', value: 89 },
+        ]}
+      />
 
       {/* Activity + Status */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">

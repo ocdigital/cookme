@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Eye, Trash2, Search } from 'lucide-react';
+import { ShoppingCart, Eye, Trash2, Search, TrendingUp, AlertCircle } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
+import { StatsBar } from '../components/StatsBar';
 
 interface Purchase {
   id: number;
@@ -23,11 +24,8 @@ export const PurchasesPage: React.FC = () => {
     { id: 5, numero: '#005', cliente: 'Carlos Mendes', total: 175.30, status: 'confirmado', dataPedido: '2024-02-02' },
   ];
 
-  const stats = [
-    { label: 'Total de Compras', value: purchases.length, icon: '🛒' },
-    { label: 'Vendas este Mês', value: 'R$ ' + purchases.reduce((a, b) => a + b.total, 0).toFixed(2), icon: '💰' },
-    { label: 'Pendentes', value: purchases.filter(p => p.status === 'pendente').length, icon: '⏳' },
-  ];
+  const totalSales = purchases.reduce((a, b) => a + b.total, 0);
+  const pendingCount = purchases.filter(p => p.status === 'pendente').length;
 
   const filteredPurchases = purchases.filter(purchase => {
     const matchesSearch = purchase.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -47,27 +45,21 @@ export const PurchasesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {/* Header */}
       <header>
-        <h1 className="text-4xl font-bold text-gray-800 tracking-tight">Compras</h1>
-        <p className="text-gray-500 mt-1">Acompanhe os pedidos e compras na plataforma</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white tracking-tight">Compras</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Acompanhe os pedidos e compras na plataforma</p>
       </header>
 
-      {/* Stats */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="stat-card">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">{stat.label}</p>
-                <p className="text-4xl font-bold text-gray-800 mt-2">{stat.value}</p>
-              </div>
-              <div className="text-2xl">{stat.icon}</div>
-            </div>
-          </div>
-        ))}
-      </section>
+      {/* Stats Bar */}
+      <StatsBar
+        items={[
+          { icon: <ShoppingCart className="w-5 h-5" />, label: 'Total de Compras', value: purchases.length },
+          { icon: <TrendingUp className="w-5 h-5" />, label: 'Vendas este Mês', value: `R$ ${totalSales.toFixed(2)}` },
+          { icon: <AlertCircle className="w-5 h-5" />, label: 'Pendentes', value: pendingCount },
+        ]}
+      />
 
       {/* Table */}
       <Card>

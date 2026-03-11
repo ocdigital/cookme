@@ -130,7 +130,7 @@ export default function HomeScreenRecipes({ navigation }) {
         {/* Linha 3: Botão */}
         <TouchableOpacity
           style={styles.alertFixedButton}
-          onPress={() => navigation.navigate('RecipesList')}
+          onPress={() => navigation.navigate('Categorias')}
           activeOpacity={0.6}
         >
           <Text style={styles.alertFixedButtonIcon}>🍳</Text>
@@ -181,7 +181,7 @@ export default function HomeScreenRecipes({ navigation }) {
         <View style={styles.mainNavigation}>
           <TouchableOpacity
             style={[styles.mainButton, styles.recipesButton]}
-            onPress={() => navigation.navigate('RecipesList')}
+            onPress={() => navigation.navigate('Categorias')}
           >
             <Text style={styles.mainButtonIcon}>🍳</Text>
             <Text style={styles.mainButtonTitle}>Todas as Receitas</Text>
@@ -190,7 +190,7 @@ export default function HomeScreenRecipes({ navigation }) {
 
           <TouchableOpacity
             style={[styles.mainButton, styles.inventoryButton]}
-            onPress={() => navigation.navigate('Inventory')}
+            onPress={() => navigation.navigate('Pesquisa')}
           >
             <Text style={styles.mainButtonIcon}>📦</Text>
             <Text style={styles.mainButtonTitle}>Meu Inventário</Text>
@@ -204,7 +204,7 @@ export default function HomeScreenRecipes({ navigation }) {
           <View style={styles.quickAccessGrid}>
             <TouchableOpacity
               style={styles.quickAccessItem}
-              onPress={() => navigation.navigate('RecipesList')}
+              onPress={() => navigation.navigate('Categorias')}
             >
               <Text style={styles.quickAccessIcon}>📖</Text>
               <Text style={styles.quickAccessText}>Buscar{'\n'}Receitas</Text>
@@ -212,7 +212,7 @@ export default function HomeScreenRecipes({ navigation }) {
 
             <TouchableOpacity
               style={styles.quickAccessItem}
-              onPress={() => navigation.navigate('Inventory')}
+              onPress={() => navigation.navigate('Pesquisa')}
             >
               <Text style={styles.quickAccessIcon}>🍽️</Text>
               <Text style={styles.quickAccessText}>Produtos{'\n'}Cadastrados</Text>

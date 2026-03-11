@@ -10,6 +10,7 @@ import {
     OneToMany,
 } from 'typeorm';
 import { UnidadeMedida } from '@common/enums/unidade-medida.enum';
+import { ProductType } from '@common/enums/product-type.enum';
 import { Marca } from './marca.entity';
 import { Categoria } from './categoria.entity';
 import { CompraItem } from '../../compras/entities/compra-item.entity';
@@ -23,6 +24,13 @@ export class Produto {
 
     @Column()
     nome: string;
+
+    @Column({
+        type: 'enum',
+        enum: ProductType,
+        default: ProductType.ALIMENTO,
+    })
+    tipo: ProductType;
 
     @Column({ nullable: true })
     descricao: string;

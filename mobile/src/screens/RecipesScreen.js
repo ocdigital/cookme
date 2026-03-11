@@ -47,7 +47,7 @@ export default function RecipesScreen({ navigation }) {
   const renderCategoryButton = ({ item }) => (
     <TouchableOpacity
       style={[styles.categoryButton, { borderColor: item.cor }]}
-      onPress={() => navigation.navigate('RecipesList', { categoria: item.id })}
+      onPress={() => navigation.navigate('Categorias', { categoria: item.id })}
       activeOpacity={0.7}
     >
       <Text style={styles.categoryIcon}>{item.icone}</Text>
@@ -101,7 +101,7 @@ export default function RecipesScreen({ navigation }) {
         <View style={styles.buttonGrid}>
           <TouchableOpacity
             style={styles.navButton}
-            onPress={() => navigation.navigate('RecipesList')}
+            onPress={() => navigation.navigate('Categorias')}
           >
             <Text style={styles.navButtonIcon}>📖</Text>
             <Text style={styles.navButtonText}>Todas as{'\n'}Receitas</Text>

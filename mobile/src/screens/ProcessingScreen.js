@@ -109,14 +109,21 @@ export default function ProcessingScreen({ route, navigation }) {
       }
     } catch (error) {
       console.error('Erro ao verificar status:', error);
+      console.error('Erro completo:', JSON.stringify(error, null, 2));
       stopPolling();
 
-      const errorMessage = error.response?.data?.message || 'Erro ao processar cupom';
+      const errorMessage = error.response?.data?.message || error.message || 'Erro ao processar cupom';
+      const errorDetails = error.response?.data?.details || '';
       setError(errorMessage);
 
+      console.error('Mensagem de erro:', errorMessage);
+      if (errorDetails) console.error('Detalhes:', errorDetails);
+
       Alert.alert(
-        'Erro',
-        errorMessage,
+        'Erro ao Processar Cupom',
+        errorDetails ? `${errorMessage}
+
+${errorDetails}` : errorMessage,
         [
           {
             text: 'OK',

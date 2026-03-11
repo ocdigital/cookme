@@ -198,7 +198,7 @@ export default function FavoritesScreen({ navigation }) {
           </Text>
           <TouchableOpacity
             style={styles.exploreButton}
-            onPress={() => navigation.navigate('RecipesList')}
+            onPress={() => navigation.navigate('Categorias')}
           >
             <Text style={styles.exploreButtonText}>Explorar Receitas</Text>
           </TouchableOpacity>
