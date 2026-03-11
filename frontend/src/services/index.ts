@@ -34,4 +34,4 @@ export { default as notificacoesService } from './notificacoesService';
 export type { Notificacao, NotificationType } from './notificacoesService';
 
 // Admin Services
-export { default as adminService } from './adminService';
+export { adminService } from './adminService';
