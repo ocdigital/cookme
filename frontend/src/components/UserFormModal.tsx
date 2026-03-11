@@ -18,6 +18,7 @@ type UserFormData = {
   nome: string;
   email: string;
   role: string;
+  senha?: string;
 };
 
 type UserFormModalProps = {
@@ -65,6 +66,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         nome: '',
         email: '',
         role: 'user',
+        senha: '',
       });
     }
     setValidationErrors({});
@@ -72,6 +74,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
   const validateForm = (): boolean => {
     const errors: { [key: string]: string } = {};
+    const isEditing = !!user;
 
     if (!formData.nome.trim()) {
       errors.nome = 'Nome é obrigatório';
@@ -81,6 +84,12 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       errors.email = 'Email é obrigatório';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Email inválido';
+    }
+
+    if (!isEditing && !formData.senha?.trim()) {
+      errors.senha = 'Senha é obrigatória';
+    } else if (formData.senha && formData.senha.length < 6) {
+      errors.senha = 'Senha deve ter no mínimo 6 caracteres';
     }
 
     if (!formData.role) {
@@ -100,7 +109,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
     try {
       await onSubmit(formData);
-      setFormData({ nome: '', email: '', role: 'user' });
+      setFormData({ nome: '', email: '', role: 'user', senha: '' });
       setValidationErrors({});
     } catch (err) {
       // Error is handled by the parent component
@@ -187,6 +196,30 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 </p>
               )}
             </div>
+
+            {/* Senha Field (only for new users) */}
+            {!isEditing && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Senha
+                </label>
+                <input
+                  type="password"
+                  value={formData.senha || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, senha: e.target.value })
+                  }
+                  placeholder="Digite uma senha"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent text-sm"
+                  disabled={isLoading}
+                />
+                {validationErrors.senha && (
+                  <p className="text-red-600 text-xs mt-1">
+                    {validationErrors.senha}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Role Combobox */}
             <div>

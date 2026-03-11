@@ -139,20 +139,32 @@ export const UsersPage: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleFormSubmit = async (data: { nome: string; email: string; role: string }) => {
+  const handleFormSubmit = async (data: { nome: string; email: string; role: string; senha?: string }) => {
     try {
       setFormLoading(true);
       setFormError(null);
 
-      // TODO: Implement create/update user API call when backend endpoints are available
-      console.log('Form submitted:', data);
+      if (selectedUser?.id) {
+        // Update existing user
+        await userService.updateUser(selectedUser.id, {
+          nome: data.nome,
+        });
+      } else {
+        // Create new user
+        if (!data.senha) {
+          throw new Error('Senha é obrigatória para novo usuário');
+        }
+        await userService.createUser({
+          email: data.email,
+          nome: data.nome,
+          senha: data.senha,
+          role: data.role || 'USER',
+        });
+      }
 
-      // Mock success - in production this would call the backend
-      setTimeout(() => {
-        setIsFormModalOpen(false);
-        loadUsers();
-        loadStats();
-      }, 500);
+      setIsFormModalOpen(false);
+      loadUsers();
+      loadStats();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Erro ao salvar usuário');
       console.error('Erro ao salvar usuário:', err);
@@ -166,17 +178,11 @@ export const UsersPage: React.FC = () => {
 
     try {
       setDeleteLoading(true);
-
-      // TODO: Implement delete user API call when backend endpoint is available
-      console.log('Deletando usuário:', selectedUser.id);
-
-      // Mock success - in production this would call the backend
-      setTimeout(() => {
-        setIsDeleteModalOpen(false);
-        setSelectedUser(null);
-        loadUsers();
-        loadStats();
-      }, 500);
+      await userService.deleteUser(selectedUser.id);
+      setIsDeleteModalOpen(false);
+      setSelectedUser(null);
+      loadUsers();
+      loadStats();
     } catch (err) {
       console.error('Erro ao deletar usuário:', err);
     } finally {

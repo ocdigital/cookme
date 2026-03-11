@@ -5,6 +5,7 @@ import { AnimatedModal } from '../components/AnimatedModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SkeletonTable } from '../components/SkeletonLoader';
 import { StatsBar } from '../components/StatsBar';
+import { RecipeFormModal } from '../components/RecipeFormModal';
 import { useToast } from '../hooks/useToast';
 import recipesService from '../services/recipesService';
 import type { Receita } from '../services/recipesService';
@@ -22,12 +23,15 @@ export const RecipesPage: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [selectedRecipe, setSelectedRecipe] = useState<Receita | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
   const [showIAModal, setShowIAModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showWeekConfirm, setShowWeekConfirm] = useState(false);
   const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null);
   const [ingredientesIA, setIngredientesIA] = useState('');
   const [loadingIA, setLoadingIA] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'todas' | 'sugestoes'>('todas');
   const [suggestions, setSuggestions] = useState<Receita[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -135,6 +139,59 @@ export const RecipesPage: React.FC = () => {
     }
   };
 
+  const handleCreateRecipe = () => {
+    setSelectedRecipe(null);
+    setFormError(null);
+    setShowFormModal(true);
+  };
+
+  const handleEditRecipe = (recipe: Receita) => {
+    setSelectedRecipe(recipe);
+    setFormError(null);
+    setShowFormModal(true);
+  };
+
+  const handleFormSubmit = async (data: any) => {
+    try {
+      setFormLoading(true);
+      setFormError(null);
+
+      if (selectedRecipe?.id) {
+        // Update
+        await recipesService.update(selectedRecipe.id, {
+          nome: data.nome,
+          descricao: data.descricao,
+          dificuldade: data.dificuldade,
+          tempo_preparo: data.tempo_preparo,
+          rendimento_porcoes: data.rendimento_porcoes,
+          modo_preparo: data.modo_preparo,
+        });
+        toast.success('Receita atualizada com sucesso!');
+      } else {
+        // Create
+        await recipesService.create({
+          nome: data.nome,
+          descricao: data.descricao,
+          dificuldade: data.dificuldade,
+          tempo_preparo: data.tempo_preparo,
+          rendimento_porcoes: data.rendimento_porcoes,
+          modo_preparo: data.modo_preparo,
+          origem: 'manual',
+          ingredientes: data.ingredientes,
+        });
+        toast.success('Receita criada com sucesso!');
+      }
+
+      setShowFormModal(false);
+      loadRecipes();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Erro ao salvar receita');
+      console.error('Erro ao salvar receita:', error);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const handleGerarSemana = async () => {
     setShowWeekConfirm(true);
   };
@@ -235,7 +292,7 @@ export const RecipesPage: React.FC = () => {
             </button>
             <button
               className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 text-sm font-medium"
-              onClick={() => toast.info('Em breve', 'Modal de criação de receitas em desenvolvimento')}
+              onClick={handleCreateRecipe}
             >
               <Plus size={16} />
               Nova Receita
@@ -317,7 +374,7 @@ export const RecipesPage: React.FC = () => {
                               <Eye size={16} />
                             </button>
                             <button
-                              onClick={() => toast.info('Em breve', 'Modal de edição de receitas em desenvolvimento')}
+                              onClick={() => handleEditRecipe(recipe)}
                               className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
                               title="Editar"
                             >
@@ -529,6 +586,20 @@ export const RecipesPage: React.FC = () => {
           </div>
         )}
       </AnimatedModal>
+
+      {/* Recipe Form Modal */}
+      <RecipeFormModal
+        isOpen={showFormModal}
+        isLoading={formLoading}
+        error={formError}
+        recipe={selectedRecipe}
+        onClose={() => {
+          setShowFormModal(false);
+          setSelectedRecipe(null);
+          setFormError(null);
+        }}
+        onSubmit={handleFormSubmit}
+      />
 
       {/* Confirm Dialogs */}
       <ConfirmDialog

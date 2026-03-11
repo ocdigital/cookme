@@ -139,7 +139,10 @@ export const PurchasesPage: React.FC = () => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
-                            <button className="p-2 text-gray-600 hover:bg-green-50 hover:text-green-600 rounded-lg transition-colors">
+                            <button
+                              onClick={() => alert(`Compra #${purchase.id}\n\nItens: ${purchase.itens?.length || 0}\nData: ${new Date(purchase.criado_em).toLocaleDateString('pt-BR')}`)}
+                              className="p-2 text-gray-600 hover:bg-green-50 hover:text-green-600 rounded-lg transition-colors"
+                            >
                               <Eye size={16} />
                             </button>
                             <button

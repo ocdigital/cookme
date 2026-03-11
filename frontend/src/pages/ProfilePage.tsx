@@ -291,7 +291,10 @@ export const ProfilePage: React.FC = () => {
           {/* Security Section */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 mt-3">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Segurança</h3>
-            <button className="w-full px-3 py-2 text-left text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center gap-2 text-sm font-medium">
+            <button
+              onClick={() => alert('Recurso de alterar senha em desenvolvimento')}
+              className="w-full px-3 py-2 text-left text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center gap-2 text-sm font-medium"
+            >
               <Lock size={14} />
               Alterar Senha
             </button>

@@ -32,6 +32,22 @@ type UserStats = {
   usuarioAtivos: number;
 };
 
+type CreateUserDto = {
+  email: string;
+  nome: string;
+  senha: string;
+  role?: string;
+  avatar_url?: string;
+};
+
+type UpdateUserDto = {
+  nome?: string;
+  telefone?: string;
+  avatar_url?: string;
+  alertas_habilitados?: boolean;
+  horario_alertas?: string;
+};
+
 export const userService = {
   listUsers: async (
     page: number = 1,
@@ -61,5 +77,19 @@ export const userService = {
   getUserStats: async (): Promise<UserStats> => {
     const response = await api.get<UserStats>('/admin/usuarios/stats');
     return response.data;
+  },
+
+  createUser: async (data: CreateUserDto): Promise<User> => {
+    const response = await api.post<User>('/admin/usuarios', data);
+    return response.data;
+  },
+
+  updateUser: async (id: string, data: UpdateUserDto): Promise<User> => {
+    const response = await api.patch<User>(`/admin/usuarios/${id}`, data);
+    return response.data;
+  },
+
+  deleteUser: async (id: string): Promise<void> => {
+    await api.delete(`/admin/usuarios/${id}`);
   },
 };
