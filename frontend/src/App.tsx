@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Layout } from './components/Layout';
 
 // Pages
@@ -8,9 +10,9 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { UsersPage } from './pages/UsersPage';
 import { ProductsPage } from './pages/ProductsPage';
-import { AdminProductsPage } from './pages/AdminProductsPage';
 import { RecipesPage } from './pages/RecipesPage';
 import { PurchasesPage } from './pages/PurchasesPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -87,16 +89,6 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/admin/products"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <AdminProductsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/recipes"
         element={
           <ProtectedRoute>
@@ -116,6 +108,16 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ProfilePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Redirect to dashboard or login */}
       <Route path="/" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
@@ -127,9 +129,19 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+          <Toaster
+            position="bottom-right"
+            expand={true}
+            richColors
+            closeButton
+            theme="light"
+            className="dark:bg-gray-900 dark:text-white"
+          />
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }

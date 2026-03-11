@@ -1,16 +1,17 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer components {
   .stat-card {
-    @apply bg-white p-6 rounded-xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+    @apply bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
   }
 
   .icon-container {
-    @apply bg-orange-50 text-orange-500 p-3 rounded-lg shadow-inner;
+    @apply bg-orange-50 dark:bg-orange-900/20 text-orange-500 dark:text-orange-400 p-3 rounded-lg shadow-inner;
   }
 
   .card {
-    @apply bg-white rounded-xl border border-gray-100 shadow-sm;
+    @apply bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm;
   }
 
   .card:hover {
@@ -18,11 +19,11 @@
   }
 
   .card-title {
-    @apply text-gray-700 font-semibold text-lg mb-3;
+    @apply text-gray-700 dark:text-gray-200 font-semibold text-lg mb-3;
   }
 
   .card-content {
-    @apply text-sm text-gray-600;
+    @apply text-sm text-gray-600 dark:text-gray-300;
   }
 
   .text-primary {
