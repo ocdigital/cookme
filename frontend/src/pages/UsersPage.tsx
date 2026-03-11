@@ -65,8 +65,11 @@ export const UsersPage: React.FC = () => {
 
   useEffect(() => {
     loadUsers();
-    loadStats();
   }, [page, searchTerm]);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
 
   const loadUsers = async () => {
     try {
@@ -148,6 +151,7 @@ export const UsersPage: React.FC = () => {
         // Update existing user
         await userService.updateUser(selectedUser.id, {
           nome: data.nome,
+          role: data.role,
         });
       } else {
         // Create new user

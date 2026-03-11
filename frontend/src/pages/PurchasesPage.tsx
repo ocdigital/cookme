@@ -78,7 +78,7 @@ export const PurchasesPage: React.FC = () => {
         items={[
           { icon: <ShoppingCart className="w-5 h-5" />, label: 'Total de Compras', value: stats.totalCompras },
           { icon: <TrendingUp className="w-5 h-5" />, label: 'Valor Total', value: `R$ ${(stats.valorTotal || 0).toFixed(2)}` },
-          { icon: <AlertCircle className="w-5 h-5" />, label: 'Carregando...', value: loading ? '...' : 'OK' },
+          { icon: <TrendingUp className="w-5 h-5" />, label: 'Ticket Médio', value: `R$ ${(stats.mediaTicket || 0).toFixed(2)}` },
         ]}
       />
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Query, Body, Param, UseInterceptors, HttpCode, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -7,14 +7,21 @@ import {
 } from '@nestjs/swagger';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AdminService } from '../services/admin.service';
+import { UsuariosService } from '../../usuarios/usuarios.service';
 import { ListProductsQueryDto } from '../dto/list-products-query.dto';
 import { ListProductsResponseDto } from '../dto/product-list.dto';
+import { CreateUsuarioDto } from '../../usuarios/dto/create-usuario.dto';
+import { UpdateUsuarioDto } from '../../usuarios/dto/update-usuario.dto';
+import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly usuariosService: UsuariosService,
+  ) {}
 
   @Get('produtos')
   @ApiOperation({
@@ -82,6 +89,58 @@ export class AdminController {
   @ApiResponse({ status: 401, description: 'Não autenticado' })
   async getUserStats() {
     return this.adminService.getUserStats();
+  }
+
+  @Post('usuarios')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Criar novo usuário (Admin)',
+    description: 'Cria um novo usuário no sistema com os dados fornecidos',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuário criado com sucesso',
+    type: Usuario,
+  })
+  @ApiResponse({ status: 401, description: 'Não autenticado' })
+  @ApiResponse({ status: 409, description: 'Email já cadastrado' })
+  async createUser(@Body() createUsuarioDto: CreateUsuarioDto): Promise<Usuario> {
+    return this.usuariosService.create(createUsuarioDto);
+  }
+
+  @Patch('usuarios/:id')
+  @ApiOperation({
+    summary: 'Atualizar usuário (Admin)',
+    description: 'Atualiza informações de um usuário existente',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuário atualizado com sucesso',
+    type: Usuario,
+  })
+  @ApiResponse({ status: 401, description: 'Não autenticado' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  async updateUser(
+    @Param('id') id: string,
+    @Body() updateUsuarioDto: UpdateUsuarioDto,
+  ): Promise<Usuario> {
+    return this.usuariosService.update(id, updateUsuarioDto);
+  }
+
+  @Delete('usuarios/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Deletar usuário (Admin)',
+    description: 'Remove um usuário do sistema',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Usuário deletado com sucesso',
+  })
+  @ApiResponse({ status: 401, description: 'Não autenticado' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  async deleteUser(@Param('id') id: string): Promise<void> {
+    return this.usuariosService.delete(id);
   }
 
   @Get('dashboard/stats')

@@ -84,4 +84,8 @@ export const adminService = {
     const response = await api.get<ProductStats>('/admin/produtos/stats');
     return response.data;
   },
+
+  deleteProduct: async (id: string): Promise<void> => {
+    await api.delete(`/admin/produtos/${id}`);
+  },
 };

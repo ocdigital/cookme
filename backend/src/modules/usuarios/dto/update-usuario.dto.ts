@@ -31,6 +31,15 @@ export class UpdateUsuarioDto {
   avatar_url?: string;
 
   @ApiProperty({
+    description: 'Papel do usuário',
+    enum: UserRole,
+    required: false,
+  })
+  @IsEnum(UserRole)
+  @IsOptional()
+  role?: UserRole;
+
+  @ApiProperty({
     description: 'Habilitar alertas de vencimento',
     example: true,
     required: false,

@@ -148,7 +148,7 @@ export const ProductsPage: React.FC = () => {
             >
               <option value="">Todas as Categorias</option>
               {stats.produtosPorCategoria.map((cat) => (
-                <option key={cat.categoria} value={cat.categoria}>
+                <option key={cat.categoria} value={cat.categoria || ''}>
                   {cat.categoria} ({cat.total})
                 </option>
               ))}
@@ -222,10 +222,25 @@ export const ProductsPage: React.FC = () => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
-                            <button className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors">
+                            <button
+                              onClick={() => alert('Edição de produtos em desenvolvimento')}
+                              className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                            >
                               <Edit2 size={16} />
                             </button>
-                            <button className="p-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors">
+                            <button
+                              onClick={async () => {
+                                if (confirm(`Deletar ${product.nome}?`)) {
+                                  try {
+                                    await adminService.deleteProduct(product.id);
+                                    setProducts(products.filter(p => p.id !== product.id));
+                                  } catch (err) {
+                                    alert('Erro ao deletar produto');
+                                  }
+                                }
+                              }}
+                              className="p-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                            >
                               <Trash2 size={16} />
                             </button>
                           </div>
