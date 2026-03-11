@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Package, UtensilsCrossed, ShoppingCart, Loader } from 'lucide-react';
 import { StatsBar } from '../components/StatsBar';
-import { usuariosService, produtosService, recipesService, comprasService } from '../services';
+import { usuariosService, produtosService, comprasService } from '../services';
 
 export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState({
@@ -18,18 +18,17 @@ export const DashboardPage: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const [usersStats, productsStats, recipesStats, purchasesStats] = await Promise.all([
-        usuariosService.getStats().catch(() => ({ total: 0 })),
-        produtosService.getStats().catch(() => ({ total: 0 })),
-        recipesService.getStats?.().catch(() => ({ total: 0 })) || Promise.resolve({ total: 0 }),
-        comprasService.getStats().catch(() => ({ total: 0 })),
+      const [usersStats, productsStats, purchasesStats] = await Promise.all([
+        usuariosService.getStats().catch(() => ({ totalUsuarios: 0 })),
+        produtosService.getStats().catch(() => ({ totalProdutos: 0 })),
+        comprasService.getStats().catch(() => ({ totalCompras: 0 })),
       ]);
 
       setStats({
-        usuarios: usersStats.total || 0,
-        produtos: productsStats.total || 0,
-        receitas: recipesStats.total || 0,
-        compras: purchasesStats.total || 0,
+        usuarios: usersStats.totalUsuarios || 0,
+        produtos: productsStats.totalProdutos || 0,
+        receitas: 0, // Recipes don't have stats endpoint
+        compras: purchasesStats.totalCompras || 0,
       });
     } catch (err) {
       console.error('Erro ao carregar stats:', err);

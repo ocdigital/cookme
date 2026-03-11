@@ -1,6 +1,5 @@
-import axios, { AxiosError } from 'axios';
-import type { AxiosInstance } from 'axios';
-import type { User, Product, Recipe, Purchase, PaginatedResponse } from '../types';
+import axios from 'axios';
+import type { AxiosInstance, AxiosError } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 

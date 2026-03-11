@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Eye, Trash2, Search, TrendingUp, AlertCircle, Loader } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { StatsBar } from '../components/StatsBar';
-import { comprasService, Compra } from '../services';
+import { comprasService } from '../services';
+import type { Compra, ComprasStats } from '../services';
 
 export const PurchasesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,7 +12,12 @@ export const PurchasesPage: React.FC = () => {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [stats, setStats] = useState({ total: 0, somatorio: 0 });
+  const [stats, setStats] = useState<ComprasStats>({
+    totalCompras: 0,
+    valorTotal: 0,
+    mediaTicket: 0,
+    comprasMes: 0,
+  });
 
   useEffect(() => {
     loadPurchases();
@@ -47,7 +53,7 @@ export const PurchasesPage: React.FC = () => {
     try {
       await comprasService.delete(id);
       setPurchases(purchases.filter(p => p.id !== id));
-      setStats({ ...stats, total: stats.total - 1 });
+      setStats({ ...stats, totalCompras: stats.totalCompras - 1 });
     } catch (err) {
       alert('Erro ao deletar compra');
       console.error(err);
@@ -70,8 +76,8 @@ export const PurchasesPage: React.FC = () => {
       {/* Stats Bar */}
       <StatsBar
         items={[
-          { icon: <ShoppingCart className="w-5 h-5" />, label: 'Total de Compras', value: stats.total },
-          { icon: <TrendingUp className="w-5 h-5" />, label: 'Valor Total', value: `R$ ${(stats.somatorio || 0).toFixed(2)}` },
+          { icon: <ShoppingCart className="w-5 h-5" />, label: 'Total de Compras', value: stats.totalCompras },
+          { icon: <TrendingUp className="w-5 h-5" />, label: 'Valor Total', value: `R$ ${(stats.valorTotal || 0).toFixed(2)}` },
           { icon: <AlertCircle className="w-5 h-5" />, label: 'Carregando...', value: loading ? '...' : 'OK' },
         ]}
       />

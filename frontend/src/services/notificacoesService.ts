@@ -10,6 +10,7 @@ export interface Notificacao {
   titulo: string;
   mensagem: string;
   lida: boolean;
+  icone?: string;
   criado_em: Date;
 }
 
