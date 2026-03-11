@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UtensilsCrossed, Edit2, Trash2, Search, Eye, Plus, Sparkles, BookOpen } from 'lucide-react';
+import { UtensilsCrossed, Edit2, Trash2, Search, Eye, Plus, Sparkles, BookOpen, Zap, Loader } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { AnimatedModal } from '../components/AnimatedModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -28,6 +28,9 @@ export const RecipesPage: React.FC = () => {
   const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null);
   const [ingredientesIA, setIngredientesIA] = useState('');
   const [loadingIA, setLoadingIA] = useState(false);
+  const [viewMode, setViewMode] = useState<'todas' | 'sugestoes'>('todas');
+  const [suggestions, setSuggestions] = useState<Receita[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   // Carregar receitas
   useEffect(() => {
@@ -38,6 +41,13 @@ export const RecipesPage: React.FC = () => {
   useEffect(() => {
     loadRecipes(1);
   }, [searchTerm, dificuldadeFilter]);
+
+  // Carregar sugestões quando view mode muda para 'sugestoes'
+  useEffect(() => {
+    if (viewMode === 'sugestoes' && suggestions.length === 0) {
+      loadSuggestions();
+    }
+  }, [viewMode]);
 
   const loadRecipes = async (page: number = 1) => {
     try {
@@ -56,6 +66,22 @@ export const RecipesPage: React.FC = () => {
       console.error('Erro ao carregar receitas:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSuggestions = async () => {
+    try {
+      setLoadingSuggestions(true);
+      const data = await recipesService.getSugestoes();
+      setSuggestions(data);
+      if (data.length === 0) {
+        toast.info('Sem sugestões', 'Nenhuma sugestão personalizada disponível no momento');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar sugestões:', error);
+      toast.error('Erro ao carregar sugestões', 'Tente novamente mais tarde');
+    } finally {
+      setLoadingSuggestions(false);
     }
   };
 
@@ -128,7 +154,10 @@ export const RecipesPage: React.FC = () => {
     }
   };
 
-  if (loading && recipes.length === 0) {
+  const isLoading = viewMode === 'todas' ? loading : loadingSuggestions;
+  const displayRecipes = viewMode === 'todas' ? recipes : suggestions;
+
+  if (isLoading && displayRecipes.length === 0) {
     return (
       <div className="space-y-2">
         <header className="-mt-1">
@@ -154,6 +183,36 @@ export const RecipesPage: React.FC = () => {
           { icon: <UtensilsCrossed className="w-5 h-5" />, label: 'Receitas na Página', value: recipes.length },
         ]}
       />
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-gray-200">
+        <button
+          onClick={() => setViewMode('todas')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            viewMode === 'todas'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <BookOpen size={16} />
+            Todas as Receitas
+          </div>
+        </button>
+        <button
+          onClick={() => setViewMode('sugestoes')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            viewMode === 'sugestoes'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Zap size={16} />
+            Sugestões (MOI)
+          </div>
+        </button>
+      </div>
 
       {/* Table */}
       <Card>
@@ -210,7 +269,11 @@ export const RecipesPage: React.FC = () => {
 
         {/* Table Content */}
         <CardContent>
-          {recipes.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : displayRecipes.length > 0 ? (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -225,7 +288,7 @@ export const RecipesPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {recipes.map((recipe) => (
+                    {displayRecipes.map((recipe) => (
                       <tr key={recipe.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4 text-gray-800 font-medium">{recipe.nome}</td>
                         <td className="py-3 px-4">
@@ -276,10 +339,10 @@ export const RecipesPage: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
+              {viewMode === 'todas' && totalPages > 1 && (
                 <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
                   <div className="text-sm text-gray-600">
-                    Mostrando <span className="font-semibold">{recipes.length}</span> de <span className="font-semibold">{total}</span> receitas
+                    Mostrando <span className="font-semibold">{displayRecipes.length}</span> de <span className="font-semibold">{total}</span> receitas
                   </div>
                   <div className="flex gap-2">
                     <button

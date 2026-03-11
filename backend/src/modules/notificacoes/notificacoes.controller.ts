@@ -54,9 +54,9 @@ export class NotificacoesController {
     status: 200,
     description: 'Quantidade de notificações não lidas',
   })
-  async getUnreadCount(@CurrentUser() user: Usuario): Promise<{ count: number }> {
-    const count = await this.notificacoesService.getUnreadCount(user.id);
-    return { count };
+  async getUnreadCount(@CurrentUser() user: Usuario): Promise<{ unreadCount: number }> {
+    const unreadCount = await this.notificacoesService.getUnreadCount(user.id);
+    return { unreadCount };
   }
 
   @Post(':id/mark-read')

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Save, Lock, Check, Upload } from 'lucide-react';
+import { usuariosService } from '../services';
 
 export const ProfilePage: React.FC = () => {
   const { user } = useAuth();
@@ -30,13 +31,17 @@ export const ProfilePage: React.FC = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // TODO: Implement profile update API call
-      // await userService.updateProfile(formData);
+      await usuariosService.updateMe({
+        nome: formData.nome,
+        telefone: formData.telefone,
+        avatar_url: formData.avatar_url,
+      });
       setSuccessMessage('Perfil atualizado com sucesso!');
       setIsEditing(false);
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
+      alert('Erro ao atualizar perfil. Tente novamente.');
     } finally {
       setIsSaving(false);
     }

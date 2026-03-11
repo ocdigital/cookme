@@ -1,3 +1,5 @@
+import { notificacoesService as apiService } from './notificacoesService';
+
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
 export type Notification = {
@@ -10,81 +12,49 @@ export type Notification = {
   icon?: string;
 };
 
-// Mock notifications data
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: '1',
-    type: 'success',
-    title: 'Novo produto adicionado',
-    message: 'O produto "Açúcar Refinado União 1kg" foi adicionado ao catálogo',
-    timestamp: new Date(Date.now() - 5 * 60000), // 5 minutes ago
-    read: false,
-    icon: '📦',
-  },
-  {
-    id: '2',
-    type: 'warning',
-    title: 'Estoque baixo',
-    message: 'O produto "Sal Marinho" está com estoque abaixo do limite recomendado',
-    timestamp: new Date(Date.now() - 30 * 60000), // 30 minutes ago
-    read: false,
-    icon: '⚠️',
-  },
-  {
-    id: '3',
-    type: 'info',
-    title: 'Novo usuário registrado',
-    message: 'Um novo usuário se registrou na plataforma',
-    timestamp: new Date(Date.now() - 2 * 60 * 60000), // 2 hours ago
-    read: true,
-    icon: '👤',
-  },
-  {
-    id: '4',
-    type: 'success',
-    title: 'Relatório gerado',
-    message: 'Seu relatório mensal de vendas está pronto para download',
-    timestamp: new Date(Date.now() - 24 * 60 * 60000), // 1 day ago
-    read: true,
-    icon: '📊',
-  },
-  {
-    id: '5',
-    type: 'error',
-    title: 'Erro na sincronização',
-    message: 'Falha ao sincronizar dados com o servidor',
-    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60000), // 3 days ago
-    read: true,
-    icon: '❌',
-  },
-];
-
 export const notificationsService = {
   /**
-   * Get all notifications (mock)
+   * Get all notifications from API
    */
   getNotifications: async (): Promise<Notification[]> => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return MOCK_NOTIFICATIONS;
+    try {
+      const response = await apiService.getAll(1, 20);
+      return (response.data || []).map((notif) => ({
+        id: notif.id,
+        type: (notif.tipo as NotificationType) || 'info',
+        title: notif.titulo,
+        message: notif.mensagem,
+        timestamp: new Date(notif.criado_em),
+        read: notif.lida,
+        icon: notif.icone,
+      }));
+    } catch (err) {
+      console.error('Erro ao carregar notificações:', err);
+      return [];
+    }
   },
 
   /**
    * Get unread notification count
    */
   getUnreadCount: async (): Promise<number> => {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    return MOCK_NOTIFICATIONS.filter((n) => !n.read).length;
+    try {
+      const response = await apiService.getAll(1, 100);
+      return (response.data || []).filter((n) => !n.lida).length;
+    } catch (err) {
+      console.error('Erro ao obter contagem de não lidas:', err);
+      return 0;
+    }
   },
 
   /**
    * Mark notification as read
    */
   markAsRead: async (id: string): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const notification = MOCK_NOTIFICATIONS.find((n) => n.id === id);
-    if (notification) {
-      notification.read = true;
+    try {
+      await apiService.markAsRead(id);
+    } catch (err) {
+      console.error('Erro ao marcar como lida:', err);
     }
   },
 
@@ -92,20 +62,21 @@ export const notificationsService = {
    * Mark all notifications as read
    */
   markAllAsRead: async (): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    MOCK_NOTIFICATIONS.forEach((n) => {
-      n.read = true;
-    });
+    try {
+      await apiService.markAllAsRead();
+    } catch (err) {
+      console.error('Erro ao marcar tudo como lido:', err);
+    }
   },
 
   /**
    * Delete notification
    */
   deleteNotification: async (id: string): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const index = MOCK_NOTIFICATIONS.findIndex((n) => n.id === id);
-    if (index > -1) {
-      MOCK_NOTIFICATIONS.splice(index, 1);
+    try {
+      await apiService.delete(id);
+    } catch (err) {
+      console.error('Erro ao deletar notificação:', err);
     }
   },
 
