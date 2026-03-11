@@ -205,8 +205,8 @@ export const UsersPage: React.FC = () => {
   return (
     <div className="space-y-2">
       {/* Header */}
-      <header>
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Usuários</h1>
+      <header className="-mt-1">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Usuários</h1>
       </header>
 
       {/* Stats Bar */}
