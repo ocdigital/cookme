@@ -4,11 +4,10 @@ import { StatsBar } from '../components/StatsBar';
 
 export const DashboardPage: React.FC = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <header>
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white tracking-tight">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Bem-vindo ao painel de administração da CookMe</p>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Dashboard</h1>
       </header>
 
       {/* Stats Bar */}

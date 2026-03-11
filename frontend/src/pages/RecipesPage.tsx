@@ -130,10 +130,9 @@ export const RecipesPage: React.FC = () => {
 
   if (loading && recipes.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <header>
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white tracking-tight">Receitas</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie o acervo de receitas da CookMe</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Receitas</h1>
         </header>
         <SkeletonTable rows={5} cols={6} />
       </div>
@@ -141,11 +140,10 @@ export const RecipesPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <header>
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white tracking-tight">Receitas</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Gerencie o acervo de receitas da CookMe</p>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Receitas</h1>
       </header>
 
       {/* Stats Bar */}
@@ -187,7 +185,7 @@ export const RecipesPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4 mb-6 pb-6 border-b border-gray-100">
+        <div className="flex gap-4 mb-4 pb-4 border-b border-gray-100">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -279,7 +277,7 @@ export const RecipesPage: React.FC = () => {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-6 pt-6 border-t border-gray-100">
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
                   <div className="text-sm text-gray-600">
                     Mostrando <span className="font-semibold">{recipes.length}</span> de <span className="font-semibold">{total}</span> receitas
                   </div>
