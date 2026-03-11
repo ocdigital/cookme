@@ -1,6 +1,6 @@
 import React from 'react';
 import { Users, Package, UtensilsCrossed, ShoppingCart } from 'lucide-react';
-import { Card, CardTitle, CardContent } from '../components/Card';
+import { StatCard } from '../components/StatCard';
 
 export const DashboardPage: React.FC = () => {
   const stats = [
@@ -11,66 +11,61 @@ export const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       {/* Header */}
       <header>
-        <h1 className="text-4xl font-bold text-gray-800 tracking-tight">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Bem-vindo ao painel de administração da CookMe</p>
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white tracking-tight">Dashboard</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Bem-vindo ao painel de administração da CookMe</p>
       </header>
 
       {/* Stats */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s, i) => (
-          <div key={i} className="stat-card">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <p className="text-gray-500 text-sm font-medium">{s.label}</p>
-                <p className="text-4xl font-bold text-gray-800 mt-1">{s.value}</p>
-              </div>
-              <div className="icon-container">{s.icon}</div>
-            </div>
-            <span className="text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full inline-flex items-center">
-              <span className="h-1.5 w-1.5 bg-green-500 rounded-full mr-1.5"></span>
-              {s.change}
-            </span>
-          </div>
+          <StatCard
+            key={i}
+            icon={s.icon}
+            label={s.label}
+            value={s.value}
+            change={s.change}
+            changeType="positive"
+          />
         ))}
       </section>
 
       {/* Activity + Status */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardTitle>Atividade Recente</CardTitle>
-          <CardContent>
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Atividade Recente</h3>
+          <div className="space-y-3">
             {[1, 2, 3].map((item) => (
-              <div key={item} className="flex justify-between py-4 border-b last:border-0 border-gray-100">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">Novo pedido #00{item}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Há 2 horas</p>
+              <div key={item} className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-white">Novo pedido #00{item}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Há 2 horas</p>
                 </div>
-                <span className="text-sm font-bold text-primary">R$ {(item * 150).toFixed(2)}</span>
+                <span className="text-sm font-bold text-primary whitespace-nowrap ml-2">R$ {(item * 150).toFixed(2)}</span>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardTitle>Status da Aplicação</CardTitle>
-          <CardContent>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Status da Aplicação</h3>
+          <div className="space-y-2.5">
             {['API Backend', 'Base de Dados', 'Cache'].map((label) => (
-              <div key={label} className="flex justify-between items-center p-3 rounded-lg bg-green-50/50 border border-green-100 mb-3 last:mb-0">
-                <span className="text-sm font-medium text-gray-700">{label}</span>
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-3 w-3">
+              <div key={label} className="flex justify-between items-center p-3 rounded-xl bg-green-50/50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 hover:bg-green-100/50 dark:hover:bg-green-900/30 transition-colors">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
                   </span>
-                  <span className="text-xs font-semibold text-green-700">Online</span>
+                  <span className="text-xs font-semibold text-green-700 dark:text-green-400">Online</span>
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </section>
     </div>
   );
