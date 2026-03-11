@@ -10,7 +10,7 @@ export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
     <div
       className={`
         bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg
-        transition-all duration-300 p-6
+        transition-all duration-300 p-4
         border border-gray-100 dark:border-gray-700
         ${className}
       `}
@@ -21,7 +21,7 @@ export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
 };
 
 export const CardTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 className="text-xl font-bold text-dark dark:text-white mb-6">{children}</h3>
+  <h3 className="text-xl font-bold text-dark dark:text-white mb-3">{children}</h3>
 );
 
 export const CardContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (

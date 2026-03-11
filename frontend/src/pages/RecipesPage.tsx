@@ -130,7 +130,7 @@ export const RecipesPage: React.FC = () => {
 
   if (loading && recipes.length === 0) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2">
         <header>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Receitas</h1>
         </header>
@@ -140,7 +140,7 @@ export const RecipesPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Header */}
       <header>
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Receitas</h1>
@@ -185,7 +185,7 @@ export const RecipesPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4 mb-4 pb-4 border-b border-gray-100">
+        <div className="flex gap-4 mb-3 pb-3 border-b border-gray-100">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -331,7 +331,7 @@ export const RecipesPage: React.FC = () => {
         title="Gerar Receita com IA"
         size="md"
       >
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Ingredientes (separados por vírgula)

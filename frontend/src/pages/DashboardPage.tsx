@@ -4,7 +4,7 @@ import { StatsBar } from '../components/StatsBar';
 
 export const DashboardPage: React.FC = () => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Header */}
       <header>
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white tracking-tight">Dashboard</h1>
