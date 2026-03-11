@@ -94,11 +94,33 @@ export class ReceitasController {
   @ApiOperation({ summary: 'Motor MOI - Sugestões inteligentes de receitas' })
   @ApiResponse({
     status: 200,
-    description: 'Receitas sugeridas baseadas no inventário',
+    description: 'Receitas sugeridas baseadas em inventário, preferências e histórico',
     type: [Receita],
   })
   async sugestoes(@CurrentUser() user: Usuario): Promise<Receita[]> {
     return this.receitasService.sugerirReceitas(user.id);
+  }
+
+  @Get('sugestoes/por-inventario')
+  @ApiOperation({ summary: 'Sugestões - Receitas que pode fazer com o inventário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Receitas que podem ser feitas com produtos disponíveis',
+    type: [Receita],
+  })
+  async sugestoesPorInventario(@CurrentUser() user: Usuario): Promise<Receita[]> {
+    return this.receitasService.sugestoesPorInventario(user.id);
+  }
+
+  @Get('sugestoes/similares')
+  @ApiOperation({ summary: 'Sugestões - Receitas similares às que você gostou' })
+  @ApiResponse({
+    status: 200,
+    description: 'Receitas similares baseadas em receitas bem avaliadas',
+    type: [Receita],
+  })
+  async sugestoesSimilares(@CurrentUser() user: Usuario): Promise<Receita[]> {
+    return this.receitasService.sugestoesSimilares(user.id);
   }
 
   @Get('executadas')

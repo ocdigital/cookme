@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, Lock, Check, Upload } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     nome: user?.nome || '',
@@ -15,6 +13,7 @@ export const ProfilePage: React.FC = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState(formData.avatar_url);
 
   function getDefaultAvatar(email: string): string {
     return `https://i.pravatar.cc/150?u=${email}`;
@@ -50,196 +49,248 @@ export const ProfilePage: React.FC = () => {
       telefone: user?.telefone || '',
       avatar_url: user?.avatar_url || getDefaultAvatar(user?.email || ''),
     });
+    setAvatarPreview(user?.avatar_url || getDefaultAvatar(user?.email || ''));
     setIsEditing(false);
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione um arquivo de imagem válido');
+        return;
+      }
+
+      // Validar tamanho (máx 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('O arquivo não pode ser maior que 5MB');
+        return;
+      }
+
+      // Criar preview da imagem
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target?.result as string;
+        setAvatarPreview(base64String);
+        setFormData((prev) => ({
+          ...prev,
+          avatar_url: base64String,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Back Button */}
-      <div className="mb-6">
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-        >
-          <ArrowLeft size={18} />
-          <span>Voltar</span>
-        </button>
-      </div>
+    <div className="space-y-2">
+      {/* Header */}
+      <header className="-mt-1">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Meu Perfil</h1>
+      </header>
 
       {/* Success Message */}
       {successMessage && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/30 rounded-xl text-green-700 dark:text-green-400 text-sm flex items-center gap-2">
+          <Check size={16} className="flex-shrink-0" />
           {successMessage}
         </div>
       )}
 
-      {/* Profile Card */}
-      <div className="bg-white rounded-lg shadow-sm p-6 md:p-8 max-w-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
-          {!isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Editar
-            </button>
-          )}
-        </div>
-
-        {/* Avatar Section */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="flex-shrink-0">
-              <img
-                src={formData.avatar_url}
-                alt="Avatar"
-                className="w-24 h-24 rounded-full border-4 border-primary/10 shadow-md"
-              />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-gray-900">{formData.nome}</h2>
-              <p className="text-sm text-gray-500">{formData.email}</p>
-              <p className="text-sm text-gray-500 mt-1">
-                Role: <span className="font-medium">{user?.role}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Form */}
-        <div className="space-y-6">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nome
-            </label>
-            <input
-              type="text"
-              name="nome"
-              value={formData.nome}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              disabled
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-500 mt-1">Email não pode ser alterado</p>
-          </div>
-
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Telefone
-            </label>
-            <input
-              type="tel"
-              name="telefone"
-              value={formData.telefone}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              placeholder="+55 (11) 98765-4321"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
-
-          {/* Avatar URL */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL do Avatar
-            </label>
-            <input
-              type="url"
-              name="avatar_url"
-              value={formData.avatar_url}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              placeholder="https://example.com/avatar.jpg"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:bg-gray-50 disabled:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Cole a URL de uma imagem ou deixe em branco para usar o avatar padrão
-            </p>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        {isEditing && (
-          <div className="flex gap-3 mt-8">
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <Save size={18} />
-              {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-            </button>
-            <button
-              onClick={handleCancel}
-              disabled={isSaving}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
-            >
-              Cancelar
-            </button>
-          </div>
-        )}
-
-        {/* Additional Info */}
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Informações da Conta</h3>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Tipo de Conta:</span>
-              <span className="font-medium text-gray-900">
-                {user?.role === 'ADMIN'
-                  ? 'Administrador'
-                  : user?.role === 'PREMIUM'
-                    ? 'Premium'
-                    : user?.role === 'MARCA'
-                      ? 'Marca'
-                      : 'Usuário'}
+      {/* Main Content Grid - Avatar + Form */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Avatar Section - Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
+            <div className="text-center">
+              <div className="relative mb-3 inline-block group">
+                <img
+                  src={avatarPreview}
+                  alt="Avatar"
+                  className="w-24 h-24 rounded-full border-4 border-primary/10 shadow-sm dark:border-primary/20 mx-auto object-cover"
+                />
+                {isEditing && (
+                  <label className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    <Upload size={20} className="text-white" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{formData.nome}</h2>
+              <p className="text-xs text-gray-600 dark:text-gray-400 break-all mb-3">{formData.email}</p>
+              <span className="inline-block px-3 py-1 text-xs font-medium bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary rounded-full">
+                {user?.role || 'Usuário'}
               </span>
+
+              {isEditing && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-500">Clique no avatar para alterar</p>
+                </div>
+              )}
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Membro desde:</span>
-              <span className="font-medium text-gray-900">
-                {user?.createdAt
-                  ? new Date(user.createdAt).toLocaleDateString('pt-BR')
-                  : '-'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Última atualização:</span>
-              <span className="font-medium text-gray-900">
-                {user?.updatedAt
-                  ? new Date(user.updatedAt).toLocaleDateString('pt-BR')
-                  : '-'}
-              </span>
+          </div>
+
+          {/* Account Info */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 mt-3">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Informações</h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between pb-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-400">Tipo:</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {user?.role === 'ADMIN'
+                    ? 'Administrador'
+                    : user?.role === 'PREMIUM'
+                      ? 'Premium'
+                      : user?.role === 'MARCA'
+                        ? 'Marca'
+                        : 'Usuário'}
+                </span>
+              </div>
+              <div className="flex justify-between pb-2 border-b border-gray-100 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-400">Membro desde:</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {user?.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString('pt-BR')
+                    : '-'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Atualizado:</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {user?.updatedAt
+                    ? new Date(user.updatedAt).toLocaleDateString('pt-BR')
+                    : '-'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Change Password Section */}
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Segurança</h3>
-          <button className="w-full px-4 py-2 text-left text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            Alterar Senha
-          </button>
-          <p className="text-xs text-gray-500 mt-2">
-            Clique para alterar sua senha de acesso
-          </p>
+        {/* Form Section - Main Content */}
+        <div className="lg:col-span-2">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
+            {/* Header with Edit Button */}
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Informações Gerais</h3>
+              {!isEditing && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium"
+                >
+                  Editar
+                </button>
+              )}
+              {isEditing && (
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Modo de edição</span>
+              )}
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-3">
+              {/* Name - Full Width */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Nome Completo
+                </label>
+                <input
+                  type="text"
+                  name="nome"
+                  value={formData.nome}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-50 dark:disabled:bg-gray-700/50 disabled:text-gray-600 dark:disabled:text-gray-500 focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                />
+              </div>
+
+              {/* Email and Phone - Side by Side */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-500 cursor-not-allowed text-sm"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">Não pode ser alterado</p>
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Telefone
+                  </label>
+                  <input
+                    type="tel"
+                    name="telefone"
+                    value={formData.telefone}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    placeholder="+55 (11) 98765-4321"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-50 dark:disabled:bg-gray-700/50 disabled:text-gray-600 dark:disabled:text-gray-500 focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Avatar URL - Full Width */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  URL do Avatar
+                </label>
+                <input
+                  type="url"
+                  name="avatar_url"
+                  value={formData.avatar_url}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                  placeholder="https://example.com/avatar.jpg"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-50 dark:disabled:bg-gray-700/50 disabled:text-gray-600 dark:disabled:text-gray-500 focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                  Cole a URL de uma imagem ou deixe em branco para usar o avatar padrão
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            {isEditing && (
+              <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                >
+                  <Save size={16} />
+                  {isSaving ? 'Salvando...' : 'Salvar'}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                  className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50 transition-colors text-sm font-medium"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Security Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 mt-3">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Segurança</h3>
+            <button className="w-full px-3 py-2 text-left text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center gap-2 text-sm font-medium">
+              <Lock size={14} />
+              Alterar Senha
+            </button>
+          </div>
         </div>
       </div>
     </div>

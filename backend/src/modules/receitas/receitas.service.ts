@@ -7,6 +7,7 @@ import { ReceitaExecutada } from './entities/receita-executada.entity';
 import { CreateReceitaDto } from './dto/create-receita.dto';
 import { UpdateReceitaDto } from './dto/update-receita.dto';
 import { ExecutarReceitaDto } from './dto/executar-receita.dto';
+import { MOIEngineService } from './services/moi-engine.service';
 
 @Injectable()
 export class ReceitasService {
@@ -17,6 +18,7 @@ export class ReceitasService {
     private readonly ingredienteRepository: Repository<ReceitaIngrediente>,
     @InjectRepository(ReceitaExecutada)
     private readonly executadaRepository: Repository<ReceitaExecutada>,
+    private readonly moiEngineService: MOIEngineService,
   ) {}
 
   /**
@@ -234,16 +236,32 @@ export class ReceitasService {
   }
 
   /**
-   * Motor MOI v1 - Sugestões inteligentes
+   * Motor MOI v2 - Sugestões inteligentes baseadas em:
+   * - Inventário disponível
+   * - Preferências do usuário
+   * - Histórico de execução
+   * - Restrições dietéticas
+   * - Tempo de preparo
+   * - Nível de dificuldade
+   * - Popularidade global
    */
   async sugerirReceitas(usuarioId: string): Promise<Receita[]> {
-    // TODO: Implementar lógica completa do Motor MOI
-    // Por enquanto, retorna as receitas mais bem avaliadas
-    return this.receitaRepository.find({
-      relations: ['ingredientes', 'ingredientes.produto'],
-      order: { avaliacao_media: 'DESC', vezes_executada: 'DESC' },
-      take: 10,
-    });
+    return this.moiEngineService.sugerirReceitas(usuarioId, 15);
+  }
+
+  /**
+   * Sugestões baseadas apenas no inventário
+   * Retorna receitas que podem ser feitas com produtos disponíveis
+   */
+  async sugestoesPorInventario(usuarioId: string): Promise<Receita[]> {
+    return this.moiEngineService.sugestoesPorInventario(usuarioId, 10);
+  }
+
+  /**
+   * Sugestões baseadas em receitas similares às que o usuário gostou
+   */
+  async sugestoesSimilares(usuarioId: string): Promise<Receita[]> {
+    return this.moiEngineService.sugestoesSimilares(usuarioId, 10);
   }
 
   /**

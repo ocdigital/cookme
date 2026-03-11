@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   BarChart3,
   LogOut,
+  ChefHat,
   // ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -65,14 +66,16 @@ export const Sidebar: React.FC = () => {
         `}
       >
         {/* Logo */}
-        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm">
-              🍳
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-orange-500 rounded-xl flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
+              <ChefHat size={24} className="text-white" />
             </div>
-            <div>
-              <span className="text-lg font-bold text-dark dark:text-white block">CookMe</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Admin</span>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
+                CookMe
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 -mt-1">Gerenciador de Receitas</span>
             </div>
           </div>
         </div>

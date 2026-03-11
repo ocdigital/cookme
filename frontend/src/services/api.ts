@@ -74,94 +74,16 @@ export const authService = {
   getProfile: () => api.get('/usuarios/me'),
 };
 
-// Users endpoints
-export const usersService = {
-  getAll: (page: number = 1, limit: number = 10) =>
-    api.get<PaginatedResponse<User>>('/users', { params: { page, limit } }),
+// Services are organized in separate files for better maintainability:
+// - usuariosService.ts (user management with /usuarios endpoints)
+// - produtosService.ts (product management with /produtos endpoints)
+// - recipesService.ts (recipe management with /receitas endpoints)
+// - comprasService.ts (purchases with /compras endpoints)
+// - inventarioService.ts (inventory with /inventario endpoints)
+// - notificacoesService.ts (notifications with /notificacoes endpoints)
+// - adminService.ts (admin dashboard with /admin endpoints)
 
-  getById: (id: string) =>
-    api.get<User>(`/users/${id}`),
-
-  update: (id: string, data: Partial<User>) =>
-    api.patch<User>(`/users/${id}`, data),
-
-  delete: (id: string) =>
-    api.delete(`/users/${id}`),
-
-  updateRole: (id: string, role: string) =>
-    api.patch(`/users/${id}/role`, { role }),
-};
-
-// Products endpoints
-export const productsService = {
-  getAll: (page: number = 1, limit: number = 10) =>
-    api.get<PaginatedResponse<Product>>('/products', { params: { page, limit } }),
-
-  getById: (id: string) =>
-    api.get<Product>(`/products/${id}`),
-
-  create: (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) =>
-    api.post<Product>('/products', data),
-
-  update: (id: string, data: Partial<Product>) =>
-    api.patch<Product>(`/products/${id}`, data),
-
-  delete: (id: string) =>
-    api.delete(`/products/${id}`),
-
-  search: (query: string) =>
-    api.get('/products/search', { params: { q: query } }),
-};
-
-// Recipes endpoints
-export const recipesService = {
-  getAll: (page: number = 1, limit: number = 10) =>
-    api.get<PaginatedResponse<Recipe>>('/recipes', { params: { page, limit } }),
-
-  getById: (id: string) =>
-    api.get<Recipe>(`/recipes/${id}`),
-
-  create: (data: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>) =>
-    api.post<Recipe>('/recipes', data),
-
-  update: (id: string, data: Partial<Recipe>) =>
-    api.patch<Recipe>(`/recipes/${id}`, data),
-
-  delete: (id: string) =>
-    api.delete(`/recipes/${id}`),
-
-  search: (query: string) =>
-    api.get('/recipes/search', { params: { q: query } }),
-};
-
-// Purchases endpoints
-export const purchasesService = {
-  getAll: (page: number = 1, limit: number = 10) =>
-    api.get<PaginatedResponse<Purchase>>('/purchases', { params: { page, limit } }),
-
-  getById: (id: string) =>
-    api.get<Purchase>(`/purchases/${id}`),
-
-  getByUser: (userId: string, page: number = 1, limit: number = 10) =>
-    api.get(`/purchases/user/${userId}`, { params: { page, limit } }),
-
-  getStats: () =>
-    api.get('/purchases/stats'),
-};
-
-// Statistics endpoints
-export const statsService = {
-  getDashboard: () =>
-    api.get('/stats/dashboard'),
-
-  getUsers: () =>
-    api.get('/stats/users'),
-
-  getProducts: () =>
-    api.get('/stats/products'),
-
-  getPurchases: () =>
-    api.get('/stats/purchases'),
-};
+// Export api instance for use in other services
+export { api };
 
 export default api;

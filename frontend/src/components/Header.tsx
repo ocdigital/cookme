@@ -40,10 +40,7 @@ export const Header: React.FC = () => {
 
   return (
     <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
-      <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-        {/* Left side - empty for desktop, can add breadcrumbs */}
-        <div className="flex-1" />
-
+      <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-end">
         {/* Right side */}
         <div className="flex items-center gap-2 sm:gap-4 relative">
           {/* Dark Mode Toggle */}
