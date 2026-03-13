@@ -7,6 +7,7 @@ import { CreateCompraDto } from './dto/create-compra.dto';
 import { Produto } from '../produtos/entities/produto.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
 import { ProductClassificationService } from '../product-classification/services/product-classification.service';
+import { ProductImageService } from '../produtos/services/product-image.service';
 import { UnidadeMedida } from '@common/enums/unidade-medida.enum';
 import { MetodoCadastro } from '@common/enums/metodo-cadastro.enum';
 import { ProductType } from '@common/enums/product-type.enum';
@@ -23,6 +24,7 @@ export class ComprasService {
     @InjectRepository(Inventario)
     private readonly inventarioRepository: Repository<Inventario>,
     private readonly productClassificationService: ProductClassificationService,
+    private readonly productImageService: ProductImageService,
   ) {}
 
   /**
@@ -382,6 +384,16 @@ IMPORTANTE:
             unidade_padrao: UnidadeMedida.UN,
           });
           produto = await this.produtoRepository.save(novoProduto);
+
+          // Buscar imagem automaticamente em background (não bloqueia)
+          this.productImageService
+            .fetchAndSaveProductImage(produto.id)
+            .catch((err) => {
+              console.error(
+                `Erro ao buscar imagem para produto ${produto.nome}:`,
+                err,
+              );
+            });
         }
 
         // 2. Criar item no inventário

@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, shadows, borderRadius } from '../theme/colors';
-import { inventarioService } from '../services/api';
+import { inventarioService, produtosService } from '../services/api';
+import { preloadProductImages } from '../services/productImageCache';
 import { getProductIcon } from '../utils/productIcons';
 
 export default function InventoryScreen({ navigation }) {
@@ -41,6 +42,11 @@ export default function InventoryScreen({ navigation }) {
       const data = await inventarioService.getInventario();
       if (data && Array.isArray(data)) {
         setProducts(data);
+
+        // Pre-carregar imagens em background (não bloqueia UI)
+        preloadProductImages(data).catch((err) => {
+          console.debug('Erro ao pre-carregar imagens:', err);
+        });
       } else {
         setProducts([]);
       }

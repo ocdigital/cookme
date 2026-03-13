@@ -256,4 +256,9 @@ export const produtosService = {
     const response = await api.get(`/produtos?categoriaId=${categoriaId}`);
     return response.data;
   },
+
+  async fetchProductImage(produtoId) {
+    const response = await api.post(`/produtos/${produtoId}/fetch-image`);
+    return response.data;
+  },
 };

@@ -7,11 +7,13 @@ import { ComprasController } from './compras.controller';
 import { Produto } from '../produtos/entities/produto.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
 import { ProductClassificationModule } from '../product-classification/product-classification.module';
+import { ProdutosModule } from '../produtos/produtos.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Compra, CompraItem, Produto, Inventario]),
     ProductClassificationModule,
+    ProdutosModule,
   ],
   providers: [ComprasService],
   controllers: [ComprasController],

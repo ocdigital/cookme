@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ProdutosService } from './produtos.service';
+import { ProductImageService } from './services/product-image.service';
 import { Produto } from './entities/produto.entity';
 import { Marca } from './entities/marca.entity';
 import { Categoria } from './entities/categoria.entity';
@@ -32,7 +33,10 @@ import { CreateCategoriaDto } from './dto/create-categoria.dto';
 @ApiBearerAuth()
 @Controller('produtos')
 export class ProdutosController {
-  constructor(private readonly produtosService: ProdutosService) {}
+  constructor(
+    private readonly produtosService: ProdutosService,
+    private readonly productImageService: ProductImageService,
+  ) {}
 
   // ========== PRODUTOS ==========
 
@@ -92,6 +96,19 @@ export class ProdutosController {
     @Query('limit') limit: number = 10,
   ) {
     return this.produtosService.searchForAutocomplete(query, limit);
+  }
+
+  @Post(':id/fetch-image')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Buscar e salvar imagem de produto' })
+  @ApiResponse({
+    status: 200,
+    description: 'Imagem encontrada e salva',
+    type: Produto,
+  })
+  @ApiResponse({ status: 404, description: 'Produto não encontrado' })
+  async fetchProductImage(@Param('id') id: string): Promise<Produto | null> {
+    return this.productImageService.fetchAndSaveProductImage(id);
   }
 
   @Get('barcode/:codigo')
