@@ -8,7 +8,6 @@ import {
   Package,
   UtensilsCrossed,
   ShoppingCart,
-  BarChart3,
   LogOut,
   ChefHat,
   // ChevronDown,
@@ -28,7 +27,7 @@ export const Sidebar: React.FC = () => {
     { icon: Package, label: 'Produtos', path: '/products' },
     { icon: UtensilsCrossed, label: 'Receitas', path: '/recipes' },
     { icon: ShoppingCart, label: 'Compras', path: '/purchases' },
-    { icon: BarChart3, label: 'Relatórios', path: '/reports' },
+    // { icon: BarChart3, label: 'Relatórios', path: '/reports' }, // TODO: criar página de relatórios
   ];
 
   const isActive = (path: string) => location.pathname === path;

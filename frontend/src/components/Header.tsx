@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Settings, Moon, Sun } from 'lucide-react';
+import { Bell, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { NotificationsPopover } from './NotificationsPopover';
-import { SettingsPopover } from './SettingsPopover';
 import { notificationsService } from '../services/notificationsService';
 
 export const Header: React.FC = () => {
@@ -12,7 +11,6 @@ export const Header: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -26,16 +24,6 @@ export const Header: React.FC = () => {
 
   const handleNotificationsToggle = () => {
     setIsNotificationsOpen(!isNotificationsOpen);
-    if (isSettingsOpen) {
-      setIsSettingsOpen(false);
-    }
-  };
-
-  const handleSettingsToggle = () => {
-    setIsSettingsOpen(!isSettingsOpen);
-    if (isNotificationsOpen) {
-      setIsNotificationsOpen(false);
-    }
   };
 
   return (
@@ -68,25 +56,12 @@ export const Header: React.FC = () => {
             <NotificationsPopover
               isOpen={isNotificationsOpen}
               onClose={() => setIsNotificationsOpen(false)}
-            />
-          </div>
-
-          {/* Settings */}
-          <div className="relative">
-            <button
-              onClick={handleSettingsToggle}
-              className="p-2 text-gray-600 hover:text-primary hover:bg-gray-100 dark:text-gray-300 dark:hover:text-primary dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
-            >
-              <Settings size={20} />
-            </button>
-            <SettingsPopover
-              isOpen={isSettingsOpen}
-              onClose={() => setIsSettingsOpen(false)}
+              onUnreadCountChange={(count) => setUnreadCount(count)}
             />
           </div>
 
           {/* Divider */}
-          <div className="h-6 w-px bg-gray-200 mx-1" />
+          <div className="h-6 w-px bg-gray-200 dark:bg-gray-600 mx-1" />
 
           {/* User Profile */}
           <button
@@ -94,8 +69,8 @@ export const Header: React.FC = () => {
             className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity"
           >
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-dark">{user?.nome || 'Admin'}</p>
-              <p className="text-xs text-gray-500">{user?.role === 'ADMIN' ? 'Admin' : 'Usuário'}</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.nome || 'Admin'}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{user?.role === 'ADMIN' ? 'Admin' : 'Usuário'}</p>
             </div>
             {user?.avatar_url ? (
               <img

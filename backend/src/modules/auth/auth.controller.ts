@@ -15,6 +15,7 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { Public } from '@common/decorators/public.decorator';
@@ -55,6 +56,20 @@ export class AuthController {
   }
 
   @Public()
+  @Post('google-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Fazer login via Google' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login com Google realizado com sucesso',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Token Google inválido' })
+  async googleLogin(@Body() body: any): Promise<AuthResponseDto> {
+    return this.authService.googleLogin(body.idToken);
+  }
+
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renovar access token usando refresh token' })
@@ -78,6 +93,20 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Não autenticado' })
   async logout(@CurrentUser() user: Usuario): Promise<void> {
     return this.authService.logout(user.id);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Alterar senha do usuário' })
+  @ApiResponse({ status: 204, description: 'Senha alterada com sucesso' })
+  @ApiResponse({ status: 401, description: 'Não autenticado ou senha atual incorreta' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  async changePassword(
+    @CurrentUser() user: Usuario,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ): Promise<void> {
+    return this.authService.changePassword(user.id, changePasswordDto);
   }
 
   @Get('me')

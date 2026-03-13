@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { TouchableOpacity, Text, View } from 'react-native';
-import { AuthProvider } from './src/contexts/AuthContext';
+import FeatherIcon from 'react-native-vector-icons/Feather';
+import { AuthProvider, AuthContext } from './src/contexts/AuthContext';
+import { CustomTabBar } from './src/components/CustomTabBar';
+import { colors } from './src/theme/colors';
 
 // Global error handler
 if (!global.onError) {
@@ -19,6 +22,7 @@ import HomeScreenRecipes from './src/screens/HomeScreenRecipes';
 import InventoryScreen from './src/screens/InventoryScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import QRScannerScreen from './src/screens/QRScannerScreen';
+import ReceiptPhotoScreen from './src/screens/ReceiptPhotoScreen';
 import ProcessingScreen from './src/screens/ProcessingScreen';
 import CaptchaScreen from './src/screens/CaptchaScreen';
 import ResultScreen from './src/screens/ResultScreen';
@@ -74,33 +78,35 @@ class ErrorBoundary extends React.Component {
 function MainAppTabs({ navigation }) {
   return (
     <Tab.Navigator
-      screenOptions={({ navigation }) => ({
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={({ navigation: tabNavigation }) => ({
         headerStyle: {
-          backgroundColor: '#fd7e29ff',
+          backgroundColor: colors.background.main,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border.light,
         },
-        headerTintColor: '#fff',
+        headerTintColor: colors.text.primary,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: '700',
+          fontSize: 18,
+          color: colors.text.primary,
         },
-        tabBarActiveTintColor: '#FF8C42',
-        tabBarInactiveTintColor: '#999',
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#e0e0e0',
-          paddingBottom: 5,
-          paddingTop: 5,
-          marginBottom: 45,
-        },
+        headerLeft: () => null,
         headerRight: () => (
           <TouchableOpacity
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => tabNavigation.navigate('Profile')}
             style={{ marginRight: 16, padding: 5 }}
             activeOpacity={0.6}
           >
-            <Text style={{ fontSize: 20 }}>👤</Text>
+            <FeatherIcon
+              name="user"
+              size={20}
+              color={colors.text.primary}
+            />
           </TouchableOpacity>
         ),
-        headerLeft: () => null,
       })}
     >
       <Tab.Screen
@@ -109,7 +115,6 @@ function MainAppTabs({ navigation }) {
         options={{
           title: 'Início',
           tabBarLabel: 'Início',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
         }}
       />
       <Tab.Screen
@@ -118,7 +123,6 @@ function MainAppTabs({ navigation }) {
         options={{
           title: 'Categorias',
           tabBarLabel: 'Categorias',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🍳</Text>,
         }}
       />
       <Tab.Screen
@@ -127,7 +131,6 @@ function MainAppTabs({ navigation }) {
         options={{
           title: 'Pesquisa',
           tabBarLabel: 'Pesquisa',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔍</Text>,
         }}
       />
       <Tab.Screen
@@ -136,25 +139,22 @@ function MainAppTabs({ navigation }) {
         options={{
           title: 'Favoritas',
           tabBarLabel: 'Favoritos',
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>❤️</Text>,
         }}
       />
     </Tab.Navigator>
   );
 }
 
-export default function App() {
+function AppNavigator() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <NavigationContainer>
+    <NavigationContainer>
           <Stack.Navigator
           initialRouteName="Login"
           screenOptions={{
             headerStyle: {
-              backgroundColor: '#FF8C42',
+              backgroundColor: colors.primary,
             },
-            headerTintColor: '#fff',
+            headerTintColor: colors.white,
             headerTitleStyle: {
               fontWeight: 'bold',
             },
@@ -231,12 +231,25 @@ export default function App() {
             options={{ title: 'Scanner de QR' }}
           />
           <Stack.Screen
+            name="ReceiptPhoto"
+            component={ReceiptPhotoScreen}
+            options={{ title: 'Foto do Cupom' }}
+          />
+          <Stack.Screen
             name="History"
             component={HistoryScreen}
             options={{ title: 'Histórico' }}
           />
         </Stack.Navigator>
-        </NavigationContainer>
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppNavigator />
       </AuthProvider>
     </ErrorBoundary>
   );

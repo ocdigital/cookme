@@ -239,6 +239,19 @@ export class ProdutosService {
     return marca;
   }
 
+  async findOrCreateMarca(nome: string): Promise<Marca> {
+    let marca = await this.marcaRepository.findOne({
+      where: { nome },
+    });
+
+    if (!marca) {
+      marca = this.marcaRepository.create({ nome });
+      marca = await this.marcaRepository.save(marca);
+    }
+
+    return marca;
+  }
+
   // ========== CATEGORIAS ==========
 
   async createCategoria(createCategoriaDto: CreateCategoriaDto): Promise<Categoria> {
@@ -261,6 +274,19 @@ export class ProdutosService {
 
     if (!categoria) {
       throw new NotFoundException('Categoria não encontrada');
+    }
+
+    return categoria;
+  }
+
+  async findOrCreateCategoria(nome: string): Promise<Categoria> {
+    let categoria = await this.categoriaRepository.findOne({
+      where: { nome },
+    });
+
+    if (!categoria) {
+      categoria = this.categoriaRepository.create({ nome });
+      categoria = await this.categoriaRepository.save(categoria);
     }
 
     return categoria;

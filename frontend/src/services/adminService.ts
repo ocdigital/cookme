@@ -88,4 +88,18 @@ export const adminService = {
   deleteProduct: async (id: string): Promise<void> => {
     await api.delete(`/admin/produtos/${id}`);
   },
+
+  updateProduct: async (
+    id: string,
+    data: {
+      nome?: string;
+      descricao?: string | null;
+      codigo_barras?: string | null;
+      unidade_padrao?: string;
+      validade_media_dias?: number | null;
+      origem?: string;
+    },
+  ): Promise<void> => {
+    await api.patch(`/produtos/${id}`, data);
+  },
 };

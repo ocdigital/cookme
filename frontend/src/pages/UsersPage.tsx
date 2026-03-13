@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Edit2, Trash2, Search, AlertCircle, Users, UserCheck, Briefcase } from 'lucide-react';
+import { UserPlus, Edit2, Trash2 } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { UserFormModal } from '../components/UserFormModal';
-import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
-import { StatsBar } from '../components/StatsBar';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { SearchInput } from '../components/SearchInput';
+import { FilterSelect } from '../components/FilterSelect';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { ActionButton } from '../components/ActionButton';
+import { TablePagination } from '../components/TablePagination';
 import { userService } from '../services/userService';
 
 type ApiUser = {
@@ -35,18 +39,8 @@ interface User {
   atualizado_em?: Date;
 }
 
-type UserStats = {
-  totalUsuarios: number;
-  usuariosPorRole: Array<{
-    role: string;
-    total: number;
-  }>;
-  usuarioAtivos: number;
-};
-
 export const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,20 +50,16 @@ export const UsersPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   // Modal states
-  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [formLoading, setFormLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     loadUsers();
   }, [page, searchTerm]);
-
-  useEffect(() => {
-    loadStats();
-  }, []);
 
   const loadUsers = async () => {
     try {
@@ -105,16 +95,6 @@ export const UsersPage: React.FC = () => {
     }
   };
 
-  const loadStats = async () => {
-    try {
-      const statsData = await userService.getUserStats();
-      console.log('📊 Estatísticas de usuários:', statsData);
-      setStats(statsData);
-    } catch (err) {
-      console.error('Erro ao carregar estatísticas:', err);
-    }
-  };
-
   const getRoleLabel = (role: string): string => {
     const labels: { [key: string]: string } = {
       admin: 'Administrador',
@@ -126,32 +106,31 @@ export const UsersPage: React.FC = () => {
   };
 
   const handleCreateUser = () => {
-    setSelectedUser(null);
-    setFormError(null);
-    setIsFormModalOpen(true);
+    setUserToEdit(null);
+    setEditError(null);
+    setIsEditModalOpen(true);
   };
 
   const handleEditUser = (user: User) => {
-    setSelectedUser(user);
-    setFormError(null);
-    setIsFormModalOpen(true);
+    setUserToEdit(user);
+    setEditError(null);
+    setIsEditModalOpen(true);
   };
 
   const handleDeleteUser = (user: User) => {
-    setSelectedUser(user);
+    setUserToEdit(user);
     setIsDeleteModalOpen(true);
   };
 
   const handleFormSubmit = async (data: { nome: string; email: string; role: string; senha?: string }) => {
     try {
-      setFormLoading(true);
-      setFormError(null);
+      setEditLoading(true);
+      setEditError(null);
 
-      if (selectedUser?.id) {
+      if (userToEdit?.id) {
         // Update existing user
-        await userService.updateUser(selectedUser.id, {
+        await userService.updateUser(userToEdit.id, {
           nome: data.nome,
-          role: data.role,
         });
       } else {
         // Create new user
@@ -166,27 +145,25 @@ export const UsersPage: React.FC = () => {
         });
       }
 
-      setIsFormModalOpen(false);
+      setIsEditModalOpen(false);
       loadUsers();
-      loadStats();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Erro ao salvar usuário');
+      setEditError(err instanceof Error ? err.message : 'Erro ao salvar usuário');
       console.error('Erro ao salvar usuário:', err);
     } finally {
-      setFormLoading(false);
+      setEditLoading(false);
     }
   };
 
   const handleDeleteConfirm = async () => {
-    if (!selectedUser) return;
+    if (!userToEdit) return;
 
     try {
       setDeleteLoading(true);
-      await userService.deleteUser(selectedUser.id);
+      await userService.deleteUser(userToEdit.id);
       setIsDeleteModalOpen(false);
-      setSelectedUser(null);
+      setUserToEdit(null);
       loadUsers();
-      loadStats();
     } catch (err) {
       console.error('Erro ao deletar usuário:', err);
     } finally {
@@ -219,8 +196,8 @@ export const UsersPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Usuários</h1>
       </header>
 
-      {/* Stats Bar */}
-      {stats && (
+      {/* Stats Bar - TODO: Implement meaningful stats for users */}
+      {/* {stats && (
         <StatsBar
           items={[
             { icon: <Users className="w-5 h-5" />, label: 'Total de Usuários', value: stats.totalUsuarios },
@@ -228,7 +205,7 @@ export const UsersPage: React.FC = () => {
             { icon: <Briefcase className="w-5 h-5" />, label: 'Funções', value: stats.usuariosPorRole.length },
           ]}
         />
-      )}
+      )} */}
 
       {/* Table */}
       <Card>
@@ -244,39 +221,26 @@ export const UsersPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4 mb-3 pb-3 border-b border-gray-100">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Buscar por nome ou email..."
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm"
-            />
-          </div>
-          <select
+        <div className="flex gap-4 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+          <SearchInput
+            placeholder="Buscar por nome ou email..."
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
+          <FilterSelect
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as 'todos' | 'ativo' | 'inativo')}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary text-sm"
-          >
-            <option value="todos">Todos</option>
-            <option value="ativo">Ativos</option>
-            <option value="inativo">Inativos</option>
-          </select>
+            options={[
+              { value: 'todos', label: 'Todos' },
+              { value: 'ativo', label: 'Ativos' },
+              { value: 'inativo', label: 'Inativos' },
+            ]}
+          />
         </div>
 
         {/* Table Content */}
         <CardContent>
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-red-800 font-semibold">Erro</p>
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-            </div>
-          )}
+          <ErrorAlert error={error} />
 
           {loading ? (
             <div className="text-center py-8">
@@ -288,25 +252,25 @@ export const UsersPage: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Nome</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Email</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Função</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Data Criação</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Ações</th>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Nome</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Email</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Função</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Data Criação</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredUsers.map((user) => (
                       <tr
                         key={user.id}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                       >
-                        <td className="py-3 px-4 text-gray-800 font-medium">{user.nome}</td>
-                        <td className="py-3 px-4 text-gray-600">{user.email}</td>
+                        <td className="py-3 px-4 text-gray-800 dark:text-gray-200 font-medium">{user.nome}</td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{user.email}</td>
                         <td className="py-3 px-4">
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
                             {user.funcao}
                           </span>
                         </td>
@@ -314,37 +278,37 @@ export const UsersPage: React.FC = () => {
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5 ${
                               user.status === 'ativo'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-gray-100 text-gray-700'
+                                ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
                             }`}
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
                                 user.status === 'ativo'
                                   ? 'bg-green-500'
-                                  : 'bg-gray-400'
+                                  : 'bg-gray-400 dark:bg-gray-500'
                               }`}
                             />
                             {user.status === 'ativo' ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-gray-600 text-xs">
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-xs">
                           {user.dataCriacao}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
-                            <button
+                            <ActionButton
+                              variant="edit"
+                              icon={<Edit2 size={16} />}
+                              title="Editar"
                               onClick={() => handleEditUser(user)}
-                              className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
+                            />
+                            <ActionButton
+                              variant="delete"
+                              icon={<Trash2 size={16} />}
+                              title="Deletar"
                               onClick={() => handleDeleteUser(user)}
-                              className="p-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            />
                           </div>
                         </td>
                       </tr>
@@ -354,27 +318,12 @@ export const UsersPage: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                <p className="text-sm text-gray-600">
-                  Página {page} de {totalPages}
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePreviousPage}
-                    disabled={page === 1}
-                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Anterior
-                  </button>
-                  <button
-                    onClick={handleNextPage}
-                    disabled={page === totalPages}
-                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Próximo
-                  </button>
-                </div>
-              </div>
+              <TablePagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPrevious={handlePreviousPage}
+                onNext={handleNextPage}
+              />
             </>
           ) : (
             <div className="text-center py-8">
@@ -386,29 +335,30 @@ export const UsersPage: React.FC = () => {
 
       {/* Modals */}
       <UserFormModal
-        isOpen={isFormModalOpen}
-        isLoading={formLoading}
-        error={formError}
-        user={selectedUser as any}
+        isOpen={isEditModalOpen}
+        isLoading={editLoading}
+        error={editError}
+        user={userToEdit as any}
         onClose={() => {
-          setIsFormModalOpen(false);
-          setSelectedUser(null);
-          setFormError(null);
+          setIsEditModalOpen(false);
+          setUserToEdit(null);
+          setEditError(null);
         }}
         onSubmit={handleFormSubmit}
       />
 
-      <DeleteConfirmationModal
+      <ConfirmDialog
         isOpen={isDeleteModalOpen}
-        isLoading={deleteLoading}
-        title="Deletar Usuário"
-        message={`Tem certeza que deseja deletar o usuário ${selectedUser?.nome}? Esta ação não pode ser desfeita.`}
+        title="Deletar Usuário?"
+        description={`Tem certeza que deseja deletar o usuário ${userToEdit?.nome}? Esta ação não pode ser desfeita.`}
         confirmText="Deletar"
         cancelText="Cancelar"
+        isDangerous
+        isLoading={deleteLoading}
         onConfirm={handleDeleteConfirm}
         onCancel={() => {
           setIsDeleteModalOpen(false);
-          setSelectedUser(null);
+          setUserToEdit(null);
         }}
       />
     </div>

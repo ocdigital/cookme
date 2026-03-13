@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import storage from './storage';
 import { API_BASE_URL } from '../config/api';
 
 const api = axios.create({
@@ -13,7 +13,7 @@ const api = axios.create({
 // Interceptor para adicionar token em todas as requisições
 api.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync('access_token');
+    const token = await storage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,7 +30,7 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       // Token expirado, tentar refresh
-      const refreshToken = await SecureStore.getItemAsync('refresh_token');
+      const refreshToken = await storage.getItem('refresh_token');
       if (refreshToken) {
         try {
           const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
@@ -38,15 +38,15 @@ api.interceptors.response.use(
           });
 
           const { access_token } = response.data;
-          await SecureStore.setItemAsync('access_token', access_token);
+          await storage.setItem('access_token', access_token);
 
           // Retry requisição original
           error.config.headers.Authorization = `Bearer ${access_token}`;
           return axios(error.config);
         } catch (refreshError) {
           // Refresh falhou, fazer logout
-          await SecureStore.deleteItemAsync('access_token');
-          await SecureStore.deleteItemAsync('refresh_token');
+          await storage.removeItem('access_token');
+          await storage.removeItem('refresh_token');
           // Aqui você poderia redirecionar para login
         }
       }
@@ -63,8 +63,8 @@ export const authService = {
     const response = await api.post('/auth/login', { email, senha });
     const { access_token, refresh_token, user } = response.data;
 
-    await SecureStore.setItemAsync('access_token', access_token);
-    await SecureStore.setItemAsync('refresh_token', refresh_token);
+    await storage.setItem('access_token', access_token);
+    await storage.setItem('refresh_token', refresh_token);
 
     return { user, access_token };
   },
@@ -73,8 +73,8 @@ export const authService = {
     const response = await api.post('/auth/register', { email, senha, nome });
     const { access_token, refresh_token, user } = response.data;
 
-    await SecureStore.setItemAsync('access_token', access_token);
-    await SecureStore.setItemAsync('refresh_token', refresh_token);
+    await storage.setItem('access_token', access_token);
+    await storage.setItem('refresh_token', refresh_token);
 
     return { user, access_token };
   },
@@ -85,8 +85,8 @@ export const authService = {
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
     } finally {
-      await SecureStore.deleteItemAsync('access_token');
-      await SecureStore.deleteItemAsync('refresh_token');
+      await storage.removeItem('access_token');
+      await storage.removeItem('refresh_token');
     }
   },
 
@@ -96,7 +96,7 @@ export const authService = {
   },
 
   async isAuthenticated() {
-    const token = await SecureStore.getItemAsync('access_token');
+    const token = await storage.getItem('access_token');
     return !!token;
   },
 };
@@ -150,6 +150,21 @@ export const inventarioService = {
     const response = await api.get('/inventario/stats');
     return response.data;
   },
+
+  async adicionarProduto(produtoData) {
+    const response = await api.post('/inventario', produtoData);
+    return response.data;
+  },
+
+  async atualizarProduto(id, produtoData) {
+    const response = await api.patch(`/inventario/${id}`, produtoData);
+    return response.data;
+  },
+
+  async deletarProduto(id) {
+    const response = await api.delete(`/inventario/${id}`);
+    return response.data;
+  },
 };
 
 // Compras Services
@@ -186,8 +201,59 @@ export const receitasService = {
     return response.data;
   },
 
+  async getReceitaById(id) {
+    const response = await api.get(`/receitas/${id}`);
+    return response.data;
+  },
+
+  async getFavoritas() {
+    const response = await api.get('/receitas/favoritas');
+    return response.data;
+  },
+
   async executarReceita(receitaId, data) {
     const response = await api.post(`/receitas/${receitaId}/executar`, data);
+    return response.data;
+  },
+
+  async marcarComoFavorita(receitaId) {
+    const response = await api.post(`/receitas/${receitaId}/favorita`);
+    return response.data;
+  },
+
+  async removerDeFavorita(receitaId) {
+    const response = await api.delete(`/receitas/${receitaId}/favorita`);
+    return response.data;
+  },
+};
+
+// Categorias Services
+export const categoriasService = {
+  async getCategorias() {
+    const response = await api.get('/produtos/categorias/all');
+    return response.data;
+  },
+
+  async getCategoriaById(id) {
+    const response = await api.get(`/produtos/categorias/${id}`);
+    return response.data;
+  },
+};
+
+// Produtos Services
+export const produtosService = {
+  async getProdutos(filters = {}) {
+    const response = await api.get('/produtos', { params: filters });
+    return response.data;
+  },
+
+  async getProdutoById(id) {
+    const response = await api.get(`/produtos/${id}`);
+    return response.data;
+  },
+
+  async getProdutosPorCategoria(categoriaId) {
+    const response = await api.get(`/produtos?categoriaId=${categoriaId}`);
     return response.data;
   },
 };

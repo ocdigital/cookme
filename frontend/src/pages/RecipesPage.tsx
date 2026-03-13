@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { UtensilsCrossed, Edit2, Trash2, Search, Eye, Plus, Sparkles, BookOpen, Zap, Loader } from 'lucide-react';
+import { UtensilsCrossed, Edit2, Trash2, Eye, Plus, Sparkles, BookOpen, Zap, Loader } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { AnimatedModal } from '../components/AnimatedModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SkeletonTable } from '../components/SkeletonLoader';
-import { StatsBar } from '../components/StatsBar';
 import { RecipeFormModal } from '../components/RecipeFormModal';
+import { SearchInput } from '../components/SearchInput';
+import { FilterSelect } from '../components/FilterSelect';
+import { ActionButton } from '../components/ActionButton';
+import { TablePagination } from '../components/TablePagination';
 import { useToast } from '../hooks/useToast';
 import recipesService from '../services/recipesService';
 import type { Receita } from '../services/recipesService';
@@ -22,8 +25,8 @@ export const RecipesPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [selectedRecipe, setSelectedRecipe] = useState<Receita | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showFormModal, setShowFormModal] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showIAModal, setShowIAModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showWeekConfirm, setShowWeekConfirm] = useState(false);
@@ -111,7 +114,7 @@ export const RecipesPage: React.FC = () => {
 
   const handleViewDetails = (recipe: Receita) => {
     setSelectedRecipe(recipe);
-    setShowDetailModal(true);
+    setIsDetailsModalOpen(true);
   };
 
   const handleGerarComIA = async () => {
@@ -142,13 +145,13 @@ export const RecipesPage: React.FC = () => {
   const handleCreateRecipe = () => {
     setSelectedRecipe(null);
     setFormError(null);
-    setShowFormModal(true);
+    setIsEditModalOpen(true);
   };
 
   const handleEditRecipe = (recipe: Receita) => {
     setSelectedRecipe(recipe);
     setFormError(null);
-    setShowFormModal(true);
+    setIsEditModalOpen(true);
   };
 
   const handleFormSubmit = async (data: any) => {
@@ -182,7 +185,7 @@ export const RecipesPage: React.FC = () => {
         toast.success('Receita criada com sucesso!');
       }
 
-      setShowFormModal(false);
+      setIsEditModalOpen(false);
       loadRecipes();
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Erro ao salvar receita');
@@ -232,23 +235,23 @@ export const RecipesPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Receitas</h1>
       </header>
 
-      {/* Stats Bar */}
-      <StatsBar
+      {/* Stats Bar - TODO: Implement meaningful stats for recipes */}
+      {/* <StatsBar
         items={[
           { icon: <UtensilsCrossed className="w-5 h-5" />, label: 'Total de Receitas', value: total },
           { icon: <BookOpen className="w-5 h-5" />, label: 'Página Atual', value: `${currentPage}/${totalPages}` },
           { icon: <UtensilsCrossed className="w-5 h-5" />, label: 'Receitas na Página', value: recipes.length },
         ]}
-      />
+      /> */}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => setViewMode('todas')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${
             viewMode === 'todas'
               ? 'border-primary text-primary'
-              : 'border-transparent text-gray-600 hover:text-gray-800'
+              : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -261,7 +264,7 @@ export const RecipesPage: React.FC = () => {
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${
             viewMode === 'sugestoes'
               ? 'border-primary text-primary'
-              : 'border-transparent text-gray-600 hover:text-gray-800'
+              : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -301,27 +304,22 @@ export const RecipesPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4 mb-3 pb-3 border-b border-gray-100">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Buscar por nome..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm"
-            />
-          </div>
-          <select
+        <div className="flex gap-4 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+          <SearchInput
+            placeholder="Buscar por nome..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <FilterSelect
             value={dificuldadeFilter}
             onChange={(e) => setDificuldadeFilter(e.target.value as any)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary text-sm"
-          >
-            <option value="todas">Todas</option>
-            <option value="facil">Fácil</option>
-            <option value="media">Médio</option>
-            <option value="dificil">Difícil</option>
-          </select>
+            options={[
+              { value: 'todas', label: 'Todas' },
+              { value: 'facil', label: 'Fácil' },
+              { value: 'media', label: 'Médio' },
+              { value: 'dificil', label: 'Difícil' },
+            ]}
+          />
         </div>
 
         {/* Table Content */}
@@ -335,26 +333,26 @@ export const RecipesPage: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Receita</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Categoria</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Dificuldade</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Tempo</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Porções</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Ações</th>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Receita</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Categoria</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Dificuldade</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Tempo</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Porções</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {displayRecipes.map((recipe) => (
-                      <tr key={recipe.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4 text-gray-800 font-medium">{recipe.nome}</td>
+                      <tr key={recipe.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="py-3 px-4 text-gray-800 dark:text-gray-200 font-medium">{recipe.nome}</td>
                         <td className="py-3 px-4">
                           {recipe.categoria_receita ? (
-                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
                               {recipe.categoria_receita}
                             </span>
                           ) : (
-                            <span className="text-gray-400 text-xs">-</span>
+                            <span className="text-gray-400 dark:text-gray-600 text-xs">-</span>
                           )}
                         </td>
                         <td className="py-3 px-4">
@@ -362,31 +360,28 @@ export const RecipesPage: React.FC = () => {
                             {recipesService.formatDificuldade(recipe.dificuldade)}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-gray-600">{recipe.tempo_preparo} min</td>
-                        <td className="py-3 px-4 text-gray-600">{recipe.rendimento_porcoes}</td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{recipe.tempo_preparo} min</td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{recipe.rendimento_porcoes}</td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
-                            <button
-                              onClick={() => handleViewDetails(recipe)}
-                              className="p-2 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors"
+                            <ActionButton
+                              variant="view"
+                              icon={<Eye size={16} />}
                               title="Ver detalhes"
-                            >
-                              <Eye size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleEditRecipe(recipe)}
-                              className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                              onClick={() => handleViewDetails(recipe)}
+                            />
+                            <ActionButton
+                              variant="edit"
+                              icon={<Edit2 size={16} />}
                               title="Editar"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(recipe.id)}
-                              className="p-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                              onClick={() => handleEditRecipe(recipe)}
+                            />
+                            <ActionButton
+                              variant="delete"
+                              icon={<Trash2 size={16} />}
                               title="Deletar"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                              onClick={() => handleDelete(recipe.id)}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -397,42 +392,14 @@ export const RecipesPage: React.FC = () => {
 
               {/* Pagination */}
               {viewMode === 'todas' && totalPages > 1 && (
-                <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-                  <div className="text-sm text-gray-600">
-                    Mostrando <span className="font-semibold">{displayRecipes.length}</span> de <span className="font-semibold">{total}</span> receitas
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => loadRecipes(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-gray-700"
-                    >
-                      Anterior
-                    </button>
-                    <div className="flex gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <button
-                          key={page}
-                          onClick={() => loadRecipes(page)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            page === currentPage
-                              ? 'bg-primary text-white'
-                              : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => loadRecipes(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium text-gray-700"
-                    >
-                      Próxima
-                    </button>
-                  </div>
-                </div>
+                <TablePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={total}
+                  itemsPerPage={displayRecipes.length}
+                  onPrevious={() => loadRecipes(currentPage - 1)}
+                  onNext={() => loadRecipes(currentPage + 1)}
+                />
               )}
             </>
           ) : (
@@ -495,45 +462,45 @@ export const RecipesPage: React.FC = () => {
 
       {/* Modal de Detalhes - Moderno */}
       <AnimatedModal
-        isOpen={showDetailModal && selectedRecipe !== null}
-        onClose={() => setShowDetailModal(false)}
+        isOpen={isDetailsModalOpen && selectedRecipe !== null}
+        onClose={() => setIsDetailsModalOpen(false)}
         title={selectedRecipe?.nome || 'Receita'}
         size="lg"
       >
         {selectedRecipe && (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {selectedRecipe.descricao && (
-              <p className="text-gray-600 dark:text-gray-400">{selectedRecipe.descricao}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{selectedRecipe.descricao}</p>
             )}
               {/* Informações básicas */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 <div>
-                  <p className="text-sm text-gray-500">Dificuldade</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Dificuldade</p>
                   <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${recipesService.getDificuldadeColor(selectedRecipe.dificuldade)}`}>
                     {recipesService.formatDificuldade(selectedRecipe.dificuldade)}
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Tempo de Preparo</p>
-                  <p className="text-lg font-semibold text-gray-800 mt-1">{selectedRecipe.tempo_preparo} min</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Tempo de Preparo</p>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-1">{selectedRecipe.tempo_preparo} min</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Rendimento</p>
-                  <p className="text-lg font-semibold text-gray-800 mt-1">{selectedRecipe.rendimento_porcoes} porções</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Rendimento</p>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-1">{selectedRecipe.rendimento_porcoes} porções</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Categoria</p>
-                  <p className="text-lg font-semibold text-gray-800 mt-1 capitalize">{selectedRecipe.categoria_receita || '-'}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Categoria</p>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-1 capitalize">{selectedRecipe.categoria_receita || '-'}</p>
                 </div>
               </div>
 
               {/* Tags */}
               {(selectedRecipe.tags_dieta && selectedRecipe.tags_dieta.length > 0) && (
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Tags</p>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tags</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedRecipe.tags_dieta.map((tag, index) => (
-                      <span key={index} className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                      <span key={index} className="px-3 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs font-medium rounded-full">
                         {tag}
                       </span>
                     ))}
@@ -544,17 +511,17 @@ export const RecipesPage: React.FC = () => {
               {/* Ingredientes */}
               {selectedRecipe.ingredientes && selectedRecipe.ingredientes.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Ingredientes</h3>
-                  <ul className="space-y-2">
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-2">Ingredientes</h3>
+                  <ul className="space-y-1">
                     {selectedRecipe.ingredientes.map((ing) => (
                       <li key={ing.id} className="flex items-start gap-2">
                         <span className="text-primary mt-1">•</span>
                         <span className="flex-1">
-                          <span className="font-medium">{ing.quantidade} {recipesService.formatUnidade(ing.unidade)}</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-200">{ing.quantidade} {recipesService.formatUnidade(ing.unidade)}</span>
                           {' '}
-                          <span>{ing.produto?.nome || 'Produto'}</span>
-                          {ing.observacao && <span className="text-gray-500 text-sm"> ({ing.observacao})</span>}
-                          {ing.opcional && <span className="text-gray-400 text-sm italic"> - opcional</span>}
+                          <span className="text-gray-700 dark:text-gray-400">{ing.produto?.nome || 'Produto'}</span>
+                          {ing.observacao && <span className="text-gray-500 dark:text-gray-500 text-sm"> ({ing.observacao})</span>}
+                          {ing.opcional && <span className="text-gray-400 dark:text-gray-600 text-sm italic"> - opcional</span>}
                         </span>
                       </li>
                     ))}
@@ -564,23 +531,23 @@ export const RecipesPage: React.FC = () => {
 
               {/* Modo de Preparo */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Modo de Preparo</h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-gray-700 whitespace-pre-line">{selectedRecipe.modo_preparo}</p>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-2">Modo de Preparo</h3>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">{selectedRecipe.modo_preparo}</p>
                 </div>
               </div>
 
               {/* Estatísticas */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                 <div>
-                  <p className="text-sm text-gray-500">Avaliação Média</p>
-                  <p className="text-lg font-semibold text-gray-800 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Avaliação Média</p>
+                  <p className="text-base font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
                     {selectedRecipe.avaliacao_media > 0 ? `⭐ ${selectedRecipe.avaliacao_media.toFixed(1)}` : 'Sem avaliações'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Vezes Executada</p>
-                  <p className="text-lg font-semibold text-gray-800 mt-1">{selectedRecipe.vezes_executada}x</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Vezes Executada</p>
+                  <p className="text-base font-semibold text-gray-800 dark:text-gray-200 mt-0.5">{selectedRecipe.vezes_executada}x</p>
                 </div>
               </div>
           </div>
@@ -589,12 +556,12 @@ export const RecipesPage: React.FC = () => {
 
       {/* Recipe Form Modal */}
       <RecipeFormModal
-        isOpen={showFormModal}
+        isOpen={isEditModalOpen}
         isLoading={formLoading}
         error={formError}
         recipe={selectedRecipe}
         onClose={() => {
-          setShowFormModal(false);
+          setIsEditModalOpen(false);
           setSelectedRecipe(null);
           setFormError(null);
         }}

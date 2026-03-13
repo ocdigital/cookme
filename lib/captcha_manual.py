@@ -246,31 +246,46 @@ class LeitorQRCodeSAT:
         """Extrai a chave de acesso do texto do QR Code"""
         print(f"📄 Processando texto do QR Code...")
         print(f"📝 Texto: {texto_qrcode[:100]}...")
-        
-        partes = texto_qrcode.split('|')
-        
-        if len(partes) < 1:
-            print("❌ Formato inválido")
-            return None
-        
-        chave = partes[0].strip()
-        
-        if len(chave) == 44 and chave.isdigit():
-            print(f"✅ Chave extraída: {chave}")
-            
-            if len(partes) >= 3:
-                data_hora = partes[1] if len(partes) > 1 else ''
-                valor = partes[2] if len(partes) > 2 else ''
-                
-                if len(data_hora) == 14:
-                    data_fmt = f"{data_hora[6:8]}/{data_hora[4:6]}/{data_hora[0:4]} {data_hora[8:10]}:{data_hora[10:12]}:{data_hora[12:14]}"
-                    print(f"📅 Data/Hora: {data_fmt}")
-                
-                print(f"💰 Valor: R$ {valor}")
-            
+
+        chave = None
+
+        # Verificar se é uma URL (começa com http)
+        if texto_qrcode.startswith('http'):
+            print("🔗 Detectada URL no QR Code (NFCe)")
+            # Extrair chave do parâmetro 'p=' na URL
+            # Ex: https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx?p=35251205088303000121650010000053281900574545
+            match = re.search(r'[?&]p=([0-9]{44})', texto_qrcode)
+            if match:
+                chave = match.group(1)
+                print(f"✅ Chave extraída da URL: {chave}")
+        else:
+            # Tentar parsear como formato pipe-separated (chave|data|valor)
+            partes = texto_qrcode.split('|')
+
+            if len(partes) < 1:
+                print("❌ Formato inválido")
+                return None
+
+            chave_candidata = partes[0].strip()
+
+            if len(chave_candidata) == 44 and chave_candidata.isdigit():
+                chave = chave_candidata
+                print(f"✅ Chave extraída: {chave}")
+
+                if len(partes) >= 3:
+                    data_hora = partes[1] if len(partes) > 1 else ''
+                    valor = partes[2] if len(partes) > 2 else ''
+
+                    if len(data_hora) == 14:
+                        data_fmt = f"{data_hora[6:8]}/{data_hora[4:6]}/{data_hora[0:4]} {data_hora[8:10]}:{data_hora[10:12]}:{data_hora[12:14]}"
+                        print(f"📅 Data/Hora: {data_fmt}")
+
+                    print(f"💰 Valor: R$ {valor}")
+
+        if chave and len(chave) == 44 and chave.isdigit():
             return chave
         else:
-            print(f"❌ Chave inválida: {chave}")
+            print(f"❌ Chave inválida: {chave if chave else 'não encontrada'}")
             return None
 
 

@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:unit": "jest --testPathPatterns='.spec.ts$' --maxWorkers=1",
+    "test:integration": "jest --testPathPatterns='.integration.spec.ts$' --maxWorkers=1",
+    "test:compras": "jest compras --maxWorkers=1",
+    "test:all": "npm run test:unit && npm run test:integration"
+  }
+}

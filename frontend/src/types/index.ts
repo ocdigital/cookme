@@ -6,6 +6,7 @@ export interface User {
   telefone?: string;
   role: 'USER' | 'PREMIUM' | 'ADMIN' | 'MARCA';
   avatar_url?: string;
+  alertas_habilitados?: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -10,17 +10,17 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { mockAllRecipes } from '../services/mockRecipesData';
 import { receitasService } from '../services/api';
+import { colors, spacing, shadows, borderRadius } from '../theme/colors';
 
 const { width } = Dimensions.get('window');
 
 export default function RecipesListScreen({ navigation, route }) {
-  const [recipes, setRecipes] = useState(mockAllRecipes);
-  const [filteredRecipes, setFilteredRecipes] = useState(mockAllRecipes);
+  const [recipes, setRecipes] = useState([]);
+  const [filteredRecipes, setFilteredRecipes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('nome');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -36,17 +36,15 @@ export default function RecipesListScreen({ navigation, route }) {
       setLoading(true);
       setError(null);
       const data = await receitasService.getReceitas();
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data)) {
         setRecipes(data);
       } else {
-        // Fallback para mock data se API retornar vazio
-        setRecipes(mockAllRecipes);
+        setRecipes([]);
       }
     } catch (err) {
       console.error('Erro ao carregar receitas:', err);
-      setError('Erro ao carregar receitas. Usando dados offline.');
-      // Fallback para mock data em caso de erro
-      setRecipes(mockAllRecipes);
+      setError('Erro ao carregar receitas');
+      setRecipes([]);
     } finally {
       setLoading(false);
     }
@@ -213,53 +211,53 @@ export default function RecipesListScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background.main,
   },
   searchSection: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 6,
-    paddingVertical: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.md,
   },
   searchInput: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     fontSize: 14,
-    color: '#333',
+    color: colors.text.primary,
   },
   searchIcon: {
     fontSize: 18,
   },
   sortButtonsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    gap: 8,
-    backgroundColor: '#fff',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: colors.border.light,
   },
   sortButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#F0F0F0',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background.soft,
   },
   sortButtonActive: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.primary,
   },
   sortButtonText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#666',
+    color: colors.text.secondary,
   },
   sortButtonTextActive: {
-    color: '#fff',
+    color: colors.white,
   },
   listContainer: {
     paddingHorizontal: 16,
@@ -267,15 +265,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   recipeCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
     overflow: 'hidden',
     flexDirection: 'row',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadows.md,
   },
   recipeImage: {
     width: 100,
@@ -289,13 +283,13 @@ const styles = StyleSheet.create({
   recipeName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   recipeDescription: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
+    color: colors.text.secondary,
+    marginBottom: spacing.sm,
     lineHeight: 16,
   },
   recipeStats: {
@@ -306,11 +300,11 @@ const styles = StyleSheet.create({
   stat: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginRight: 4,
+    backgroundColor: colors.background.soft,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    marginRight: spacing.xs,
   },
   statIcon: {
     fontSize: 12,
@@ -318,16 +312,16 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 10,
-    color: '#666',
+    color: colors.text.secondary,
     fontWeight: '500',
   },
   chevron: {
     justifyContent: 'center',
-    paddingRight: 12,
+    paddingRight: spacing.md,
   },
   chevronText: {
     fontSize: 24,
-    color: '#4CAF50',
+    color: colors.primary,
     fontWeight: '300',
   },
   emptyState: {
@@ -342,28 +336,28 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
+    color: colors.text.muted,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
+    gap: spacing.lg,
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: colors.text.secondary,
     fontWeight: '500',
   },
   errorBanner: {
     backgroundColor: '#FFEBEE',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: '#EF5350',
   },

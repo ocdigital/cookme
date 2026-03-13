@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Edit2, Trash2, Search, AlertCircle, ChevronLeft, ChevronRight, Tag, Layers } from 'lucide-react';
+import { Package, Edit2, Trash2 } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
-import { StatsBar } from '../components/StatsBar';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { EditProductModal } from '../components/EditProductModal';
+import { SearchInput } from '../components/SearchInput';
+import { ErrorAlert } from '../components/ErrorAlert';
+import { ActionButton } from '../components/ActionButton';
+import { TablePagination } from '../components/TablePagination';
 import { adminService } from '../services/adminService';
 
 type Product = {
@@ -19,29 +24,26 @@ type Product = {
   atualizado_em: Date;
 };
 
-type ProductStats = {
-  totalProdutos: number;
-  produtosPorCategoria: Array<{ categoria: string; total: number }>;
-  produtosPorMarca: Array<{ marca: string; total: number }>;
-};
-
 export const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [stats, setStats] = useState<ProductStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+
   useEffect(() => {
     loadProducts();
-    loadStats();
-  }, [page, searchTerm, categoryFilter]);
+  }, [page, searchTerm]);
 
   const loadProducts = async () => {
     try {
@@ -49,7 +51,6 @@ export const ProductsPage: React.FC = () => {
       setError(null);
       const response = await adminService.listProducts(page, limit, {
         search: searchTerm,
-        categoriaId: categoryFilter,
         sort: 'criado_em',
         order: 'DESC',
       });
@@ -71,23 +72,8 @@ export const ProductsPage: React.FC = () => {
     }
   };
 
-  const loadStats = async () => {
-    try {
-      const statsData = await adminService.getProductStats();
-      console.log('📊 Estatísticas de produtos:', statsData);
-      setStats(statsData);
-    } catch (err) {
-      console.error('Erro ao carregar estatísticas:', err);
-    }
-  };
-
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setPage(1);
-  };
-
-  const handleCategoryChange = (value: string) => {
-    setCategoryFilter(value);
     setPage(1);
   };
 
@@ -99,6 +85,36 @@ export const ProductsPage: React.FC = () => {
     if (page < totalPages) setPage(page + 1);
   };
 
+  const handleEditProduct = (product: Product) => {
+    setProductToEdit(product);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteProduct = (product: Product) => {
+    setProductToDelete(product);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!productToDelete) return;
+
+    try {
+      setDeleteLoading(true);
+      await adminService.deleteProduct(productToDelete.id);
+      setProducts(products.filter(p => p.id !== productToDelete.id));
+      setIsDeleteModalOpen(false);
+      setProductToDelete(null);
+    } catch (err) {
+      console.error('Erro ao deletar produto:', err);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    loadProducts();
+  };
+
   const filteredProducts = products;
 
   return (
@@ -108,8 +124,8 @@ export const ProductsPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Produtos</h1>
       </header>
 
-      {/* Stats Bar */}
-      {stats && (
+      {/* Stats Bar - TODO: Implement meaningful stats for products */}
+      {/* {stats && (
         <StatsBar
           items={[
             { icon: <Package className="w-5 h-5" />, label: 'Total de Produtos', value: stats.totalProdutos },
@@ -117,7 +133,7 @@ export const ProductsPage: React.FC = () => {
             { icon: <Layers className="w-5 h-5" />, label: 'Marcas', value: stats.produtosPorMarca.length },
           ]}
         />
-      )}
+      )} */}
 
       {/* Table */}
       <Card>
@@ -129,44 +145,31 @@ export const ProductsPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4 mb-3 pb-3 border-b border-gray-100">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Buscar por nome ou código de barras..."
-              value={searchTerm}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-sm"
-            />
-          </div>
-          {stats && stats.produtosPorCategoria.length > 0 && (
-            <select
+        <div className="flex gap-4 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+          <SearchInput
+            placeholder="Buscar por nome ou código de barras..."
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
+          {/* TODO: Add category filter when stats are needed */}
+          {/* {stats && stats.produtosPorCategoria.length > 0 && (
+            <FilterSelect
               value={categoryFilter}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary text-sm min-w-max"
-            >
-              <option value="">Todas as Categorias</option>
-              {stats.produtosPorCategoria.map((cat) => (
-                <option key={cat.categoria} value={cat.categoria || ''}>
-                  {cat.categoria} ({cat.total})
-                </option>
-              ))}
-            </select>
-          )}
+              options={[
+                { value: '', label: 'Todas as Categorias' },
+                ...stats.produtosPorCategoria.map((cat: any) => ({
+                  value: cat.categoria || '',
+                  label: `${cat.categoria} (${cat.total})`,
+                })),
+              ]}
+            />
+          )} */}
         </div>
 
         {/* Table Content */}
         <CardContent>
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-red-800 font-semibold">Erro</p>
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-            </div>
-          )}
+          <ErrorAlert error={error} />
 
           {loading ? (
             <div className="text-center py-8">
@@ -178,71 +181,62 @@ export const ProductsPage: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Produto</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Categoria</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Marca</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Unidade</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Verificado</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Data</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Ações</th>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Produto</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Categoria</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Marca</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Unidade</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Verificado</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Data</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredProducts.map((product) => (
                       <tr
                         key={product.id}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                       >
-                        <td className="py-3 px-4 text-gray-800 font-medium">{product.nome}</td>
+                        <td className="py-3 px-4 text-gray-800 dark:text-gray-200 font-medium">{product.nome}</td>
                         <td className="py-3 px-4">
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
                             {product.categoria?.nome || '-'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-gray-600 text-sm">
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-sm">
                           {product.marca?.nome || '-'}
                         </td>
-                        <td className="py-3 px-4 text-gray-600 text-sm">
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-sm">
                           {product.unidade_padrao}
                         </td>
                         <td className="py-3 px-4">
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-medium ${
                               product.verificado
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-yellow-100 text-yellow-700'
+                                ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                                : 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300'
                             }`}
                           >
                             {product.verificado ? '✓ Verificado' : '⊘ Não verificado'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-gray-600 text-xs">
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-xs">
                           {new Date(product.criado_em).toLocaleDateString('pt-BR')}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
-                            <button
-                              onClick={() => alert('Edição de produtos em desenvolvimento')}
-                              className="p-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (confirm(`Deletar ${product.nome}?`)) {
-                                  try {
-                                    await adminService.deleteProduct(product.id);
-                                    setProducts(products.filter(p => p.id !== product.id));
-                                  } catch (err) {
-                                    alert('Erro ao deletar produto');
-                                  }
-                                }
-                              }}
-                              className="p-2 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            <ActionButton
+                              variant="edit"
+                              icon={<Edit2 size={16} />}
+                              title="Editar"
+                              onClick={() => handleEditProduct(product)}
+                            />
+                            <ActionButton
+                              variant="delete"
+                              icon={<Trash2 size={16} />}
+                              title="Deletar"
+                              onClick={() => handleDeleteProduct(product)}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -252,29 +246,13 @@ export const ProductsPage: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                <p className="text-sm text-gray-600">
-                  Página {page} de {totalPages} ({totalProducts} total)
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePreviousPage}
-                    disabled={page === 1}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronLeft size={16} />
-                    Anterior
-                  </button>
-                  <button
-                    onClick={handleNextPage}
-                    disabled={page === totalPages}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Próximo
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
+              <TablePagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={totalProducts}
+                onPrevious={handlePreviousPage}
+                onNext={handleNextPage}
+              />
             </>
           ) : (
             <div className="text-center py-8">
@@ -284,6 +262,33 @@ export const ProductsPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Product Modal */}
+      <EditProductModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setProductToEdit(null);
+        }}
+        onSuccess={handleEditSuccess}
+        product={productToEdit}
+      />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={isDeleteModalOpen}
+        title="Deletar Produto?"
+        description={`Tem certeza que deseja deletar o produto "${productToDelete?.nome}"? Esta ação não pode ser desfeita.`}
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        isDangerous
+        isLoading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setProductToDelete(null);
+        }}
+      />
     </div>
   );
 };

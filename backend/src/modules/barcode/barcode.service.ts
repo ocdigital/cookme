@@ -119,7 +119,7 @@ export class BarcodeService {
       }
 
       // 4. Salvar produto encontrado no banco local para cache futuro
-      const produtoSalvo = await this.salvarProdutoDoAPI(produtoAPI);
+      const produtoSalvo = await this.salvarProdutoDoAPI(produtoAPI!);
 
       return {
         encontrado: true,
@@ -204,7 +204,7 @@ export class BarcodeService {
    * Converte dados da API para o modelo local de Produto
    */
   private async salvarProdutoDoAPI(
-    produtoAPI: OpenFoodFactsResponse['product'],
+    produtoAPI: NonNullable<OpenFoodFactsResponse['product']>,
   ): Promise<any> {
     try {
       // Extrair dados relevantes da API
@@ -235,17 +235,18 @@ export class BarcodeService {
       // Criar DTO do produto
       const createProdutoDto: CreateProdutoDto = {
         nome,
-        descricao,
         codigo_barras: produtoAPI.id,
-        marca_id: marcaId,
-        categoria_id: categoriaId,
         unidade_padrao: UnidadeMedida.UN,
-        imagem_url: imagemUrl,
-        informacoes_nutricionais: nutricionais,
         tags,
-        origem: 'api_openfoodfacts',
-        verificado: false, // Produtos de API não são verificados automaticamente
       };
+
+      if (marcaId) {
+        createProdutoDto.marca_id = marcaId;
+      }
+
+      if (categoriaId) {
+        createProdutoDto.categoria_id = categoriaId;
+      }
 
       // Salvar no banco
       const produtoSalvo = await this.produtosService.create(createProdutoDto);
@@ -277,8 +278,8 @@ export class BarcodeService {
   /**
    * Extrai descrição do produto
    */
-  private extrairDescricao(produto: OpenFoodFactsResponse['product']): string {
-    const partes = [];
+  private extrairDescricao(produto: NonNullable<OpenFoodFactsResponse['product']>): string {
+    const partes: string[] = [];
 
     if (produto.generic_name) {
       partes.push(produto.generic_name);
@@ -302,7 +303,7 @@ export class BarcodeService {
   /**
    * Extrai marca do produto
    */
-  private extrairMarca(produto: OpenFoodFactsResponse['product']): string | null {
+  private extrairMarca(produto: NonNullable<OpenFoodFactsResponse['product']>): string | null {
     if (produto.brands) {
       return produto.brands.split(',')[0].trim();
     }
@@ -315,7 +316,7 @@ export class BarcodeService {
   /**
    * Extrai categoria principal do produto
    */
-  private extrairCategoria(produto: OpenFoodFactsResponse['product']): string | null {
+  private extrairCategoria(produto: NonNullable<OpenFoodFactsResponse['product']>): string | null {
     if (produto.categories) {
       const categorias = produto.categories.split(',');
       return categorias[0].trim();
@@ -329,7 +330,7 @@ export class BarcodeService {
   /**
    * Extrai imagem do produto (priorizar imagem frontal)
    */
-  private extrairImagem(produto: OpenFoodFactsResponse['product']): string | null {
+  private extrairImagem(produto: NonNullable<OpenFoodFactsResponse['product']>): string | null {
     if (produto.image_front_url) {
       return produto.image_front_url;
     }
@@ -342,7 +343,7 @@ export class BarcodeService {
   /**
    * Extrai informações nutricionais
    */
-  private extrairNutricionais(produto: OpenFoodFactsResponse['product']): any {
+  private extrairNutricionais(produto: NonNullable<OpenFoodFactsResponse['product']>): any {
     if (!produto.nutriments) {
       return null;
     }
@@ -365,8 +366,8 @@ export class BarcodeService {
   /**
    * Extrai tags do produto (vegano, sem-gluten, organico, etc)
    */
-  private extrairTags(produto: OpenFoodFactsResponse['product']): string[] {
-    const tags = [];
+  private extrairTags(produto: NonNullable<OpenFoodFactsResponse['product']>): string[] {
+    const tags: string[] = [];
 
     // Tags de alergênios
     if (produto.allergens_tags) {

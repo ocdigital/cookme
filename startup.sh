@@ -111,9 +111,9 @@ print_success "Frontend iniciado (PID: $FRONTEND_PID)"
 echo ""
 
 # Mobile
-print_status "Iniciando Mobile..."
+print_status "Iniciando Mobile (Expo)..."
 cd ../mobile
-npx expo start > /tmp/mobile.log 2>&1 &
+npx expo start 2>&1 | tee /tmp/mobile.log &
 MOBILE_PID=$!
 print_success "Mobile iniciado (PID: $MOBILE_PID)"
 echo ""
@@ -127,7 +127,7 @@ echo -e "${GREEN}URLs de Acesso:${NC}"
 echo "  📱 Frontend:  ${BLUE}http://localhost:5173${NC}"
 echo "  🔌 Backend:   ${BLUE}http://localhost:3000${NC}"
 echo "  📚 Swagger:   ${BLUE}http://localhost:3000/api/docs${NC}"
-echo "  📲 Mobile:    Scan QR code no terminal"
+echo "  📲 Mobile:    ${BLUE}Veja o QR code abaixo↓${NC}"
 echo ""
 echo -e "${GREEN}Databases (Docker):${NC}"
 echo "  🗄️  PostgreSQL: localhost:5432"
@@ -142,6 +142,8 @@ echo ""
 echo -e "${YELLOW}Para parar tudo:${NC}"
 echo "  Pressione Ctrl+C aqui, ou execute:"
 echo "  docker-compose down"
+echo ""
+echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
 # Aguardar indefinidamente

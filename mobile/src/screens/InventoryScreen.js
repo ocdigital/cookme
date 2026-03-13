@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,47 +10,19 @@ import {
   Modal,
   FlatList,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-
-// Mock de produtos no inventário
-const mockInventoryProducts = [
-  {
-    id: '1',
-    nome: 'Macarrão Integral',
-    categoria: 'Grãos',
-    quantidade: 2,
-    unidade: 'pacotes',
-    dataValidade: '2025-12-20',
-    dataAdicionado: '2025-11-01',
-    imagem: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=100&h=100&fit=crop',
-  },
-  {
-    id: '2',
-    nome: 'Frango Peito',
-    categoria: 'Carnes',
-    quantidade: 600,
-    unidade: 'g',
-    dataValidade: '2025-11-15',
-    dataAdicionado: '2025-11-01',
-    imagem: 'https://images.unsplash.com/photo-1633203777956-8f6530120795?w=100&h=100&fit=crop',
-  },
-  {
-    id: '3',
-    nome: 'Queijo Meia Cura',
-    categoria: 'Laticínios',
-    quantidade: 300,
-    unidade: 'g',
-    dataValidade: '2025-11-30',
-    dataAdicionado: '2025-11-02',
-    imagem: 'https://images.unsplash.com/photo-1589985643797-f7ef7c1f1d7d?w=100&h=100&fit=crop',
-  },
-];
+import { useFocusEffect } from '@react-navigation/native';
+import { colors, spacing, shadows, borderRadius } from '../theme/colors';
+import { inventarioService } from '../services/api';
 
 export default function InventoryScreen({ navigation }) {
-  const [products, setProducts] = useState(mockInventoryProducts);
+  const [products, setProducts] = useState([]);
   const [activeTab, setActiveTab] = useState('products'); // 'products', 'add'
   const [modalVisible, setModalVisible] = useState(false);
   const [addMethod, setAddMethod] = useState(null); // 'qrcode', 'barcode', 'manual'
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Formulário de entrada manual
   const [manualForm, setManualForm] = useState({
@@ -61,31 +33,94 @@ export default function InventoryScreen({ navigation }) {
     dataValidade: '',
   });
 
-  const handleAddProduct = () => {
+  const loadInventario = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await inventarioService.getInventario();
+      if (data && Array.isArray(data)) {
+        setProducts(data);
+      } else {
+        setProducts([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar inventário:', error);
+      setError('Erro ao carregar inventário');
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Recarregar quando a aba fica em foco
+  useFocusEffect(
+    useCallback(() => {
+      loadInventario();
+    }, [])
+  );
+
+  // Carregar produtos ao montar a tela
+  useEffect(() => {
+    loadInventario();
+  }, []);
+
+  const handleAddProduct = async () => {
     if (!manualForm.nome || !manualForm.quantidade || !manualForm.dataValidade) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios');
       return;
     }
 
-    const newProduct = {
-      id: Math.random().toString(),
-      nome: manualForm.nome,
-      categoria: manualForm.categoria || 'Geral',
-      quantidade: parseInt(manualForm.quantidade),
-      unidade: manualForm.unidade,
-      dataValidade: manualForm.dataValidade,
-      dataAdicionado: new Date().toISOString().split('T')[0],
-      imagem: 'https://images.unsplash.com/photo-1609780591857-fbf67bb2412e?w=100&h=100&fit=crop',
-    };
+    try {
+      setLoading(true);
+      setError(null);
+      const produtoData = {
+        nome: manualForm.nome,
+        categoria: manualForm.categoria || 'Geral',
+        quantidade: parseFloat(manualForm.quantidade),
+        unidade: manualForm.unidade,
+        dataValidade: manualForm.dataValidade,
+      };
 
-    setProducts([...products, newProduct]);
-    setManualForm({ nome: '', categoria: '', quantidade: '', unidade: 'un', dataValidade: '' });
-    setAddMethod(null);
-    Alert.alert('Sucesso', 'Produto adicionado ao inventário!');
+      const newProduct = await inventarioService.adicionarProduto(produtoData);
+      setProducts([...products, newProduct]);
+      setManualForm({ nome: '', categoria: '', quantidade: '', unidade: 'un', dataValidade: '' });
+      setAddMethod(null);
+      setModalVisible(false);
+      Alert.alert('Sucesso', 'Produto adicionado ao inventário!');
+    } catch (error) {
+      console.error('Erro ao adicionar produto:', error);
+      setError('Erro ao adicionar produto. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível adicionar o produto');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRemoveProduct = (id) => {
-    setProducts(products.filter(p => p.id !== id));
+  const handleRemoveProduct = async (id) => {
+    Alert.alert(
+      'Confirmar exclusão',
+      'Tem certeza que deseja excluir este produto?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Deletar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await inventarioService.deletarProduto(id);
+              setProducts(products.filter(p => p.id !== id));
+              Alert.alert('Sucesso', 'Produto deletado com sucesso');
+            } catch (error) {
+              console.error('Erro ao deletar produto:', error);
+              Alert.alert('Erro', 'Não foi possível deletar o produto');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderProduct = ({ item }) => {
@@ -151,6 +186,16 @@ export default function InventoryScreen({ navigation }) {
         <Text style={styles.headerSubtitle}>{products.length} produtos cadastrados</Text>
       </View>
 
+      {/* Error Banner */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={() => setError(null)}>
+            <Text style={styles.errorClose}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -173,7 +218,12 @@ export default function InventoryScreen({ navigation }) {
       </View>
 
       {/* Conteúdo */}
-      {activeTab === 'products' ? (
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Carregando inventário...</Text>
+        </View>
+      ) : activeTab === 'products' ? (
         <FlatList
           data={products}
           renderItem={renderProduct}
@@ -198,13 +248,27 @@ export default function InventoryScreen({ navigation }) {
 
             <TouchableOpacity
               style={styles.methodButton}
+              onPress={() => navigation.navigate('ReceiptPhoto')}
+            >
+              <Text style={styles.methodIcon}>📸</Text>
+              <View style={styles.methodInfo}>
+                <Text style={styles.methodTitle}>Foto do Cupom Fiscal</Text>
+                <Text style={styles.methodSubtitle}>
+                  Fotografe o cupom e extraia os itens automaticamente
+                </Text>
+              </View>
+              <Text style={styles.methodArrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.methodButton}
               onPress={() => navigation.navigate('QRScanner')}
             >
               <Text style={styles.methodIcon}>📷</Text>
               <View style={styles.methodInfo}>
-                <Text style={styles.methodTitle}>Escanear Cupom Fiscal</Text>
+                <Text style={styles.methodTitle}>QR Code do Cupom</Text>
                 <Text style={styles.methodSubtitle}>
-                  Adicione múltiplos produtos de uma vez
+                  Escanear QR code SAT (método alternativo)
                 </Text>
               </View>
               <Text style={styles.methodArrow}>›</Text>
@@ -400,64 +464,92 @@ export default function InventoryScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background.main,
   },
   header: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
   },
   headerSubtitle: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.85)',
-    marginTop: 4,
+    marginTop: spacing.xs,
+  },
+  errorBanner: {
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EF5350',
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#C62828',
+    fontWeight: '500',
+    flex: 1,
+  },
+  errorClose: {
+    fontSize: 18,
+    color: '#C62828',
+    marginLeft: spacing.md,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.text.muted,
+    fontWeight: '500',
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: colors.border.light,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tabActive: {
     borderBottomWidth: 3,
-    borderBottomColor: '#4CAF50',
+    borderBottomColor: colors.primary,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#999',
+    color: colors.text.muted,
   },
   tabTextActive: {
-    color: '#4CAF50',
+    color: colors.primary,
   },
   productsList: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
   },
   productItem: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 12,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
+    gap: spacing.md,
+    ...shadows.sm,
   },
   productImage: {
     width: 80,
@@ -471,28 +563,28 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 2,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   productCategory: {
     fontSize: 11,
-    color: '#999',
-    marginBottom: 4,
+    color: colors.text.muted,
+    marginBottom: spacing.xs,
   },
   productQuantity: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: colors.primary,
   },
   productRight: {
     alignItems: 'flex-end',
-    gap: 8,
+    gap: spacing.sm,
   },
   expiryBadge: {
     backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
   },
   expiryExpiring: {
     backgroundColor: '#FFF3E0',
@@ -503,7 +595,7 @@ const styles = StyleSheet.create({
   expiryText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: colors.primary,
   },
   expiryTextAlert: {
     color: '#F57C00',
@@ -514,7 +606,7 @@ const styles = StyleSheet.create({
   deleteButton: {
     width: 24,
     height: 24,
-    borderRadius: 4,
+    borderRadius: borderRadius.sm,
     backgroundColor: '#FFE0E0',
     justifyContent: 'center',
     alignItems: 'center',
@@ -546,31 +638,27 @@ const styles = StyleSheet.create({
   },
   addContent: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
   },
   methodsContainer: {
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
+    color: colors.text.primary,
+    marginBottom: spacing.md,
   },
   methodButton: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
+    gap: spacing.md,
+    ...shadows.sm,
   },
   methodIcon: {
     fontSize: 28,
@@ -581,26 +669,26 @@ const styles = StyleSheet.create({
   methodTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#333',
+    color: colors.text.primary,
   },
   methodSubtitle: {
     fontSize: 11,
-    color: '#999',
-    marginTop: 2,
+    color: colors.text.muted,
+    marginTop: spacing.xs,
   },
   methodArrow: {
     fontSize: 20,
-    color: '#4CAF50',
+    color: colors.primary,
   },
   infoBox: {
     backgroundColor: '#E8F5E9',
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 24,
+    gap: spacing.md,
+    marginBottom: spacing.xl,
     borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
+    borderLeftColor: colors.primary,
   },
   infoIcon: {
     fontSize: 18,
@@ -617,131 +705,131 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modal: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
     maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: colors.border.light,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
+    color: colors.text.primary,
   },
   modalClose: {
     fontSize: 24,
-    color: '#999',
+    color: colors.text.muted,
   },
   modalContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
   },
   inputLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 6,
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: colors.background.soft,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     fontSize: 13,
-    color: '#333',
-    marginBottom: 14,
+    color: colors.text.primary,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: colors.border.light,
   },
   rowInputs: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
   },
   inputGroup: {
     flex: 1,
   },
   unitSelector: {
     flexDirection: 'row',
-    gap: 6,
+    gap: spacing.sm,
     flexWrap: 'wrap',
   },
   unitButton: {
     flex: 1,
     minWidth: '18%',
-    borderRadius: 6,
+    borderRadius: borderRadius.sm,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingVertical: 8,
+    borderColor: colors.border.light,
+    paddingVertical: spacing.md,
     alignItems: 'center',
   },
   unitButtonActive: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   unitButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#666',
+    color: colors.text.secondary,
   },
   unitButtonTextActive: {
-    color: '#fff',
+    color: colors.white,
   },
   dateInputContainer: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   dateInfo: {
     fontSize: 11,
-    color: '#999',
-    marginBottom: 6,
+    color: colors.text.muted,
+    marginBottom: spacing.sm,
   },
   dateNote: {
     fontSize: 11,
-    color: '#666',
-    marginTop: 8,
+    color: colors.text.secondary,
+    marginTop: spacing.sm,
     fontStyle: 'italic',
   },
   submitButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 12,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.md,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: spacing.md,
   },
   submitButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '700',
     fontSize: 13,
   },
   cancelButton: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.md,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   cancelButtonText: {
-    color: '#666',
+    color: colors.text.secondary,
     fontWeight: '600',
     fontSize: 13,
   },
   barcodePreview: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 10,
+    backgroundColor: colors.background.soft,
+    borderRadius: borderRadius.md,
     paddingVertical: 60,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.lg,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#DDD',
+    borderColor: colors.border.light,
   },
   barcodePreviewIcon: {
     fontSize: 48,
@@ -750,11 +838,11 @@ const styles = StyleSheet.create({
   barcodePreviewText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   barcodePreviewSubtext: {
     fontSize: 12,
-    color: '#999',
+    color: colors.text.muted,
   },
 });

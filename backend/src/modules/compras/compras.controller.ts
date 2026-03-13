@@ -8,6 +8,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -65,6 +66,54 @@ export class ComprasController {
   })
   async getStats(@CurrentUser() user: Usuario) {
     return this.comprasService.getStats(user.id);
+  }
+
+  @Post('ocr-cupom')
+  @ApiOperation({ summary: 'Extrair itens de cupom fiscal via OCR' })
+  @ApiResponse({
+    status: 200,
+    description: 'Itens extraídos com sucesso',
+  })
+  async ocrCupom(
+    @Body()
+    body: {
+      image_base64: string;
+      image_type: string;
+    },
+  ) {
+    if (!body.image_base64) {
+      throw new BadRequestException('Imagem em base64 é obrigatória');
+    }
+
+    return this.comprasService.extrairItensCupom(body.image_base64);
+  }
+
+  @Post('ocr-cupom/salvar-itens')
+  @ApiOperation({ summary: 'Salvar itens extraídos do cupom no inventário' })
+  @ApiResponse({
+    status: 201,
+    description: 'Itens salvos no inventário com sucesso',
+  })
+  async salvarItensCupom(
+    @CurrentUser() user: Usuario,
+    @Body()
+    body: {
+      itens: Array<{
+        nome: string;
+        quantidade?: number;
+        valor?: number;
+        codigo_barras?: string;
+      }>;
+      estabelecimento?: {
+        nome?: string;
+      };
+    },
+  ) {
+    if (!body.itens || body.itens.length === 0) {
+      throw new BadRequestException('Pelo menos um item é obrigatório');
+    }
+
+    return this.comprasService.salvarItensCupomNoInventario(user.id, body.itens);
   }
 
   @Get(':id')

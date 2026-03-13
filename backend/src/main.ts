@@ -21,7 +21,7 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: ['http://localhost:3001', 'http://localhost:5173', 'http://localhost:19006', 'http://192.168.86.7:8081'], // React + React Native Expo
+    origin: ['http://localhost:3001', 'http://localhost:5173', 'http://localhost:8081', 'http://localhost:19006', 'http://192.168.86.7:8081'], // React + React Native Expo
     credentials: true,
   });
 

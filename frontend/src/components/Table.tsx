@@ -46,7 +46,7 @@ export const Table: React.FC<TableProps> = ({
             {columns.map((column) => (
               <th
                 key={column.key}
-                className="px-6 py-3 text-left text-sm font-semibold text-dark"
+                className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white"
               >
                 {column.label}
               </th>

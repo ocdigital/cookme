@@ -21,7 +21,7 @@ export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
 };
 
 export const CardTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 className="text-xl font-bold text-dark dark:text-white mb-3">{children}</h3>
+  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{children}</h3>
 );
 
 export const CardContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (

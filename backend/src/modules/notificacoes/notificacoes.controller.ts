@@ -170,4 +170,26 @@ export class NotificacoesController {
       body.mensagem,
     );
   }
+
+  @Post('admin/enviar/:usuarioId')
+  @Admin()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: '[ADMIN] Enviar notificação para qualquer usuário' })
+  @ApiResponse({ status: 201, description: 'Notificação enviada com sucesso' })
+  async enviarParaUsuario(
+    @Param('usuarioId') usuarioId: string,
+    @Body()
+    body: {
+      titulo: string;
+      mensagem: string;
+      tipo?: NotificacaoTipo;
+    },
+  ): Promise<Notificacao> {
+    return this.triggersService.notificarEvento(
+      usuarioId,
+      body.tipo || NotificacaoTipo.INFO,
+      body.titulo,
+      body.mensagem,
+    );
+  }
 }

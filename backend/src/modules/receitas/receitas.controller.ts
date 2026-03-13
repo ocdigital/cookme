@@ -123,6 +123,17 @@ export class ReceitasController {
     return this.receitasService.sugestoesSimilares(user.id);
   }
 
+  @Get('favoritas')
+  @ApiOperation({ summary: 'Listar receitas favoritas do usuário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Receitas marcadas como favoritas',
+    type: [Receita],
+  })
+  async favoritas(@CurrentUser() user: Usuario): Promise<Receita[]> {
+    return this.receitasService.findFavoritas(user.id);
+  }
+
   @Get('executadas')
   @ApiOperation({ summary: 'Histórico de receitas executadas' })
   @ApiResponse({
@@ -159,6 +170,31 @@ export class ReceitasController {
     @Body() updateReceitaDto: UpdateReceitaDto,
   ): Promise<Receita> {
     return this.receitasService.update(id, updateReceitaDto);
+  }
+
+  @Post(':id/favorita')
+  @ApiOperation({ summary: 'Marcar receita como favorita' })
+  @ApiResponse({
+    status: 201,
+    description: 'Receita marcada como favorita',
+    type: Receita,
+  })
+  async marcarFavorita(
+    @CurrentUser() user: Usuario,
+    @Param('id') id: string,
+  ): Promise<Receita> {
+    return this.receitasService.marcarComoFavorita(id, user.id);
+  }
+
+  @Delete(':id/favorita')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Remover receita dos favoritos' })
+  @ApiResponse({ status: 204, description: 'Receita removida dos favoritos' })
+  async removerFavorita(
+    @CurrentUser() user: Usuario,
+    @Param('id') id: string,
+  ): Promise<void> {
+    return this.receitasService.removerDeFavorita(id, user.id);
   }
 
   @Post(':id/executar')

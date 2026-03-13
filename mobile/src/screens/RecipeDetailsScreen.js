@@ -9,7 +9,6 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
-import { mockRecipesCarousel, mockRecipeDetails } from '../services/mockRecipesData';
 import { receitasService } from '../services/api';
 
 export default function RecipeDetailsScreen({ navigation, route }) {
@@ -27,18 +26,14 @@ export default function RecipeDetailsScreen({ navigation, route }) {
   const loadRecipeDetails = async () => {
     try {
       setLoading(true);
-      // Tenta buscar da API
-      const data = await receitasService.getReceitas({ id: recipeId });
-      if (data && data.length > 0) {
-        setRecipe(data[0]);
-        setRecipeDetail(data[0]); // API retorna objeto completo
+      // Busca a receita específica pelo ID
+      const data = await receitasService.getReceitaById(recipeId);
+      if (data) {
+        setRecipe(data);
+        setRecipeDetail(data);
       } else {
-        // Fallback para mock data
-        const mockRecipe = mockRecipeDetails[recipeId] ||
-          mockRecipesCarousel.find(r => r.id === recipeId) ||
-          mockRecipesCarousel[0];
-        setRecipe(mockRecipe);
-        setRecipeDetail(mockRecipeDetails[recipeId] || {
+        setRecipe(null);
+        setRecipeDetail({
           ingredientes: [],
           modo: [],
           dicas: [],
@@ -47,12 +42,8 @@ export default function RecipeDetailsScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error('Erro ao carregar detalhes da receita:', error);
-      // Fallback para mock data em caso de erro
-      const mockRecipe = mockRecipeDetails[recipeId] ||
-        mockRecipesCarousel.find(r => r.id === recipeId) ||
-        mockRecipesCarousel[0];
-      setRecipe(mockRecipe);
-      setRecipeDetail(mockRecipeDetails[recipeId] || {
+      setRecipe(null);
+      setRecipeDetail({
         ingredientes: [],
         modo: [],
         dicas: [],

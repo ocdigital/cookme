@@ -16,11 +16,18 @@ export const AuthProvider = ({ children }) => {
     try {
       const isAuth = await authService.isAuthenticated();
       if (isAuth) {
-        const userData = await authService.getMe();
-        setUser(userData);
+        try {
+          const userData = await authService.getMe();
+          setUser(userData);
+        } catch (error) {
+          // Se getMe falhar, apenas remover autenticação silenciosamente
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
     } catch (error) {
-      console.error('Erro ao verificar autenticação:', error);
+      // Erros ao verificar autenticação não são críticos
       setUser(null);
     } finally {
       setLoading(false);
@@ -34,9 +41,21 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Erro ao fazer login:', error);
+      console.error('Erro resposta:', error.response);
+      console.error('Erro mensagem:', error.message);
+
+      let errorMessage = 'Erro ao fazer login';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       return {
         success: false,
-        error: error.response?.data?.message || 'Erro ao fazer login',
+        error: errorMessage,
       };
     }
   };
@@ -88,3 +107,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+export { AuthContext };

@@ -1,21 +1,20 @@
 // ============================================
-// Configuração da API
+// Configuração da API - Expo Go (Celular)
 // ============================================
 
-// ESCOLHA UMA DAS OPÇÕES ABAIXO:
+// IP da máquina para acesso via Expo Go no celular
+// Certifique-se que o celular está na mesma rede Wi-Fi
+export const API_BASE_URL = 'http://192.168.86.9:3000/api';
 
-// 1. Expo Go no celular (mesma rede Wi-Fi) - RECOMENDADO ⭐
-//    Substitua pelo IP da SUA máquina
-//    Seu IP atual detectado: 192.168.86.8
-export const API_BASE_URL = 'http://192.168.86.8:3000/api';
-
-// 2. Android Emulator (AVD)
+// ============================================
+// Outras opções (descomente se necessário):
+// ============================================
+// Android Emulator (AVD):
 // export const API_BASE_URL = 'http://10.0.2.2:3000/api';
-
-// 3. iOS Simulator (somente Mac)
+//
+// iOS Simulator (somente Mac):
 // export const API_BASE_URL = 'http://localhost:3000/api';
-
-// ============================================
-// Como descobrir seu IP:
+//
+// Descobrir seu IP atual:
 // hostname -I | awk '{print $1}'
 // ============================================

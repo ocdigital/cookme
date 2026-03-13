@@ -10,7 +10,6 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { mockAllRecipes } from '../services/mockRecipesData';
 import { receitasService } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -30,19 +29,17 @@ export default function FavoritesScreen({ navigation }) {
     try {
       setLoading(true);
       setError(null);
-      // Tentando carregar receitas favoritas da API
-      const data = await receitasService.getReceitas({ favoritas: true });
-      if (data && Array.isArray(data) && data.length > 0) {
+      // Carregar receitas favoritas da API
+      const data = await receitasService.getFavoritas();
+      if (data && Array.isArray(data)) {
         setFavorites(data);
       } else {
-        // Fallback para mock data se não tiver favoritas
-        setFavorites(mockAllRecipes.slice(0, 4));
+        setFavorites([]);
       }
     } catch (err) {
       console.error('Erro ao carregar favoritas:', err);
       setError('Erro ao carregar receitas favoritas');
-      // Fallback para mock data em caso de erro
-      setFavorites(mockAllRecipes.slice(0, 4));
+      setFavorites([]);
     } finally {
       setLoading(false);
     }
@@ -61,8 +58,14 @@ export default function FavoritesScreen({ navigation }) {
       return 0;
     });
 
-  const removeFavorite = (id) => {
-    setFavorites(favorites.filter((f) => f.id !== id));
+  const removeFavorite = async (id) => {
+    try {
+      await receitasService.removerDeFavorita(id);
+      setFavorites(favorites.filter((f) => f.id !== id));
+    } catch (err) {
+      console.error('Erro ao remover favorita:', err);
+      setError('Erro ao remover dos favoritos');
+    }
   };
 
   const renderRecipeCard = ({ item }) => (

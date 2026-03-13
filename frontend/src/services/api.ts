@@ -71,6 +71,13 @@ export const authService = {
   },
 
   getProfile: () => api.get('/usuarios/me'),
+
+  changePassword: (oldPassword: string, newPassword: string, confirmPassword: string) =>
+    api.post('/auth/change-password', {
+      senha_atual: oldPassword,
+      nova_senha: newPassword,
+      confirmacao_senha: confirmPassword,
+    }),
 };
 
 // Services are organized in separate files for better maintainability:

@@ -10,10 +10,13 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { mockRecipesCarousel } from '../services/mockRecipesData';
-import { inventarioService } from '../services/api';
+import { inventarioService, receitasService } from '../services/api';
+import { colors, spacing, shadows, borderRadius } from '../theme/colors';
+import FeatherIcon from 'react-native-vector-icons/Feather';
+import { HeaderWithProfile } from '../components/HeaderWithProfile';
 
 const { width } = Dimensions.get('window');
 const CAROUSEL_ITEM_WIDTH = width * 0.85;
@@ -24,36 +27,60 @@ export default function HomeScreenRecipes({ navigation }) {
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
   const [expiringProducts, setExpiringProducts] = useState([]);
   const [loadingExpiring, setLoadingExpiring] = useState(false);
+  const [showExpiringModal, setShowExpiringModal] = useState(false);
+  const [suggestedRecipes, setSuggestedRecipes] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const carouselRef = useRef(null);
 
   useEffect(() => {
     loadExpiringProducts();
+    loadSuggestedRecipes();
   }, []);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderWithProfile
+          onAlertPress={() => setShowExpiringModal(true)}
+          onProfilePress={() => navigation.navigate('Profile')}
+          alertCount={expiringProducts.length}
+          alertColor={colors.primary}
+        />
+      ),
+    });
+  }, [expiringProducts, navigation]);
 
   const loadExpiringProducts = async () => {
     try {
       setLoadingExpiring(true);
       const data = await inventarioService.getVencendo(7); // Produtos vencendo nos próximos 7 dias
-      if (data && Array.isArray(data) && data.length > 0) {
+      if (data && Array.isArray(data)) {
         setExpiringProducts(data);
       } else {
-        // DADOS DE TESTE - Para visualização do alerta
-        setExpiringProducts([
-          { id: '1', nome: 'Leite Integral', diasRestantes: 2, dataValidade: '2025-11-13' },
-          { id: '2', nome: 'Ovos', diasRestantes: 3, dataValidade: '2025-11-14' },
-          { id: '3', nome: 'Iogurte Grego', diasRestantes: 1, dataValidade: '2025-11-12' },
-        ]);
+        setExpiringProducts([]);
       }
     } catch (error) {
       console.error('Erro ao carregar produtos vencendo:', error);
-      // Em caso de erro, mostra dados de teste
-      setExpiringProducts([
-        { id: '1', nome: 'Leite Integral', diasRestantes: 2, dataValidade: '2025-11-13' },
-        { id: '2', nome: 'Ovos', diasRestantes: 3, dataValidade: '2025-11-14' },
-        { id: '3', nome: 'Iogurte Grego', diasRestantes: 1, dataValidade: '2025-11-12' },
-      ]);
+      setExpiringProducts([]);
     } finally {
       setLoadingExpiring(false);
+    }
+  };
+
+  const loadSuggestedRecipes = async () => {
+    try {
+      setLoadingSuggestions(true);
+      const data = await receitasService.getSugestoes();
+      if (data && Array.isArray(data)) {
+        setSuggestedRecipes(data);
+      } else {
+        setSuggestedRecipes([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar sugestões de receitas:', error);
+      setSuggestedRecipes([]);
+    } finally {
+      setLoadingSuggestions(false);
     }
   };
 
@@ -100,81 +127,131 @@ export default function HomeScreenRecipes({ navigation }) {
     </TouchableOpacity>
   );
 
-  const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      {/* Linha superior com Logo e Avatar */}
-      {/* ALERTA FIXO - Produtos Vencendo (SEMPRE EXIBIDO) */}
-      <View style={styles.alertBoxFixed}>
-        {/* Linha 1: Título com ícone */}
-        <View style={styles.alertFixedTitleRow}>
-          <Text style={styles.alertFixedIcon}>⏰</Text>
-          <Text style={styles.alertFixedMainTitle}>
-            {expiringProducts.length} produto{expiringProducts.length > 1 ? 's' : ''} vencendo
-          </Text>
-        </View>
 
-        {/* Linha 2: Lista de produtos com tags */}
-        <View style={styles.alertFixedProductsRow}>
-          {expiringProducts.map((product) => (
-            <View key={product.id} style={styles.productTag}>
-              <Text style={styles.productTagName} numberOfLines={1}>
-                {product.nome || product.name}
-              </Text>
-              <Text style={styles.productTagDays}>
-                {product.diasRestantes || 0}d
+  const renderExpiringProductsModal = () => (
+    <Modal
+      visible={showExpiringModal}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowExpiringModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleRow}>
+              <Text style={styles.modalIcon}>⏰</Text>
+              <Text style={styles.modalTitle}>
+                {expiringProducts.length} produto{expiringProducts.length > 1 ? 's' : ''} vencendo
               </Text>
             </View>
-          ))}
-        </View>
+            <TouchableOpacity
+              onPress={() => setShowExpiringModal(false)}
+              activeOpacity={0.6}
+            >
+              <FeatherIcon
+                name="x"
+                size={24}
+                color={colors.text.primary}
+              />
+            </TouchableOpacity>
+          </View>
 
-        {/* Linha 3: Botão */}
-        <TouchableOpacity
-          style={styles.alertFixedButton}
-          onPress={() => navigation.navigate('Categorias')}
-          activeOpacity={0.6}
-        >
-          <Text style={styles.alertFixedButtonIcon}>🍳</Text>
-          <Text style={styles.alertFixedButtonText}>Ver receitas com esses alimentos</Text>
-          <Text style={styles.alertFixedButtonArrow}>→</Text>
-        </TouchableOpacity>
+          {/* Modal Body - Products List */}
+          <ScrollView style={styles.modalBody}>
+            <View style={styles.modalProductsList}>
+              {expiringProducts.map((product) => (
+                <View key={product.id} style={styles.modalProductItem}>
+                  <View style={styles.modalProductInfo}>
+                    <Text style={styles.modalProductName}>
+                      {product.nome || product.name}
+                    </Text>
+                    <Text style={styles.modalProductDate}>
+                      Vence em: {product.dataValidade}
+                    </Text>
+                  </View>
+                  <View style={styles.modalProductDays}>
+                    <Text style={styles.modalProductDaysText}>
+                      {product.diasRestantes || 0}
+                    </Text>
+                    <Text style={styles.modalProductDaysLabel}>dias</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+
+          {/* Modal Footer - Button */}
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowExpiringModal(false);
+                navigation.navigate('Categorias');
+              }}
+              activeOpacity={0.6}
+            >
+              <FeatherIcon
+                name="utensils"
+                size={18}
+                color={colors.white}
+              />
+              <Text style={styles.modalButtonText}>
+                Ver receitas com esses alimentos
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    </View>
+    </Modal>
   );
 
   return (
     <View style={styles.container}>
-      {renderHeader()}
+      {renderExpiringProductsModal()}
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.carouselSection}>
           <Text style={styles.sectionTitle}>Receitas em Destaque</Text>
-          <FlatList
-            ref={carouselRef}
-            data={mockRecipesCarousel}
-            renderItem={renderCarouselItem}
-            keyExtractor={(item) => item.id}
-            horizontal
-            pagingEnabled={false}
-            scrollEventThrottle={16}
-            onScroll={handleCarouselScroll}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.carouselContainer}
-            snapToInterval={CAROUSEL_ITEM_WIDTH + 10}
-            decelerationRate="fast"
-          />
-
-          {/* Indicadores de Carousel */}
-          <View style={styles.carouselIndicators}>
-            {mockRecipesCarousel.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.indicator,
-                  currentCarouselIndex === index && styles.indicatorActive,
-                ]}
+          {loadingSuggestions ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : suggestedRecipes.length > 0 ? (
+            <>
+              <FlatList
+                ref={carouselRef}
+                data={suggestedRecipes}
+                renderItem={renderCarouselItem}
+                keyExtractor={(item) => item.id}
+                horizontal
+                pagingEnabled={false}
+                scrollEventThrottle={16}
+                onScroll={handleCarouselScroll}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.carouselContainer}
+                snapToInterval={CAROUSEL_ITEM_WIDTH + 10}
+                decelerationRate="fast"
               />
-            ))}
-          </View>
+
+              {/* Indicadores de Carousel */}
+              <View style={styles.carouselIndicators}>
+                {suggestedRecipes.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.indicator,
+                      currentCarouselIndex === index && styles.indicatorActive,
+                    ]}
+                  />
+                ))}
+              </View>
+            </>
+          ) : (
+            <View style={styles.emptyCarousel}>
+              <Text style={styles.emptyText}>Nenhuma sugestão disponível</Text>
+            </View>
+          )}
         </View>
 
         {/* Navegação Principal */}
@@ -284,11 +361,25 @@ export default function HomeScreenRecipes({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFBF0',
+    backgroundColor: colors.background.main,
   },
-  headerContainer: {
-    backgroundColor: '#FF8C42',
-    paddingBottom: 0,
+  loadingContainer: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyCarousel: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background.soft,
+    borderRadius: borderRadius.md,
+    marginHorizontal: spacing.lg,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.text.muted,
+    fontWeight: '500',
   },
   headerTop: {
     paddingHorizontal: 16,
@@ -297,26 +388,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FF8C42',
+    backgroundColor: colors.primary,
   },
   appTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.white,
   },
   profileButtonHeader: {
     width: 40,
     height: 40,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
+    ...shadows.md,
   },
   profileImageHeader: {
     width: 40,
@@ -617,9 +704,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    marginHorizontal: 20,
-    marginBottom: 12,
-    color: '#2C1810',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    color: colors.text.primary,
   },
   carouselContainer: {
     paddingHorizontal: 10,
@@ -628,14 +715,10 @@ const styles = StyleSheet.create({
   carouselItem: {
     width: CAROUSEL_ITEM_WIDTH,
     height: CAROUSEL_ITEM_HEIGHT,
-    borderRadius: 14,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: colors.background.card,
+    ...shadows.lg,
   },
   carouselImage: {
     width: '100%',
@@ -647,14 +730,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    padding: 12,
-    paddingBottom: 14,
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
   },
   carouselTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
-    marginBottom: 6,
+    color: colors.white,
+    marginBottom: spacing.sm,
   },
   carouselInfoRow: {
     flexDirection: 'row',
@@ -663,24 +746,24 @@ const styles = StyleSheet.create({
   },
   carouselInfo: {
     fontSize: 12,
-    color: '#fff',
+    color: colors.white,
     fontWeight: '500',
   },
   carouselIndicators: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 16,
-    gap: 8,
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
   },
   indicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#E8D5C4',
+    backgroundColor: colors.gray[200],
   },
   indicatorActive: {
-    backgroundColor: '#FF8C42',
+    backgroundColor: colors.primary,
     width: 24,
   },
   mainNavigation: {
@@ -691,21 +774,17 @@ const styles = StyleSheet.create({
   },
   mainButton: {
     flex: 1,
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
     justifyContent: 'space-between',
     minHeight: 140,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadows.md,
   },
   recipesButton: {
-    backgroundColor: '#FFE4C4',
+    backgroundColor: colors.primarySoft,
   },
   inventoryButton: {
-    backgroundColor: '#FFEFD5',
+    backgroundColor: colors.primaryLight,
   },
   mainButtonIcon: {
     fontSize: 36,
@@ -714,12 +793,12 @@ const styles = StyleSheet.create({
   mainButtonTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#2C1810',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   mainButtonSubtitle: {
     fontSize: 11,
-    color: '#6B4423',
+    color: colors.text.secondary,
     lineHeight: 15,
   },
   quickAccessSection: {
@@ -735,18 +814,14 @@ const styles = StyleSheet.create({
   quickAccessItem: {
     width: '48%',
     aspectRatio: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    ...shadows.sm,
     borderWidth: 1,
-    borderColor: '#F0E5D8',
+    borderColor: colors.border.light,
   },
   quickAccessIcon: {
     fontSize: 28,
@@ -756,7 +831,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     textAlign: 'center',
-    color: '#2C1810',
+    color: colors.text.primary,
     lineHeight: 14,
   },
   suggestionsSection: {
@@ -770,17 +845,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   seeAllLink: {
-    color: '#FF8C42',
+    color: colors.primary,
     fontWeight: '600',
     fontSize: 12,
   },
   suggestionCard: {
-    backgroundColor: '#FF8C42',
-    marginHorizontal: 20,
-    borderRadius: 14,
-    padding: 18,
+    backgroundColor: colors.primary,
+    marginHorizontal: spacing.lg,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
     borderLeftWidth: 4,
-    borderLeftColor: '#fff',
+    borderLeftColor: colors.white,
   },
   suggestionBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -798,23 +873,23 @@ const styles = StyleSheet.create({
   suggestionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
-    marginBottom: 4,
+    color: colors.white,
+    marginBottom: spacing.xs,
   },
   suggestionSubtitle: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   suggestionButton: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
     alignSelf: 'flex-start',
   },
   suggestionButtonText: {
-    color: '#FF8C42',
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 12,
   },
@@ -823,18 +898,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   tipCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: colors.background.card,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
     borderLeftWidth: 4,
-    borderLeftColor: '#FFB84D',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
+    borderLeftColor: colors.primary,
+    ...shadows.sm,
   },
   tipIcon: {
     fontSize: 32,
@@ -845,15 +916,120 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2C1810',
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
   tipText: {
     fontSize: 12,
-    color: '#6B4423',
+    color: colors.text.secondary,
     lineHeight: 16,
   },
   spacer: {
     height: 50,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background.main,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    maxHeight: '80%',
+    paddingTop: spacing.lg,
+  },
+  modalHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  modalIcon: {
+    fontSize: 24,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
+  },
+  modalBody: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  modalProductsList: {
+    gap: spacing.md,
+  },
+  modalProductItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.background.card,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+    ...shadows.sm,
+  },
+  modalProductInfo: {
+    flex: 1,
+  },
+  modalProductName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  modalProductDate: {
+    fontSize: 12,
+    color: colors.text.secondary,
+  },
+  modalProductDays: {
+    alignItems: 'center',
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  modalProductDaysText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  modalProductDaysLabel: {
+    fontSize: 10,
+    color: colors.white,
+    fontWeight: '600',
+  },
+  modalFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  modalButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    ...shadows.md,
+  },
+  modalButtonText: {
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

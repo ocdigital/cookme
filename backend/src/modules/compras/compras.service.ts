@@ -5,7 +5,11 @@ import { Compra } from './entities/compra.entity';
 import { CompraItem } from './entities/compra-item.entity';
 import { CreateCompraDto } from './dto/create-compra.dto';
 import { Produto } from '../produtos/entities/produto.entity';
+import { Inventario } from '../inventario/entities/inventario.entity';
 import { ProductClassificationService } from '../product-classification/services/product-classification.service';
+import { UnidadeMedida } from '@common/enums/unidade-medida.enum';
+import { MetodoCadastro } from '@common/enums/metodo-cadastro.enum';
+import { ProductType } from '@common/enums/product-type.enum';
 
 @Injectable()
 export class ComprasService {
@@ -16,6 +20,8 @@ export class ComprasService {
     private readonly compraItemRepository: Repository<CompraItem>,
     @InjectRepository(Produto)
     private readonly produtoRepository: Repository<Produto>,
+    @InjectRepository(Inventario)
+    private readonly inventarioRepository: Repository<Inventario>,
     private readonly productClassificationService: ProductClassificationService,
   ) {}
 
@@ -198,6 +204,213 @@ export class ComprasService {
       valor_total: Math.round(valor_total * 100) / 100,
       compra_media: Math.round(compra_media * 100) / 100,
       ultima_compra,
+    };
+  }
+
+  /**
+   * Extrai itens de um cupom fiscal usando OCR com Google Gemini Vision
+   */
+  async extrairItensCupom(imageBase64: string): Promise<any> {
+    try {
+      const genai = require('@google/generative-ai');
+      const { GoogleGenerativeAI } = genai;
+
+      const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = googleAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+      const prompt = `Você é um assistente especializado em ler cupons fiscais e notas fiscais.
+
+Analise esta imagem de cupom fiscal ou nota fiscal e extraia as seguintes informações em formato JSON:
+
+{
+    "estabelecimento": {
+        "nome": "nome da loja",
+        "cnpj": "cnpj se visível",
+        "endereco": "endereço se visível"
+    },
+    "itens": [
+        {
+            "nome": "nome do produto",
+            "quantidade": 1,
+            "valor": "valor unitário",
+            "codigo_barras": "código de barras se visível"
+        }
+    ],
+    "totais": {
+        "subtotal": "valor",
+        "desconto": "valor se houver",
+        "total": "valor total"
+    },
+    "informacoes_fiscais": {
+        "data_hora": "data e hora em ISO format",
+        "numero_nfe": "número se visível"
+    }
+}
+
+IMPORTANTE:
+- Extraia TODOS os itens que conseguir identificar
+- Use "." como separador decimal para valores
+- Se um campo não estiver visível, omita-o
+- Retorne APENAS o JSON válido, sem texto adicional
+- Os nomes dos produtos devem ser os mais precisos possível`;
+
+      const response = await model.generateContent([
+        {
+          inlineData: {
+            data: imageBase64,
+            mimeType: 'image/jpeg',
+          },
+        },
+        prompt,
+      ]);
+
+      const responseText = response.response.text();
+
+      // Limpar resposta de markdown se necessário
+      let jsonText = responseText.trim();
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.slice(7);
+      }
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.slice(3);
+      }
+      if (jsonText.endsWith('```')) {
+        jsonText = jsonText.slice(0, -3);
+      }
+
+      const dados = JSON.parse(jsonText.trim());
+
+      // Normalizar dados
+      return this.normalizarDadosCupom(dados);
+    } catch (error) {
+      console.error('Erro ao processar OCR:', error);
+      throw new Error('Erro ao processar cupom fiscal. Tente novamente.');
+    }
+  }
+
+  /**
+   * Normaliza os dados extraídos do cupom
+   */
+  private normalizarDadosCupom(dados: any): any {
+    const itensProcessados: any[] = [];
+
+    // Processar itens
+    if (Array.isArray(dados?.itens)) {
+      for (const item of dados.itens) {
+        try {
+          const valor = parseFloat(
+            String(item.valor || '0').replace(',', '.'),
+          );
+          const quantidade = parseFloat(
+            String(item.quantidade || '1').replace(',', '.'),
+          );
+
+          itensProcessados.push({
+            nome: String(item.nome || '').trim(),
+            quantidade,
+            valor: valor.toFixed(2),
+            valor_total: (valor * quantidade).toFixed(2),
+            codigo_barras: item.codigo_barras || '',
+          });
+        } catch (e) {
+          console.error('Erro ao processar item:', item, e);
+        }
+      }
+    }
+
+    // Calcular total se não estiver presente
+    const totais = dados?.totais || {};
+    if (!totais.total && itensProcessados.length > 0) {
+      const total = itensProcessados.reduce(
+        (sum: number, item: any) => sum + parseFloat(item.valor_total),
+        0,
+      );
+      totais.total = total.toFixed(2);
+    }
+
+    const resultado = {
+      estabelecimento: dados?.estabelecimento || {},
+      itens: itensProcessados,
+      totais,
+      informacoes_fiscais: dados?.informacoes_fiscais || {},
+      data_extracao: new Date().toISOString(),
+    };
+
+    return resultado;
+  }
+
+  /**
+   * Salva itens extraídos do cupom no inventário do usuário
+   * Cria produtos automaticamente se não existirem
+   */
+  async salvarItensCupomNoInventario(
+    usuarioId: string,
+    itens: Array<{
+      nome: string;
+      quantidade?: number;
+      valor?: number;
+      codigo_barras?: string;
+    }>,
+  ) {
+    const itensSalvos: Inventario[] = [];
+
+    for (const item of itens) {
+      try {
+        // 1. Buscar ou criar produto
+        let produto: Produto | null = null;
+
+        // Tentar buscar por código de barras se disponível
+        if (item.codigo_barras) {
+          produto = await this.produtoRepository.findOne({
+            where: { codigo_barras: item.codigo_barras },
+          });
+        }
+
+        // Se não encontrou por código, buscar por nome
+        if (!produto) {
+          produto = await this.produtoRepository.findOne({
+            where: { nome: item.nome },
+          });
+        }
+
+        // Se ainda não existe, criar novo produto
+        if (!produto) {
+          const novoProduto = this.produtoRepository.create({
+            nome: item.nome,
+            tipo: ProductType.ALIMENTO,
+            codigo_barras: item.codigo_barras || undefined,
+            unidade_padrao: UnidadeMedida.UN,
+          });
+          produto = await this.produtoRepository.save(novoProduto);
+        }
+
+        // 2. Criar item no inventário
+        const quantidade = item.quantidade || 1;
+        const dataValidade = new Date();
+        dataValidade.setDate(dataValidade.getDate() + 30); // 30 dias por padrão
+
+        const novoInventario = this.inventarioRepository.create({
+          usuario_id: usuarioId,
+          produto_id: produto!.id,
+          quantidade_disponivel: quantidade,
+          unidade: UnidadeMedida.UN,
+          data_validade: dataValidade,
+          metodo_atualizacao: MetodoCadastro.OCR_NOTA,
+          localizacao: 'Adicionado via OCR',
+        });
+
+        const salvo = await this.inventarioRepository.save(novoInventario);
+        itensSalvos.push(salvo as Inventario);
+      } catch (error) {
+        console.error(`Erro ao salvar item "${item.nome}":`, error);
+        // Continuar com próximos itens
+      }
+    }
+
+    return {
+      total: itens.length,
+      salvos: itensSalvos.length,
+      itens: itensSalvos,
     };
   }
 }

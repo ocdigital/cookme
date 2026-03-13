@@ -4,6 +4,7 @@ import { Repository, In } from 'typeorm';
 import { Receita } from './entities/receita.entity';
 import { ReceitaIngrediente } from './entities/receita-ingrediente.entity';
 import { ReceitaExecutada } from './entities/receita-executada.entity';
+import { ReceitaFavorita } from './entities/receita-favorita.entity';
 import { CreateReceitaDto } from './dto/create-receita.dto';
 import { UpdateReceitaDto } from './dto/update-receita.dto';
 import { ExecutarReceitaDto } from './dto/executar-receita.dto';
@@ -18,6 +19,8 @@ export class ReceitasService {
     private readonly ingredienteRepository: Repository<ReceitaIngrediente>,
     @InjectRepository(ReceitaExecutada)
     private readonly executadaRepository: Repository<ReceitaExecutada>,
+    @InjectRepository(ReceitaFavorita)
+    private readonly favoritaRepository: Repository<ReceitaFavorita>,
     private readonly moiEngineService: MOIEngineService,
   ) {}
 
@@ -270,5 +273,52 @@ export class ReceitasService {
   async remove(id: string): Promise<void> {
     const receita = await this.findOne(id);
     await this.receitaRepository.remove(receita);
+  }
+
+  /**
+   * Encontra todas as receitas favoritas de um usuário
+   */
+  async findFavoritas(usuarioId: string): Promise<Receita[]> {
+    const favoritas = await this.favoritaRepository.find({
+      where: { usuario_id: usuarioId },
+      relations: ['receita', 'receita.ingredientes'],
+    });
+
+    return favoritas.map((fav) => fav.receita);
+  }
+
+  /**
+   * Marca uma receita como favorita
+   */
+  async marcarComoFavorita(receitaId: string, usuarioId: string): Promise<Receita> {
+    const receita = await this.findOne(receitaId);
+
+    // Verifica se já não é favorita
+    const existingFavorita = await this.favoritaRepository.findOne({
+      where: {
+        usuario_id: usuarioId,
+        receita_id: receitaId,
+      },
+    });
+
+    if (!existingFavorita) {
+      const favorita = this.favoritaRepository.create({
+        usuario_id: usuarioId,
+        receita_id: receitaId,
+      });
+      await this.favoritaRepository.save(favorita);
+    }
+
+    return receita;
+  }
+
+  /**
+   * Remove uma receita dos favoritos
+   */
+  async removerDeFavorita(receitaId: string, usuarioId: string): Promise<void> {
+    await this.favoritaRepository.delete({
+      usuario_id: usuarioId,
+      receita_id: receitaId,
+    });
   }
 }

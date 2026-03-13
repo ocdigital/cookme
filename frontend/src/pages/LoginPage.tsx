@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChefHat, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { ChefHat, Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
 
@@ -74,30 +74,30 @@ export const LoginPage: React.FC = () => {
         animate="visible"
       >
         {/* Logo and Header */}
-        <motion.div className="text-center mb-12" variants={itemVariants}>
+        <motion.div className="text-center mb-6" variants={itemVariants}>
           <motion.div
-            className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center text-primary font-bold text-4xl mx-auto mb-6 shadow-2xl"
+            className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-primary font-bold text-3xl mx-auto mb-3 shadow-2xl"
             whileHover={{ scale: 1.05, rotate: 5 }}
             transition={{ type: 'spring', stiffness: 300 }}
           >
-            <ChefHat size={48} className="text-primary" />
+            <ChefHat size={40} className="text-primary" />
           </motion.div>
-          <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">CookMe</h1>
-          <p className="text-white/80 text-lg">Gerenciador de Receitas Inteligente</p>
+          <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">CookMe</h1>
+          <p className="text-white/80 text-sm">Gerenciador de Receitas Inteligente</p>
         </motion.div>
 
         {/* Form Card */}
         <motion.div
-          className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-10 border border-white/20"
+          className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-7 border border-white/20"
           variants={itemVariants}
         >
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Bem-vindo</h2>
-          <p className="text-gray-600 mb-8">Faça login para acessar sua conta</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">Bem-vindo</h2>
+          <p className="text-gray-600 mb-5 text-sm">Faça login para acessar sua conta</p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Input */}
             <motion.div variants={itemVariants}>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Email
               </label>
               <div className="relative">
@@ -116,7 +116,7 @@ export const LoginPage: React.FC = () => {
 
             {/* Password Input */}
             <motion.div variants={itemVariants}>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Senha
               </label>
               <div className="relative">
@@ -166,24 +166,10 @@ export const LoginPage: React.FC = () => {
               )}
             </motion.button>
           </form>
-
-          {/* Demo Credentials */}
-          <motion.div className="mt-8 pt-8 border-t border-gray-200" variants={itemVariants}>
-            <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-blue-900 mb-2">Demo Credentials:</p>
-                <div className="text-sm text-blue-800 space-y-1 font-mono bg-white/50 p-2 rounded">
-                  <p><span className="font-bold">Email:</span> admin@example.com</p>
-                  <p><span className="font-bold">Senha:</span> password123</p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
         </motion.div>
 
         {/* Footer */}
-        <motion.div className="text-center mt-8 text-white/70 text-sm" variants={itemVariants}>
+        <motion.div className="text-center mt-4 text-white/70 text-xs" variants={itemVariants}>
           <p>© 2025 CookMe. Todos os direitos reservados.</p>
         </motion.div>
       </motion.div>

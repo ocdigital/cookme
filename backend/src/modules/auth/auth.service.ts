@@ -9,9 +9,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { OAuth2Client } from 'google-auth-library';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Injectable()
@@ -157,6 +159,60 @@ export class AuthService {
   }
 
   /**
+   * Altera a senha do usuário
+   */
+  async changePassword(
+    userId: string,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<void> {
+    const { senha_atual, nova_senha, confirmacao_senha } = changePasswordDto;
+
+    // Busca o usuário com senha
+    const usuario = await this.usuarioRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!usuario) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+
+    // Valida senha atual
+    const isPasswordValid = await this.comparePasswords(
+      senha_atual,
+      usuario.senha,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Senha atual incorreta');
+    }
+
+    // Valida confirmação de senha
+    if (nova_senha !== confirmacao_senha) {
+      throw new BadRequestException('Nova senha e confirmação não coincidem');
+    }
+
+    // Valida que nova senha é diferente da atual
+    const isSamePassword = await this.comparePasswords(
+      nova_senha,
+      usuario.senha,
+    );
+
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'Nova senha deve ser diferente da senha atual',
+      );
+    }
+
+    // Hash da nova senha
+    const hashedPassword = await this.hashPassword(nova_senha);
+
+    // Atualiza senha no banco
+    await this.usuarioRepository.update(userId, {
+      senha: hashedPassword,
+    });
+  }
+
+  /**
    * Valida um usuário pelo ID (usado pela JWT Strategy)
    */
   async validateUser(userId: string): Promise<Usuario> {
@@ -228,5 +284,62 @@ export class AuthService {
     hashedPassword: string,
   ): Promise<boolean> {
     return bcrypt.compare(plainPassword, hashedPassword);
+  }
+
+  /**
+   * Faz login via Google usando ID Token
+   */
+  async googleLogin(idToken: string): Promise<AuthResponseDto> {
+    try {
+      // Criar cliente OAuth2 do Google
+      const client = new OAuth2Client(
+        '845937856175-6hc9p8j5b5m8c8h8c8h8c8h8c8h8c8h8.apps.googleusercontent.com'
+      );
+
+      // Verificar token
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: '845937856175-6hc9p8j5b5m8c8h8c8h8c8h8c8h8c8h8.apps.googleusercontent.com',
+      });
+
+      const payload = ticket.getPayload();
+      const { email, name, picture } = payload || {};
+
+      // Procurar usuário existente
+      let usuario = await this.usuarioRepository.findOne({
+        where: { email },
+      });
+
+      // Se não existir, criar novo usuário
+      if (!usuario) {
+        usuario = this.usuarioRepository.create({
+          email,
+          nome: name,
+          avatar_url: picture,
+          senha: '', // Usuário Google não tem senha
+          email_verificado: true, // Email do Google é automaticamente verificado
+        });
+
+        usuario = await this.usuarioRepository.save(usuario);
+      }
+
+      // Gerar tokens
+      const tokens = await this.generateTokens(usuario);
+
+      // Salvar refresh token
+      await this.updateRefreshToken(usuario.id, tokens.refresh_token);
+
+      // Remove campos sensíveis
+      const { senha, ...usuarioSemSenha } = usuario;
+
+      return {
+        user: usuarioSemSenha,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+      };
+    } catch (error) {
+      console.error('Erro ao fazer login Google:', error);
+      throw new UnauthorizedException('Token Google inválido ou expirado');
+    }
   }
 }

@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen(props) {
+  const navigation = props.navigation;
   const { register } = useAuth();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
