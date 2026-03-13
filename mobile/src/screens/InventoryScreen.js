@@ -11,6 +11,7 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, shadows, borderRadius } from '../theme/colors';
@@ -24,6 +25,7 @@ export default function InventoryScreen({ navigation }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [addMethod, setAddMethod] = useState(null); // 'qrcode', 'barcode', 'manual'
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   // Formulário de entrada manual
@@ -69,6 +71,25 @@ export default function InventoryScreen({ navigation }) {
   // Carregar produtos ao montar a tela
   useEffect(() => {
     loadInventario();
+  }, []);
+
+  // Função de refresh (pull-to-refresh)
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const data = await inventarioService.getInventario();
+      if (data && Array.isArray(data)) {
+        setProducts(data);
+        // Pre-carregar imagens atualizadas
+        preloadProductImages(data).catch(() => {
+          // Silenciosamente ignorar erros
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar inventário:', error);
+    } finally {
+      setRefreshing(false);
+    }
   }, []);
 
   const handleAddProduct = async () => {
@@ -247,6 +268,15 @@ export default function InventoryScreen({ navigation }) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.productsList}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+              title="Puxe para atualizar"
+              titleColor={colors.text.muted}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>📦</Text>
