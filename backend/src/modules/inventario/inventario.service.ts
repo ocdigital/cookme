@@ -81,7 +81,7 @@ export class InventarioService {
   async findOne(id: string, usuarioId: string): Promise<Inventario> {
     const item = await this.inventarioRepository.findOne({
       where: { id, usuario_id: usuarioId },
-      relations: ['produto', 'produto.marca', 'compra_item'],
+      relations: ['produto', 'produto.marca', 'produto.categoria'],
     });
 
     if (!item) {
