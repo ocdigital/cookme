@@ -124,9 +124,12 @@ export default function InventoryScreen({ navigation }) {
   };
 
   const renderProduct = ({ item }) => {
+    // Estrutura da resposta: item.produto contém os dados do produto
+    const produto = item.produto || {};
+
     const today = new Date().toISOString().split('T')[0];
     const daysUntilExpiry = Math.ceil(
-      (new Date(item.dataValidade) - new Date(today)) / (1000 * 60 * 60 * 24)
+      (new Date(item.data_validade) - new Date(today)) / (1000 * 60 * 60 * 24)
     );
 
     let expiryStatus = 'ok';
@@ -135,13 +138,20 @@ export default function InventoryScreen({ navigation }) {
 
     return (
       <View style={styles.productItem}>
-        <Image source={{ uri: item.imagem }} style={styles.productImage} />
+        {/* Mostrar imagem do produto ou placeholder */}
+        {produto.imagem_url ? (
+          <Image source={{ uri: produto.imagem_url }} style={styles.productImage} />
+        ) : (
+          <View style={[styles.productImage, { backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={{ fontSize: 32 }}>📦</Text>
+          </View>
+        )}
 
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={2}>{item.nome}</Text>
-          <Text style={styles.productCategory}>{item.categoria}</Text>
+          <Text style={styles.productName} numberOfLines={2}>{produto.nome || 'Produto desconhecido'}</Text>
+          <Text style={styles.productCategory}>{produto.tipo || 'Geral'}</Text>
           <Text style={styles.productQuantity}>
-            {item.quantidade} {item.unidade}
+            {item.quantidade_disponivel} {item.unidade}
           </Text>
         </View>
 
