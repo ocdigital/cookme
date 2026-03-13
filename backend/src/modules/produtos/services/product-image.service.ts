@@ -57,9 +57,9 @@ export class ProductImageService {
 
   /**
    * Busca URL de imagem usando múltiplas estratégias
-   * 1. Tenta Google Images Custom Search
-   * 2. Tenta Unsplash API
-   * 3. Tenta DuckDuckGo
+   * 1. Google Images (principal)
+   * 2. Bing Images
+   * 3. Unsplash/Pexels como fallback
    */
   async searchImageUrl(productName: string): Promise<string | null> {
     // Verificar se está em cache de memória
@@ -68,25 +68,31 @@ export class ProductImageService {
     }
 
     try {
-      // Tentar Unsplash API (requer chave)
+      // Tentar Google Images primeiro (melhor relevância)
+      const googleUrl = await this.searchGoogleImages(productName);
+      if (googleUrl) {
+        this.imageCache.set(productName, googleUrl);
+        return googleUrl;
+      }
+
+      // Tentar Bing Images
+      const bingUrl = await this.searchBingImages(productName);
+      if (bingUrl) {
+        this.imageCache.set(productName, bingUrl);
+        return bingUrl;
+      }
+
+      // Fallback: Unsplash/Pexels (stock photos)
       const unsplashUrl = await this.searchUnsplash(productName);
       if (unsplashUrl) {
         this.imageCache.set(productName, unsplashUrl);
         return unsplashUrl;
       }
 
-      // Tentar Pexels API (requer chave)
       const pexelsUrl = await this.searchPexels(productName);
       if (pexelsUrl) {
         this.imageCache.set(productName, pexelsUrl);
         return pexelsUrl;
-      }
-
-      // Fallback: Google Images (sem autenticação, pode não funcionar)
-      const googleUrl = await this.searchGoogle(productName);
-      if (googleUrl) {
-        this.imageCache.set(productName, googleUrl);
-        return googleUrl;
       }
 
       this.logger.warn(
@@ -102,6 +108,95 @@ export class ProductImageService {
       this.imageCache.set(productName, null);
       return null;
     }
+  }
+
+  /**
+   * Busca em Google Images
+   * Estratégia: Usar Google Custom Search com imagens
+   */
+  private async searchGoogleImages(query: string): Promise<string | null> {
+    try {
+      const encodedQuery = encodeURIComponent(query);
+
+      // Construir URL do Google Images
+      const url = `https://www.google.com/search?hl=pt-BR&tbm=isch&q=${encodedQuery}`;
+
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept-Language': 'pt-BR,pt;q=0.9',
+        },
+        timeout: 8000,
+      });
+
+      // Extrair URLs de imagem usando regex
+      const imageRegex = /"https:\/\/[^"]*\.(?:jpg|jpeg|png|gif|webp)"/g;
+      const matches = response.data.match(imageRegex);
+
+      if (matches && matches.length > 0) {
+        // Remover aspas e descodificar URL
+        let imageUrl = matches[0].replace(/"/g, '');
+
+        // Algumas URLs podem estar codificadas, descodificar
+        try {
+          imageUrl = decodeURIComponent(imageUrl);
+        } catch (e) {
+          // URL já está descodificada
+        }
+
+        // Validar que é uma URL real (não é um placeholder)
+        if (imageUrl.includes('gstatic') || imageUrl.includes('google') || imageUrl.length < 50) {
+          return null; // Pular imagens de placeholder do Google
+        }
+
+        return imageUrl;
+      }
+
+      // Alternativa: procurar por data-src (lazy-loaded images)
+      const dataUrlRegex = /"data-src":"(https:\/\/[^"]+)"/g;
+      const dataMatches = response.data.match(dataUrlRegex);
+
+      if (dataMatches && dataMatches.length > 0) {
+        const imageUrl = dataMatches[0].match(/https:\/\/[^"]+/)[0];
+        return imageUrl;
+      }
+
+    } catch (error) {
+      this.logger.debug(`Google Images search falhou para: ${query}`);
+    }
+
+    return null;
+  }
+
+  /**
+   * Busca em Bing Images
+   */
+  private async searchBingImages(query: string): Promise<string | null> {
+    try {
+      const encodedQuery = encodeURIComponent(query);
+      const url = `https://www.bing.com/images/search?q=${encodedQuery}&form=HDRSC2`;
+
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        timeout: 8000,
+      });
+
+      // Extrair URLs de imagem
+      const imageRegex = /"murl":"(https:\/\/[^"]+)"/g;
+      const match = imageRegex.exec(response.data);
+
+      if (match && match[1]) {
+        return match[1];
+      }
+    } catch (error) {
+      this.logger.debug(`Bing Images search falhou para: ${query}`);
+    }
+
+    return null;
   }
 
   /**
@@ -158,39 +253,6 @@ export class ProductImageService {
       }
     } catch (error) {
       this.logger.debug(`Pexels search falhou para: ${query}`);
-    }
-
-    return null;
-  }
-
-  /**
-   * Fallback: Google Images (sem API, usa estratégia de URL)
-   * Nota: Isto é um fallback experimental
-   */
-  private async searchGoogle(query: string): Promise<string | null> {
-    try {
-      // Construir URL de busca no Google Images
-      const encodedQuery = encodeURIComponent(query);
-      const googleImageUrl = `https://www.google.com/search?hl=pt-BR&tbm=isch&q=${encodedQuery}`;
-
-      // Tentar fazer request simples (pode ser bloqueado)
-      const response = await axios.get(googleImageUrl, {
-        timeout: 5000,
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      });
-
-      // Parse básico (não confiável)
-      const imageMatch = response.data.match(
-        /imgurl=([^&]*)/,
-      );
-      if (imageMatch && imageMatch[1]) {
-        return decodeURIComponent(imageMatch[1]);
-      }
-    } catch (error) {
-      this.logger.debug(`Google Images search falhou para: ${query}`);
     }
 
     return null;
