@@ -24,33 +24,81 @@ api.interceptors.request.use(
   }
 );
 
+// Flag para evitar loop de refresh
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Interceptor para lidar com erros de autenticação
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado, tentar refresh
-      const refreshToken = await storage.getItem('refresh_token');
-      if (refreshToken) {
-        try {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refresh_token: refreshToken,
-          });
+    const originalRequest = error.config;
 
-          const { access_token } = response.data;
-          await storage.setItem('access_token', access_token);
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Se já está refreshing, enfileirar a requisição
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return axios(originalRequest);
+        });
+      }
 
-          // Retry requisição original
-          error.config.headers.Authorization = `Bearer ${access_token}`;
-          return axios(error.config);
-        } catch (refreshError) {
-          // Refresh falhou, fazer logout
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const refreshToken = await storage.getItem('refresh_token');
+
+        if (!refreshToken) {
+          // Sem refresh token, fazer logout
           await storage.removeItem('access_token');
           await storage.removeItem('refresh_token');
-          // Aqui você poderia redirecionar para login
+          processQueue(new Error('Sem refresh token'), null);
+          isRefreshing = false;
+          return Promise.reject(error);
         }
+
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          refresh_token: refreshToken,
+        });
+
+        const { access_token, refresh_token } = response.data;
+        await storage.setItem('access_token', access_token);
+        if (refresh_token) {
+          await storage.setItem('refresh_token', refresh_token);
+        }
+
+        // Retry requisição original com novo token
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        processQueue(null, access_token);
+        isRefreshing = false;
+
+        return axios(originalRequest);
+      } catch (refreshError) {
+        // Refresh falhou, fazer logout
+        await storage.removeItem('access_token');
+        await storage.removeItem('refresh_token');
+        processQueue(refreshError, null);
+        isRefreshing = false;
+
+        console.error('Token refresh falhou:', refreshError.message);
+        return Promise.reject(error);
       }
     }
+
     return Promise.reject(error);
   }
 );
