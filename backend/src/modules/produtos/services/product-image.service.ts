@@ -7,7 +7,7 @@ import axios from 'axios';
 @Injectable()
 export class ProductImageService {
   private readonly logger = new Logger(ProductImageService.name);
-  private readonly imageCache = new Map<string, string>(); // Cache em memória
+  private readonly imageCache = new Map<string, string | null>(); // Cache em memória
 
   constructor(
     @InjectRepository(Produto)

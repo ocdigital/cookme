@@ -387,10 +387,10 @@ IMPORTANTE:
 
           // Buscar imagem automaticamente em background (não bloqueia)
           this.productImageService
-            .fetchAndSaveProductImage(produto.id)
+            .fetchAndSaveProductImage(produto!.id)
             .catch((err) => {
               console.error(
-                `Erro ao buscar imagem para produto ${produto.nome}:`,
+                `Erro ao buscar imagem para produto ${produto!.nome}:`,
                 err,
               );
             });
