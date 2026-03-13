@@ -15,6 +15,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { colors, spacing, shadows, borderRadius } from '../theme/colors';
 import { inventarioService } from '../services/api';
+import { getProductIcon } from '../utils/productIcons';
 
 export default function InventoryScreen({ navigation }) {
   const [products, setProducts] = useState([]);
@@ -138,12 +139,12 @@ export default function InventoryScreen({ navigation }) {
 
     return (
       <View style={styles.productItem}>
-        {/* Mostrar imagem do produto ou placeholder */}
+        {/* Mostrar imagem do produto ou ícone baseado no nome */}
         {produto.imagem_url ? (
           <Image source={{ uri: produto.imagem_url }} style={styles.productImage} />
         ) : (
-          <View style={[styles.productImage, { backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' }]}>
-            <Text style={{ fontSize: 32 }}>📦</Text>
+          <View style={[styles.productImage, { backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={{ fontSize: 40 }}>{getProductIcon(produto.nome)}</Text>
           </View>
         )}
 
