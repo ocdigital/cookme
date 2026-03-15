@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Edit2, Trash2 } from 'lucide-react';
+import { UserPlus, Edit2, Trash2, Users, AlertTriangle, Eye } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { UserFormModal } from '../components/UserFormModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -8,20 +8,11 @@ import { FilterSelect } from '../components/FilterSelect';
 import { ErrorAlert } from '../components/ErrorAlert';
 import { ActionButton } from '../components/ActionButton';
 import { TablePagination } from '../components/TablePagination';
+import { StatsBar } from '../components/StatsBar';
+import { AnimatedModal } from '../components/AnimatedModal';
 import { userService } from '../services/userService';
+import { mockUsers } from '../mocks/mockData';
 
-type ApiUser = {
-  id: string;
-  email: string;
-  nome: string;
-  role: string;
-  email_verificado: boolean;
-  alertas_habilitados: boolean;
-  avatar_url: string | null;
-  ultimo_acesso: Date | null;
-  criado_em: Date;
-  atualizado_em: Date;
-};
 
 interface User {
   id: string;
@@ -37,6 +28,8 @@ interface User {
   ultimo_acesso?: Date | null;
   criado_em?: Date;
   atualizado_em?: Date;
+  receitas_criadas?: number;
+  nivel_atividade?: 'alta' | 'media' | 'baixa' | 'inativa';
 }
 
 export const UsersPage: React.FC = () => {
@@ -46,13 +39,16 @@ export const UsersPage: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'ativo' | 'inativo'>('todos');
+  const [atividadeFilter, setAtividadeFilter] = useState<'todos' | 'alta' | 'media' | 'baixa' | 'inativa'>('todos');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   // Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [userDetails, setUserDetails] = useState<User | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -65,26 +61,27 @@ export const UsersPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await userService.listUsers(page, 20, {
-        search: searchTerm,
-      });
 
-      // Transform API users to UI users
-      const transformedUsers: User[] = response.data.map((apiUser: ApiUser) => ({
-        id: apiUser.id,
-        nome: apiUser.nome,
-        email: apiUser.email,
-        funcao: getRoleLabel(apiUser.role),
-        status: apiUser.ultimo_acesso ? 'ativo' : 'inativo',
-        dataCriacao: new Date(apiUser.criado_em).toLocaleDateString('pt-BR'),
+      // Use mock data instead of API
+      const transformedUsers: User[] = mockUsers.map((user) => ({
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        funcao: user.funcao,
+        status: user.status,
+        dataCriacao: user.dataCriacao,
+        role: user.role,
+        email_verificado: user.email_verificado,
+        alertas_habilitados: user.alertas_habilitados,
+        avatar_url: user.avatar_url,
+        ultimo_acesso: user.ultimo_acesso,
+        receitas_criadas: user.receitas_criadas,
+        nivel_atividade: user.nivel_atividade,
       }));
 
       setUsers(transformedUsers);
-      setTotalPages(response.totalPages);
-      console.log('👥 Usuários carregados:', {
-        total: response.total,
-        dataLength: response.data.length,
-      });
+      setTotalPages(1); // Mock data has all on one page
+      console.log('👥 Usuários carregados (mock):', transformedUsers.length);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Erro ao carregar usuários',
@@ -95,15 +92,6 @@ export const UsersPage: React.FC = () => {
     }
   };
 
-  const getRoleLabel = (role: string): string => {
-    const labels: { [key: string]: string } = {
-      admin: 'Administrador',
-      premium: 'Premium',
-      marca: 'Marca',
-      user: 'Usuário',
-    };
-    return labels[role.toLowerCase()] || role;
-  };
 
   const handleCreateUser = () => {
     setUserToEdit(null);
@@ -120,6 +108,11 @@ export const UsersPage: React.FC = () => {
   const handleDeleteUser = (user: User) => {
     setUserToEdit(user);
     setIsDeleteModalOpen(true);
+  };
+
+  const handleViewDetails = (user: User) => {
+    setUserDetails(user);
+    setIsDetailsModalOpen(true);
   };
 
   const handleFormSubmit = async (data: { nome: string; email: string; role: string; senha?: string }) => {
@@ -184,10 +177,32 @@ export const UsersPage: React.FC = () => {
     if (page < totalPages) setPage(page + 1);
   };
 
+  const getDiasDesdeAcesso = (ultimoAcesso: Date | null | undefined): number => {
+    if (!ultimoAcesso) return Infinity;
+    const agora = new Date();
+    const diff = agora.getTime() - new Date(ultimoAcesso).getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const getBadgeAcesso = (dias: number) => {
+    if (dias <= 7) return { label: 'Ativo', color: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' };
+    if (dias <= 30) return { label: 'Moderado', color: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300' };
+    return { label: 'Inativo', color: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' };
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesStatus = statusFilter === 'todos' || user.status === statusFilter;
-    return matchesStatus;
+    const matchesAtividade = atividadeFilter === 'todos' || user.nivel_atividade === atividadeFilter;
+    return matchesStatus && matchesAtividade;
   });
+
+  // Calculate stats
+  const stats = {
+    total: users.length,
+    ativos: users.filter(u => u.status === 'ativo').length,
+    inativos: users.filter(u => u.status === 'inativo').length,
+    altaAtividade: users.filter(u => u.nivel_atividade === 'alta').length,
+  };
 
   return (
     <div className="space-y-2">
@@ -196,16 +211,15 @@ export const UsersPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Usuários</h1>
       </header>
 
-      {/* Stats Bar - TODO: Implement meaningful stats for users */}
-      {/* {stats && (
-        <StatsBar
-          items={[
-            { icon: <Users className="w-5 h-5" />, label: 'Total de Usuários', value: stats.totalUsuarios },
-            { icon: <UserCheck className="w-5 h-5" />, label: 'Usuários Ativos', value: stats.usuarioAtivos },
-            { icon: <Briefcase className="w-5 h-5" />, label: 'Funções', value: stats.usuariosPorRole.length },
-          ]}
-        />
-      )} */}
+      {/* Stats Bar */}
+      <StatsBar
+        items={[
+          { icon: <Users className="w-5 h-5" />, label: 'Total', value: stats.total },
+          { icon: <Users className="w-5 h-5" />, label: 'Ativos', value: stats.ativos },
+          { icon: <Users className="w-5 h-5" />, label: 'Inativos', value: stats.inativos },
+          { icon: <AlertTriangle className="w-5 h-5" />, label: 'Alta Atividade', value: stats.altaAtividade },
+        ]}
+      />
 
       {/* Table */}
       <Card>
@@ -221,7 +235,7 @@ export const UsersPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-4 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+        <div className="flex gap-3 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700 flex-wrap">
           <SearchInput
             placeholder="Buscar por nome ou email..."
             value={searchTerm}
@@ -231,9 +245,20 @@ export const UsersPage: React.FC = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as 'todos' | 'ativo' | 'inativo')}
             options={[
-              { value: 'todos', label: 'Todos' },
-              { value: 'ativo', label: 'Ativos' },
-              { value: 'inativo', label: 'Inativos' },
+              { value: 'todos', label: 'Status: Todos' },
+              { value: 'ativo', label: 'Status: Ativos' },
+              { value: 'inativo', label: 'Status: Inativos' },
+            ]}
+          />
+          <FilterSelect
+            value={atividadeFilter}
+            onChange={(e) => setAtividadeFilter(e.target.value as any)}
+            options={[
+              { value: 'todos', label: 'Atividade: Todos' },
+              { value: 'alta', label: 'Atividade: Alta' },
+              { value: 'media', label: 'Atividade: Média' },
+              { value: 'baixa', label: 'Atividade: Baixa' },
+              { value: 'inativa', label: 'Atividade: Inativa' },
             ]}
           />
         </div>
@@ -256,47 +281,52 @@ export const UsersPage: React.FC = () => {
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Nome</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Email</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Função</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Data Criação</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Último Acesso</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Atividade</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((user) => (
+                    {filteredUsers.map((user) => {
+                      const diasDesdeAcesso = getDiasDesdeAcesso(user.ultimo_acesso);
+                      const badgeAcesso = getBadgeAcesso(diasDesdeAcesso);
+                      const temRisco = diasDesdeAcesso >= 30 && diasDesdeAcesso !== Infinity;
+
+                      return (
                       <tr
                         key={user.id}
-                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        className={`border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+                          temRisco ? 'bg-red-50/50 dark:bg-red-950/10' : ''
+                        }`}
                       >
-                        <td className="py-3 px-4 text-gray-800 dark:text-gray-200 font-medium">{user.nome}</td>
-                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{user.email}</td>
+                        <td className="py-3 px-4 text-gray-800 dark:text-gray-200 font-medium flex items-center gap-2">
+                          {temRisco && <AlertTriangle size={14} className="text-red-500" />}
+                          {user.nome}
+                        </td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-sm">{user.email}</td>
                         <td className="py-3 px-4">
                           <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
                             {user.funcao}
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5 ${
-                              user.status === 'ativo'
-                                ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                user.status === 'ativo'
-                                  ? 'bg-green-500'
-                                  : 'bg-gray-400 dark:bg-gray-500'
-                              }`}
-                            />
-                            {user.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${badgeAcesso.color}`}>
+                            {diasDesdeAcesso === Infinity ? 'Nunca' : `${diasDesdeAcesso}d`}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-xs">
-                          {user.dataCriacao}
+                        <td className="py-3 px-4">
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 capitalize">
+                            {user.nivel_atividade || 'N/A'}
+                          </span>
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
+                            <ActionButton
+                              variant="view"
+                              icon={<Eye size={16} />}
+                              title="Detalhes"
+                              onClick={() => handleViewDetails(user)}
+                            />
                             <ActionButton
                               variant="edit"
                               icon={<Edit2 size={16} />}
@@ -312,7 +342,8 @@ export const UsersPage: React.FC = () => {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -361,6 +392,61 @@ export const UsersPage: React.FC = () => {
           setUserToEdit(null);
         }}
       />
+
+      {/* Details Modal */}
+      <AnimatedModal
+        isOpen={isDetailsModalOpen && userDetails !== null}
+        onClose={() => setIsDetailsModalOpen(false)}
+        title={userDetails?.nome || 'Detalhes do Usuário'}
+        size="lg"
+      >
+        {userDetails && (
+          <div className="space-y-4">
+            {/* Info Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Email</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-200 break-all">{userDetails.email}</p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Função</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{userDetails.funcao}</p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nível de Atividade</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-200 capitalize">{userDetails.nivel_atividade}</p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Receitas Criadas</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-200">{userDetails.receitas_criadas || 0}</p>
+              </div>
+            </div>
+
+            {/* Activity Info */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Informações de Atividade</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Status</span>
+                  <span className={`font-semibold ${userDetails.status === 'ativo' ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                    {userDetails.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Último Acesso</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    {userDetails.ultimo_acesso ? new Date(userDetails.ultimo_acesso).toLocaleDateString('pt-BR') : 'Nunca'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Membro desde</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{userDetails.dataCriacao}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatedModal>
     </div>
   );
 };
