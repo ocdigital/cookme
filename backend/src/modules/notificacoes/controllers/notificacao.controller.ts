@@ -1,7 +1,9 @@
 import { Controller, Get, Patch, Delete, Param, Query, HttpCode, HttpStatus, Request, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { v4 as uuid } from 'uuid';
 import { NotificacaoService } from '../services/notificacao.service';
 import { NotificacaoTriggersService } from '../services/notificacao-triggers.service';
+import { Public } from '../../../common/decorators/public.decorator';
 
 @ApiTags('Notificações')
 @Controller('notificacoes')
@@ -65,6 +67,7 @@ export class NotificacaoController {
    * TESTE: Dispara notificação de teste
    * Remover em produção!
    */
+  @Public()
   @Post('test/trigger')
   @ApiOperation({ summary: '[TESTE] Disparar notificação de teste' })
   async testarTrigger(
@@ -79,10 +82,12 @@ export class NotificacaoController {
         | 'limite_recursos';
     },
   ) {
+    const testId = uuid();
+
     switch (body.tipo) {
       case 'receita_denunciada':
         await this.notificacaoTriggers.receitaDenunciada(
-          'test-123',
+          testId,
           'Bolo de Chocolate',
           3,
         );
@@ -90,19 +95,19 @@ export class NotificacaoController {
 
       case 'novo_usuario':
         await this.notificacaoTriggers.novoUsuario(
-          'user-123',
+          testId,
           'João Silva',
           'joao@test.com',
         );
         break;
 
       case 'usuario_inativo':
-        await this.notificacaoTriggers.usuarioInativo('user-456', 'Maria Santos', 35);
+        await this.notificacaoTriggers.usuarioInativo(testId, 'Maria Santos', 35);
         break;
 
       case 'produto_incompleto':
         await this.notificacaoTriggers.produtoIncompleto(
-          'prod-789',
+          testId,
           'Arroz Integral',
           ['Imagem', 'Informações Nutricionais'],
         );

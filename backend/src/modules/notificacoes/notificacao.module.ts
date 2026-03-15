@@ -8,7 +8,7 @@ import { NotificacaoTriggersService } from './services/notificacao-triggers.serv
 
 @Module({
   imports: [TypeOrmModule.forFeature([Notificacao])],
-  providers: [NotificacaoGateway, NotificacaoService, NotificacaoTriggersService],
+  providers: [NotificacaoService, NotificacaoTriggersService, NotificacaoGateway],
   controllers: [NotificacaoController],
   exports: [NotificacaoService, NotificacaoGateway, NotificacaoTriggersService],
 })

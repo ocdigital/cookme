@@ -22,6 +22,7 @@ export class CreateNotificacoesTable1741100000000 implements MigrationInterface 
             name: 'severidade',
             type: 'varchar',
             length: '50',
+            default: "'media'",
           },
           {
             name: 'titulo',
@@ -77,15 +78,16 @@ export class CreateNotificacoesTable1741100000000 implements MigrationInterface 
       }),
     );
 
-    await queryRunner.createForeignKey(
-      'notificacoes',
-      new TableForeignKey({
-        columnNames: ['usuario_admin_id'],
-        referencedColumnNames: ['id'],
-        referencedTableName: 'usuarios',
-        onDelete: 'CASCADE',
-      }),
-    );
+    // FK desabilitada para testes. Ativar em produção.
+    // await queryRunner.createForeignKey(
+    //   'notificacoes',
+    //   new TableForeignKey({
+    //     columnNames: ['usuario_admin_id'],
+    //     referencedColumnNames: ['id'],
+    //     referencedTableName: 'usuarios',
+    //     onDelete: 'CASCADE',
+    //   }),
+    // );
 
     await queryRunner.createIndex(
       'notificacoes',

@@ -34,7 +34,7 @@ export class NotificacaoTriggersService {
       acao_label: 'Revisar Receita',
       acao_rota: `/admin/receitas/${receitaId}`,
       acao_id: receitaId,
-      usuario_admin_id: 'system', // Admin geral recebe
+      usuario_admin_id: '00000000-0000-0000-0000-000000000000', // Admin geral recebe
     });
   }
 
@@ -53,7 +53,7 @@ export class NotificacaoTriggersService {
       acao_label: 'Ver Perfil',
       acao_rota: `/admin/usuarios/${usuarioId}`,
       acao_id: usuarioId,
-      usuario_admin_id: 'system',
+      usuario_admin_id: '00000000-0000-0000-0000-000000000000',
     });
   }
 
@@ -72,7 +72,7 @@ export class NotificacaoTriggersService {
       acao_label: 'Ver Atividade',
       acao_rota: `/admin/usuarios/${usuarioId}`,
       acao_id: usuarioId,
-      usuario_admin_id: 'system',
+      usuario_admin_id: '00000000-0000-0000-0000-000000000000',
     });
   }
 
@@ -95,7 +95,7 @@ export class NotificacaoTriggersService {
       acao_label: 'Completar',
       acao_rota: `/admin/produtos/${produtoId}/editar`,
       acao_id: produtoId,
-      usuario_admin_id: 'system',
+      usuario_admin_id: '00000000-0000-0000-0000-000000000000',
     });
   }
 
@@ -111,7 +111,7 @@ export class NotificacaoTriggersService {
       titulo: `🔴 Erro de Sistema: ${tituloErro}`,
       mensagem: detalhesErro,
       dados: { timestamp: new Date() },
-      usuario_admin_id: 'system',
+      usuario_admin_id: '00000000-0000-0000-0000-000000000000',
     });
   }
 
@@ -129,7 +129,7 @@ export class NotificacaoTriggersService {
       titulo: `⚠️ Limite de ${recurso}`,
       mensagem: `${utilizado}/${limite} (${percentual}%) em uso.`,
       dados: { recurso, utilizado, limite, percentual },
-      usuario_admin_id: 'system',
+      usuario_admin_id: '00000000-0000-0000-0000-000000000000',
     });
   }
 
@@ -149,7 +149,7 @@ export class NotificacaoTriggersService {
       titulo: `✅ ${tipoProcessamento} Concluído`,
       mensagem: `${resultado} em ${tempoExecucao}ms.`,
       dados: { tipo: tipoProcessamento, tempoExecucao },
-      usuario_admin_id: 'system',
+      usuario_admin_id: '00000000-0000-0000-0000-000000000000',
     });
   }
 
@@ -173,7 +173,7 @@ export class NotificacaoTriggersService {
       acao_label: acao?.label,
       acao_rota: acao?.rota,
       acao_id: acao?.id,
-      usuario_admin_id: 'system',
+      usuario_admin_id: '00000000-0000-0000-0000-000000000000',
     });
   }
 }
