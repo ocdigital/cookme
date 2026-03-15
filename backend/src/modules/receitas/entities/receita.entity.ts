@@ -84,6 +84,17 @@ export class Receita {
     @Column({ type: 'int', default: 0 })
     vezes_executada: number;
 
+    // Moderação
+    @Column({ type: 'int', default: 0 })
+    denuncias: number;
+
+    @Column({
+        type: 'enum',
+        enum: ['ok', 'em_revisao', 'arquivado'],
+        default: 'ok'
+    })
+    status_moderacao: 'ok' | 'em_revisao' | 'arquivado';
+
     @CreateDateColumn()
     criado_em: Date;
 

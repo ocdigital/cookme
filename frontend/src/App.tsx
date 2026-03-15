@@ -11,8 +11,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { UsersPage } from './pages/UsersPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { RecipesPage } from './pages/RecipesPage';
-import { PurchasesPage } from './pages/PurchasesPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -99,21 +99,21 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/purchases"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <PurchasesPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/profile"
         element={
           <ProtectedRoute>
             <Layout>
               <ProfilePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AnalyticsPage />
             </Layout>
           </ProtectedRoute>
         }

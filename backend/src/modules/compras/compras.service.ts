@@ -425,4 +425,72 @@ IMPORTANTE:
       itens: itensSalvos,
     };
   }
+
+  /**
+   * Extrai data de validade de uma imagem usando OCR com Google Gemini
+   */
+  async extrairDataValidade(imageBase64: string): Promise<any> {
+    try {
+      const genai = require('@google/generative-ai');
+      const { GoogleGenerativeAI } = genai;
+
+      const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = googleAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+      const prompt = `Você é um assistente especializado em ler datas de validade em produtos.
+
+Analise esta imagem e extraia a data de validade em formato ISO (YYYY-MM-DD).
+
+Retorne um JSON com este formato:
+{
+    "data_validade": "YYYY-MM-DD",
+    "confianca": "alta" ou "media" ou "baixa",
+    "observacao": "qualquer detalhe relevante"
+}
+
+IMPORTANTE:
+- A data DEVE estar no formato YYYY-MM-DD
+- Se não conseguir extrair a data, deixe data_validade como null
+- Use apenas a informação visível na imagem
+- Se houver múltiplas datas, retorne a de validade (não a de fabricação)
+- Retorne APENAS o JSON válido, sem texto adicional`;
+
+      const response = await model.generateContent([
+        {
+          inlineData: {
+            data: imageBase64,
+            mimeType: 'image/jpeg',
+          },
+        },
+        prompt,
+      ]);
+
+      const responseText = response.response.text();
+
+      // Limpar resposta de markdown se necessário
+      let jsonText = responseText.trim();
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.slice(7);
+      }
+      if (jsonText.endsWith('```')) {
+        jsonText = jsonText.slice(0, -3);
+      }
+
+      const result = JSON.parse(jsonText.trim());
+
+      return {
+        success: !!result.data_validade,
+        data_validade: result.data_validade,
+        confianca: result.confianca,
+        observacao: result.observacao,
+      };
+    } catch (error) {
+      console.error('Erro ao extrair data de validade:', error);
+      return {
+        success: false,
+        data_validade: null,
+        error: 'Falha ao processar imagem',
+      };
+    }
+  }
 }

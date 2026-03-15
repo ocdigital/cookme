@@ -20,10 +20,10 @@ export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
   );
 };
 
-export const CardTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{children}</h3>
+export const CardTitle: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+  <h3 className={`text-xl font-bold text-gray-900 dark:text-white mb-3 ${className}`}>{children}</h3>
 );
 
-export const CardContent: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{children}</div>
+export const CardContent: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+  <div className={`text-gray-600 dark:text-gray-300 text-sm leading-relaxed ${className}`}>{children}</div>
 );

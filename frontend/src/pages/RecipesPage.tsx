@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2, Eye, AlertTriangle, Flame } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { AnimatedModal } from '../components/AnimatedModal';
@@ -6,10 +6,11 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SearchInput } from '../components/SearchInput';
 import { FilterSelect } from '../components/FilterSelect';
 import { ActionButton } from '../components/ActionButton';
+import { TablePagination } from '../components/TablePagination';
 import { StatsBar } from '../components/StatsBar';
 import { useToast } from '../hooks/useToast';
 import recipesService from '../services/recipesService';
-import { mockRecipes } from '../mocks/mockData';
+import { adminService } from '../services/adminService';
 
 interface Recipe {
   id: string;
@@ -33,29 +34,46 @@ type DificuldadeReceita = 'facil' | 'media' | 'dificil';
 
 export const RecipesPage: React.FC = () => {
   const toast = useToast();
-  const [recipes, setRecipes] = useState<Recipe[]>(mockRecipes as any);
-  const [loading] = useState(false);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dificuldadeFilter, setDificuldadeFilter] = useState<'todas' | DificuldadeReceita>('todas');
   const [categoriaFilter, setCategoriaFilter] = useState('todas');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Get unique categories
+  useEffect(() => {
+    loadRecipes();
+  }, [searchTerm, dificuldadeFilter, categoriaFilter, currentPage]);
+
+  const loadRecipes = async () => {
+    try {
+      setLoading(true);
+      const response = await adminService.listRecipes(currentPage, 20, {
+        search: searchTerm || undefined,
+        dificuldade: dificuldadeFilter !== 'todas' ? dificuldadeFilter : undefined,
+        categoria: categoriaFilter !== 'todas' ? categoriaFilter : undefined,
+      });
+      setRecipes(response.data as any);
+      setTotalPages(response.totalPages);
+    } catch (error) {
+      console.error('Erro ao carregar receitas:', error);
+      toast.error('Erro ao carregar receitas', 'Tente novamente mais tarde');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get unique categories from loaded recipes
   const categorias: string[] = ['todas', ...Array.from(new Set(recipes.map(r => r.categoria_receita || r.categoria || '').filter(Boolean)))];
 
-  // Filter recipes
-  const filteredRecipes = recipes.filter(recipe => {
-    const matchesSearch = recipe.nome.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDificuldade = dificuldadeFilter === 'todas' ||
-      String(recipe.dificuldade).toLowerCase() === String(dificuldadeFilter).toLowerCase();
-    const matchesCategoria = categoriaFilter === 'todas' ||
-      (recipe.categoria_receita || recipe.categoria) === categoriaFilter;
-    return matchesSearch && matchesDificuldade && matchesCategoria;
-  });
+  // Recipes are already filtered on backend, so use them directly
+  const filteredRecipes = recipes;
 
   // Calculate stats
   const stats = {
@@ -82,14 +100,15 @@ export const RecipesPage: React.FC = () => {
 
     try {
       setDeleteLoading(true);
-      // Mock delete
-      setRecipes(recipes.filter(r => r.id !== recipeToDelete));
-      toast.success('Receita deletada com sucesso!');
+      // Arquivar receita (não deletar)
+      await adminService.atualizarModeracaoReceita(recipeToDelete, 'arquivado');
+      toast.success('Receita arquivada com sucesso!');
+      loadRecipes();
       setShowDeleteConfirm(false);
       setRecipeToDelete(null);
     } catch (error) {
-      console.error('Erro ao deletar receita:', error);
-      toast.error('Erro ao deletar receita', 'Tente novamente mais tarde');
+      console.error('Erro ao arquivar receita:', error);
+      toast.error('Erro ao arquivar receita', 'Tente novamente mais tarde');
     } finally {
       setDeleteLoading(false);
     }
@@ -259,6 +278,16 @@ export const RecipesPage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <TablePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPrevious={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  onNext={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                />
+              )}
             </>
           ) : (
             <div className="text-center py-8">

@@ -116,6 +116,20 @@ export class ComprasController {
     return this.comprasService.salvarItensCupomNoInventario(user.id, body.itens);
   }
 
+  @Post('ocr-validade')
+  @ApiOperation({ summary: 'Extrair data de validade via OCR' })
+  @ApiResponse({
+    status: 200,
+    description: 'Data extraída com sucesso',
+  })
+  async ocrValidade(@Body() body: { image_base64?: string }) {
+    if (!body.image_base64) {
+      throw new BadRequestException('Imagem em base64 é obrigatória');
+    }
+
+    return this.comprasService.extrairDataValidade(body.image_base64);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar compra por ID' })
   @ApiResponse({

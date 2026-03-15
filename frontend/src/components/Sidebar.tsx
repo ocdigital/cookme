@@ -7,9 +7,9 @@ import {
   Users,
   Package,
   UtensilsCrossed,
-  ShoppingCart,
   LogOut,
   ChefHat,
+  BarChart3,
   // ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,8 +26,7 @@ export const Sidebar: React.FC = () => {
     { icon: Users, label: 'Usuários', path: '/users' },
     { icon: Package, label: 'Produtos', path: '/products' },
     { icon: UtensilsCrossed, label: 'Receitas', path: '/recipes' },
-    { icon: ShoppingCart, label: 'Compras', path: '/purchases' },
-    // { icon: BarChart3, label: 'Relatórios', path: '/reports' }, // TODO: criar página de relatórios
+    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   ];
 
   const isActive = (path: string) => location.pathname === path;

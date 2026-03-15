@@ -317,4 +317,143 @@ export class AdminService {
       },
     };
   }
+
+  /**
+   * Calcula o nível de atividade do usuário baseado no último acesso
+   * alta: ≤ 7 dias
+   * media: ≤ 30 dias
+   * baixa: ≤ 90 dias
+   * inativa: > 90 dias ou nunca acessou
+   */
+  private calcularNivelAtividade(ultimoAcesso: Date | null): 'alta' | 'media' | 'baixa' | 'inativa' {
+    if (!ultimoAcesso) return 'inativa';
+
+    const agora = new Date();
+    const diasDesdeAcesso = Math.floor(
+      (agora.getTime() - new Date(ultimoAcesso).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (diasDesdeAcesso <= 7) return 'alta';
+    if (diasDesdeAcesso <= 30) return 'media';
+    if (diasDesdeAcesso <= 90) return 'baixa';
+    return 'inativa';
+  }
+
+  /**
+   * Determina a qualidade do produto baseado em campos preenchidos
+   */
+  private calcularQualidadeProduto(produto: Produto): 'completo' | 'incompleto' | 'sem_imagem' {
+    if (!produto.imagem_url) return 'sem_imagem';
+
+    const temNutrientes =
+      produto.informacoes_nutricionais &&
+      (produto.informacoes_nutricionais.calorias ||
+        produto.informacoes_nutricionais.proteinas ||
+        produto.informacoes_nutricionais.carboidratos ||
+        produto.informacoes_nutricionais.gorduras);
+
+    const temCodigoBarras = !!produto.codigo_barras;
+    const estaVerificado = produto.verificado;
+
+    // Considerar completo se tem imagem + nutrientes + código + verificado
+    if (temNutrientes && temCodigoBarras && estaVerificado) {
+      return 'completo';
+    }
+
+    return 'incompleto';
+  }
+
+  /**
+   * Lista receitas com dados de moderação
+   */
+  async listRecipes(
+    page: number = 1,
+    limit: number = 20,
+    filters?: {
+      search?: string;
+      dificuldade?: string;
+      categoria?: string;
+    },
+  ) {
+    const qb = this.receitaRepository
+      .createQueryBuilder('receita')
+      .select([
+        'receita.id',
+        'receita.nome',
+        'receita.categoria_receita',
+        'receita.dificuldade',
+        'receita.tempo_preparo',
+        'receita.avaliacao_media',
+        'receita.vezes_executada',
+        'receita.denuncias',
+        'receita.status_moderacao',
+        'receita.imagem_url',
+        'receita.criado_em',
+      ]);
+
+    // Aplicar filtros
+    if (filters?.search) {
+      qb.andWhere('receita.nome ILIKE :search', {
+        search: `%${filters.search}%`,
+      });
+    }
+
+    if (filters?.dificuldade) {
+      qb.andWhere('receita.dificuldade = :dificuldade', {
+        dificuldade: filters.dificuldade,
+      });
+    }
+
+    if (filters?.categoria) {
+      qb.andWhere('receita.categoria_receita = :categoria', {
+        categoria: filters.categoria,
+      });
+    }
+
+    // Contar total antes de paginar
+    const total = await qb.getCount();
+
+    // Aplicar paginação
+    const skip = (page - 1) * limit;
+    qb.skip(skip).take(limit);
+
+    // Ordenar por data de criação (mais recentes primeiro)
+    qb.orderBy('receita.criado_em', 'DESC');
+
+    const receitas = await qb.getMany();
+
+    // Calcular paginação
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: receitas,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    };
+  }
+
+  /**
+   * Atualizar status de moderação de uma receita
+   */
+  async atualizarModeracaoReceita(
+    receitaId: string,
+    status: 'ok' | 'em_revisao' | 'arquivado',
+  ) {
+    const receita = await this.receitaRepository.findOne({
+      where: { id: receitaId },
+    });
+
+    if (!receita) {
+      throw new Error(`Receita com ID ${receitaId} não encontrada`);
+    }
+
+    receita.status_moderacao = status;
+    await this.receitaRepository.save(receita);
+
+    return receita;
+  }
 }

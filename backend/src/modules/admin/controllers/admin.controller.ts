@@ -143,6 +143,50 @@ export class AdminController {
     return this.usuariosService.delete(id);
   }
 
+  @Get('receitas')
+  @ApiOperation({
+    summary: 'Listar receitas com filtros e moderação (Admin)',
+    description:
+      'Retorna lista de receitas com informações de moderação (denúncias, status). Suporta busca, filtros por dificuldade/categoria e paginação.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de receitas com informações de moderação',
+  })
+  @ApiResponse({ status: 401, description: 'Não autenticado' })
+  async listRecipes(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @Query('search') search?: string,
+    @Query('dificuldade') dificuldade?: string,
+    @Query('categoria') categoria?: string,
+  ) {
+    return this.adminService.listRecipes(page, limit, {
+      search,
+      dificuldade,
+      categoria,
+    });
+  }
+
+  @Patch('receitas/:id/moderacao')
+  @ApiOperation({
+    summary: 'Atualizar status de moderação de receita (Admin)',
+    description:
+      'Altera o status de moderação de uma receita (ok, em_revisao, arquivado)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Status de moderação atualizado com sucesso',
+  })
+  @ApiResponse({ status: 401, description: 'Não autenticado' })
+  @ApiResponse({ status: 404, description: 'Receita não encontrada' })
+  async atualizarModeracaoReceita(
+    @Param('id') id: string,
+    @Body('status') status: 'ok' | 'em_revisao' | 'arquivado',
+  ) {
+    return this.adminService.atualizarModeracaoReceita(id, status);
+  }
+
   @Get('dashboard/stats')
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(180) // 3 minutos

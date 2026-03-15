@@ -102,4 +102,41 @@ export const adminService = {
   ): Promise<void> => {
     await api.patch(`/produtos/${id}`, data);
   },
+
+  listRecipes: async (
+    page: number = 1,
+    limit: number = 20,
+    filters?: {
+      search?: string;
+      dificuldade?: string;
+      categoria?: string;
+    },
+  ) => {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    params.append('limit', String(limit));
+
+    if (filters?.search) {
+      params.append('search', filters.search);
+    }
+    if (filters?.dificuldade) {
+      params.append('dificuldade', filters.dificuldade);
+    }
+    if (filters?.categoria) {
+      params.append('categoria', filters.categoria);
+    }
+
+    const response = await api.get(`/admin/receitas?${params.toString()}`);
+    return response.data;
+  },
+
+  atualizarModeracaoReceita: async (
+    id: string,
+    status: 'ok' | 'em_revisao' | 'arquivado',
+  ) => {
+    const response = await api.patch(`/admin/receitas/${id}/moderacao`, {
+      status,
+    });
+    return response.data;
+  },
 };

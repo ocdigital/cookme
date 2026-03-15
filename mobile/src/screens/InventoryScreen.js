@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,18 +6,24 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  Image,
   Modal,
   FlatList,
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Platform,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Camera, CameraView } from 'expo-camera';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { colors, spacing, shadows, borderRadius } from '../theme/colors';
-import { inventarioService, produtosService } from '../services/api';
-import { preloadProductImages } from '../services/productImageCache';
-import { getProductIcon } from '../utils/productIcons';
+import { inventarioService } from '../services/api';
+import storage from '../services/storage';
+
+// Remover o pacote react-native-date-picker se necessário
+// npm uninstall react-native-date-picker
 
 export default function InventoryScreen({ navigation }) {
   const [products, setProducts] = useState([]);
@@ -27,6 +33,14 @@ export default function InventoryScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showOCRModal, setShowOCRModal] = useState(false);
+  const [showOCRCamera, setShowOCRCamera] = useState(false);
+  const [ocrPhotoUri, setOCRPhotoUri] = useState(null);
+  const [ocrProcessing, setOCRProcessing] = useState(false);
+  const [ocrResult, setOCRResult] = useState(null);
+  const cameraRef = useRef(null);
 
   // Formulário de entrada manual
   const [manualForm, setManualForm] = useState({
@@ -44,11 +58,6 @@ export default function InventoryScreen({ navigation }) {
       const data = await inventarioService.getInventario();
       if (data && Array.isArray(data)) {
         setProducts(data);
-
-        // Pre-carregar imagens em background (não bloqueia UI)
-        preloadProductImages(data).catch((err) => {
-          console.debug('Erro ao pre-carregar imagens:', err);
-        });
       } else {
         setProducts([]);
       }
@@ -80,10 +89,6 @@ export default function InventoryScreen({ navigation }) {
       const data = await inventarioService.getInventario();
       if (data && Array.isArray(data)) {
         setProducts(data);
-        // Pre-carregar imagens atualizadas
-        preloadProductImages(data).catch(() => {
-          // Silenciosamente ignorar erros
-        });
       }
     } catch (error) {
       console.error('Erro ao atualizar inventário:', error);
@@ -151,30 +156,218 @@ export default function InventoryScreen({ navigation }) {
     );
   };
 
-  const renderProduct = ({ item }) => {
-    // Estrutura da resposta: item.produto contém os dados do produto
+  const handleEditProduct = (product) => {
+    const item = product;
     const produto = item.produto || {};
 
-    const today = new Date().toISOString().split('T')[0];
-    const daysUntilExpiry = Math.ceil(
-      (new Date(item.data_validade) - new Date(today)) / (1000 * 60 * 60 * 24)
-    );
+    setManualForm({
+      id: item.id,
+      nome: produto.nome || '',
+      categoria: produto.tipo || '',
+      quantidade: String(item.quantidade_disponivel || ''),
+      unidade: item.unidade || 'un',
+      dataValidade: item.data_validade || '',
+    });
+    setAddMethod('edit');
+    setModalVisible(true);
+  };
 
-    let expiryStatus = 'ok';
-    if (daysUntilExpiry < 0) expiryStatus = 'expired';
-    else if (daysUntilExpiry < 3) expiryStatus = 'expiring';
+  const handleUpdateProduct = async () => {
+    if (!manualForm.nome || !manualForm.quantidade || !manualForm.dataValidade) {
+      Alert.alert('Erro', 'Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const updateData = {
+        quantidade_disponivel: parseFloat(manualForm.quantidade),
+        unidade: manualForm.unidade,
+        data_validade: manualForm.dataValidade,
+      };
+
+      await inventarioService.atualizarProduto(manualForm.id, updateData);
+
+      // Atualizar lista local
+      const updatedProducts = products.map(p =>
+        p.id === manualForm.id
+          ? { ...p, ...updateData }
+          : p
+      );
+      setProducts(updatedProducts);
+
+      setManualForm({ nome: '', categoria: '', quantidade: '', unidade: 'un', dataValidade: '' });
+      setAddMethod(null);
+      setModalVisible(false);
+      Alert.alert('Sucesso', 'Produto atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar produto:', error);
+      setError('Erro ao atualizar produto.');
+      Alert.alert('Erro', 'Não foi possível atualizar o produto');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenCamera = () => {
+    setShowOCRCamera(true);
+  };
+
+  const handleTakeOCRPhoto = async () => {
+    if (!cameraRef.current) return;
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 1,
+        base64: false,
+      });
+
+      // Salvar URI da foto
+      setOCRPhotoUri(photo.uri);
+      setShowOCRCamera(false);
+      setOCRProcessing(true);
+
+      // Tentar extrair data via OCR (usando backend)
+      setTimeout(() => {
+        extractDateFromPhoto(photo.uri);
+      }, 500);
+    } catch (error) {
+      console.error('Erro ao capturar foto:', error);
+      Alert.alert('Erro', 'Erro ao capturar foto. Tente novamente.');
+      setShowOCRCamera(false);
+    }
+  };
+
+  const extractDateFromPhoto = async (photoUri) => {
+    try {
+      setOCRProcessing(true);
+
+      // Converter imagem para base64
+      const base64Image = await FileSystem.readAsStringAsync(photoUri, {
+        encoding: 'base64',
+      });
+
+      const token = await storage.getItem('access_token');
+      const response = await fetch('http://192.168.86.9:3000/api/compras/ocr-validade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          image_base64: base64Image,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.message || `Erro ${response.status}`;
+        throw new Error(`Falha na extração: ${errorMsg}`);
+      }
+
+      const data = await response.json();
+      const extractedDate = data.data_validade || data.date || null;
+
+      if (extractedDate) {
+        // Data foi extraída com sucesso
+        setOCRResult(extractedDate);
+        setOCRProcessing(false);
+
+        // Mostrar resultado e pedir confirmação
+        Alert.alert(
+          'Data Identificada',
+          `Data extraída: ${extractedDate}\n\nDeseja usar esta data?`,
+          [
+            {
+              text: 'Cancelar',
+              style: 'cancel',
+              onPress: () => {
+                setOCRPhotoUri(null);
+                setOCRResult(null);
+              },
+            },
+            {
+              text: 'Usar',
+              onPress: () => {
+                setManualForm({ ...manualForm, dataValidade: extractedDate });
+                setOCRPhotoUri(null);
+                setOCRResult(null);
+                setShowOCRModal(false);
+                Alert.alert('Sucesso', `Data ${extractedDate} capturada!`);
+              },
+            },
+            {
+              text: 'Editar',
+              onPress: () => {
+                showDateInputPrompt(extractedDate);
+              },
+            },
+          ]
+        );
+      } else {
+        throw new Error('Nenhuma data identificada na imagem');
+      }
+    } catch (error) {
+      console.error('Erro ao extrair data:', error);
+      setOCRProcessing(false);
+      setOCRResult(null);
+
+      // Fallback: pedir para digitar manualmente
+      Alert.alert(
+        'Extração não bem-sucedida',
+        `${error.message}\n\nPor favor, digite a data manualmente.`,
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+            onPress: () => setOCRPhotoUri(null),
+          },
+          {
+            text: 'Digitar',
+            onPress: () => {
+              showDateInputPrompt();
+            },
+          },
+        ]
+      );
+    }
+  };
+
+  const showDateInputPrompt = (suggestedDate = '') => {
+    Alert.prompt(
+      'Data de Validade (OCR)',
+      'Digite a data que você vê na foto (YYYY-MM-DD):\n\nEx: 2025-12-31',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => setOCRPhotoUri(null),
+        },
+        {
+          text: 'OK',
+          onPress: (dateValue) => {
+            if (dateValue && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+              setManualForm({ ...manualForm, dataValidade: dateValue });
+              setOCRPhotoUri(null);
+              setShowOCRModal(false);
+              Alert.alert('Sucesso', `Data ${dateValue} capturada!`);
+            } else {
+              Alert.alert('Erro', 'Formato inválido. Use YYYY-MM-DD (ex: 2025-12-31)');
+            }
+          },
+        },
+      ],
+      'plain-text',
+      suggestedDate || manualForm.dataValidade || ''
+    );
+  };
+
+  const renderProduct = ({ item }) => {
+    const produto = item.produto || {};
 
     return (
       <View style={styles.productItem}>
-        {/* Mostrar imagem do produto ou ícone baseado no nome */}
-        {produto.imagem_url ? (
-          <Image source={{ uri: produto.imagem_url }} style={styles.productImage} />
-        ) : (
-          <View style={[styles.productImage, { backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' }]}>
-            <Text style={{ fontSize: 40 }}>{getProductIcon(produto.nome)}</Text>
-          </View>
-        )}
-
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={2}>{produto.nome || 'Produto desconhecido'}</Text>
           <Text style={styles.productCategory}>{produto.tipo || 'Geral'}</Text>
@@ -183,33 +376,19 @@ export default function InventoryScreen({ navigation }) {
           </Text>
         </View>
 
-        <View style={styles.productRight}>
-          <View
-            style={[
-              styles.expiryBadge,
-              expiryStatus === 'expired' && styles.expiryExpired,
-              expiryStatus === 'expiring' && styles.expiryExpiring,
-            ]}
+        <View style={styles.productActions}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => handleEditProduct(item)}
           >
-            <Text
-              style={[
-                styles.expiryText,
-                expiryStatus !== 'ok' && styles.expiryTextAlert,
-              ]}
-            >
-              {expiryStatus === 'expired'
-                ? '⚠️ Vencido'
-                : expiryStatus === 'expiring'
-                ? `⏰ ${daysUntilExpiry}d`
-                : '✓ Ok'}
-            </Text>
-          </View>
+            <Text style={styles.editIcon}>✎</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => handleRemoveProduct(item.id)}
           >
-            <Text style={styles.deleteIcon}>🗑️</Text>
+            <Text style={styles.deleteIcon}>✕</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -365,12 +544,14 @@ export default function InventoryScreen({ navigation }) {
         </ScrollView>
       )}
 
-      {/* Modal para Entrada Manual */}
-      <Modal visible={modalVisible && addMethod === 'manual'} transparent={true}>
+      {/* Modal para Entrada Manual e Edição */}
+      <Modal visible={modalVisible && (addMethod === 'manual' || addMethod === 'edit')} transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Adicionar Produto</Text>
+              <Text style={styles.modalTitle}>
+                {addMethod === 'edit' ? 'Editar Produto' : 'Adicionar Produto'}
+              </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
@@ -379,17 +560,19 @@ export default function InventoryScreen({ navigation }) {
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
               <Text style={styles.inputLabel}>Nome do Produto *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, addMethod === 'edit' && { backgroundColor: '#F5F5F5' }]}
                 placeholder="Ex: Frango Peito"
                 value={manualForm.nome}
+                editable={addMethod !== 'edit'}
                 onChangeText={(text) => setManualForm({ ...manualForm, nome: text })}
               />
 
               <Text style={styles.inputLabel}>Categoria</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, addMethod === 'edit' && { backgroundColor: '#F5F5F5' }]}
                 placeholder="Ex: Carnes, Laticínios"
                 value={manualForm.categoria}
+                editable={addMethod !== 'edit'}
                 onChangeText={(text) => setManualForm({ ...manualForm, categoria: text })}
               />
 
@@ -433,34 +616,253 @@ export default function InventoryScreen({ navigation }) {
 
               <Text style={styles.inputLabel}>Data de Validade *</Text>
               <View style={styles.dateInputContainer}>
-                <Text style={styles.dateInfo}>
-                  Formato: YYYY-MM-DD (Ex: 2025-12-31)
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="2025-12-31"
-                  value={manualForm.dataValidade}
-                  onChangeText={(text) => setManualForm({ ...manualForm, dataValidade: text })}
+                <View style={styles.dateMethodsRow}>
+                  <TouchableOpacity
+                    style={styles.dateMethodButton}
+                    onPress={() => {
+                      const dateParts = manualForm.dataValidade.split('-');
+                      const initialDate = dateParts.length === 3
+                        ? new Date(dateParts[0], parseInt(dateParts[1]) - 1, dateParts[2])
+                        : new Date();
+                      setSelectedDate(initialDate);
+                      setShowDatePicker(true);
+                    }}
+                  >
+                    <Text style={styles.dateMethodIcon}>📅</Text>
+                    <View style={styles.dateMethodContent}>
+                      <Text style={styles.dateMethodTitle}>Calendário</Text>
+                      <Text style={styles.dateMethodValue}>
+                        {manualForm.dataValidade || 'Selecione a data'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.dateMethodButton}
+                    onPress={() => setShowOCRModal(true)}
+                  >
+                    <Text style={styles.dateMethodIcon}>📸</Text>
+                    <View style={styles.dateMethodContent}>
+                      <Text style={styles.dateMethodTitle}>OCR</Text>
+                      <Text style={styles.dateMethodValue}>Tirar foto</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Date Picker */}
+              {showDatePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, date) => {
+                    if (event.type === 'set' && date) {
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      setManualForm({ ...manualForm, dataValidade: `${year}-${month}-${day}` });
+                      setShowDatePicker(false);
+                    } else if (event.type === 'dismissed') {
+                      setShowDatePicker(false);
+                    }
+                  }}
                 />
-                <Text style={styles.dateNote}>
-                  💡 Dica: Você também pode usar OCR para ler a data do pacote
+              )}
+
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={addMethod === 'edit' ? handleUpdateProduct : handleAddProduct}
+              >
+                <Text style={styles.submitButtonText}>
+                  {addMethod === 'edit' ? '✓ Atualizar Produto' : '✓ Adicionar Produto'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setManualForm({ nome: '', categoria: '', quantidade: '', unidade: 'un', dataValidade: '' });
+                  setAddMethod(null);
+                  setModalVisible(false);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal para OCR de Data de Validade */}
+      <Modal visible={showOCRModal && !showOCRCamera} transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Capturar Data de Validade</Text>
+              <TouchableOpacity onPress={() => setShowOCRModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalContent}>
+              <View style={styles.ocrPreview}>
+                <Text style={styles.ocrPreviewIcon}>📸</Text>
+                <Text style={styles.ocrPreviewText}>
+                  Tire uma foto da data de validade
+                </Text>
+                <Text style={styles.ocrPreviewSubtext}>
+                  Aponte a câmera para a data impressa no pacote
                 </Text>
               </View>
 
               <TouchableOpacity
                 style={styles.submitButton}
-                onPress={handleAddProduct}
+                onPress={handleOpenCamera}
               >
-                <Text style={styles.submitButtonText}>✓ Adicionar Produto</Text>
+                <Text style={styles.submitButtonText}>📷 Abrir Câmera</Text>
               </TouchableOpacity>
+
+              <View style={styles.infoBox}>
+                <Text style={styles.infoIcon}>ℹ️</Text>
+                <Text style={styles.infoText}>
+                  Tire uma foto clara da data para melhor extração.
+                </Text>
+              </View>
 
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
+                onPress={() => setShowOCRModal(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                <Text style={styles.cancelButtonText}>Fechar</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal para Câmera OCR */}
+      <Modal visible={showOCRCamera && !ocrPhotoUri} transparent={true}>
+        <View style={styles.cameraContainer}>
+          <CameraView
+            ref={cameraRef}
+            style={styles.camera}
+            facing="back"
+          />
+
+          <View style={styles.cameraControls}>
+            <TouchableOpacity
+              style={styles.cameraButton}
+              onPress={() => {
+                setShowOCRCamera(false);
+                setOCRPhotoUri(null);
+              }}
+            >
+              <Text style={styles.cameraButtonText}>✕ Fechar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.cameraButton, styles.cameraCaptureButton]}
+              onPress={handleTakeOCRPhoto}
+            >
+              <Text style={styles.cameraButtonText}>📷 Capturar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal para Preview da Foto OCR */}
+      <Modal visible={!!ocrPhotoUri} transparent={true}>
+        <View style={styles.photoPreviewOverlay}>
+          <View style={styles.photoPreviewContainer}>
+            <View style={styles.photoPreviewHeader}>
+              <Text style={styles.photoPreviewTitle}>
+                {ocrProcessing ? 'Analisando...' : 'Foto Capturada'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setOCRPhotoUri(null);
+                  setOCRResult(null);
+                  setShowOCRCamera(true);
+                }}
+                disabled={ocrProcessing}
+              >
+                <Text style={styles.photoPreviewClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {ocrProcessing && (
+              <View style={styles.ocrLoadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.ocrLoadingText}>Extraindo data da imagem...</Text>
+              </View>
+            )}
+
+            {!ocrProcessing && (
+              <>
+                <Image
+                  source={{ uri: ocrPhotoUri || '' }}
+                  style={styles.photoPreview}
+                  resizeMode="contain"
+                />
+
+                {ocrResult && (
+                  <View style={styles.ocrResultContainer}>
+                    <Text style={styles.ocrResultLabel}>Data Identificada:</Text>
+                    <Text style={styles.ocrResultDate}>{ocrResult}</Text>
+                  </View>
+                )}
+              </>
+            )}
+
+            {!ocrProcessing && (
+              <View style={styles.photoPreviewFooter}>
+                <TouchableOpacity
+                  style={styles.photoActionButton}
+                  onPress={() => {
+                    setOCRPhotoUri(null);
+                    setOCRResult(null);
+                    setShowOCRCamera(true);
+                  }}
+                >
+                  <Text style={styles.photoActionButtonText}>📷 Tirar Novamente</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.photoActionButton, styles.photoActionButtonConfirm]}
+                  onPress={() => {
+                    if (ocrResult) {
+                      Alert.alert(
+                        'Confirmar Data',
+                        `Usar data ${ocrResult}?`,
+                        [
+                          {
+                            text: 'Cancelar',
+                            style: 'cancel',
+                          },
+                          {
+                            text: 'Usar',
+                            onPress: () => {
+                              setManualForm({ ...manualForm, dataValidade: ocrResult });
+                              setOCRPhotoUri(null);
+                              setOCRResult(null);
+                              setShowOCRModal(false);
+                              Alert.alert('Sucesso', `Data ${ocrResult} capturada!`);
+                            },
+                          },
+                        ]
+                      );
+                    } else {
+                      showDateInputPrompt();
+                    }
+                  }}
+                >
+                  <Text style={styles.photoActionButtonText}>
+                    {ocrResult ? '✓ Usar Data' : '✎ Digitar Data'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -623,43 +1025,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
-  productRight: {
-    alignItems: 'flex-end',
-    gap: spacing.sm,
+  productActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
-  expiryBadge: {
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+  editButton: {
+    padding: spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  expiryExpiring: {
-    backgroundColor: '#FFF3E0',
-  },
-  expiryExpired: {
-    backgroundColor: '#FFEBEE',
-  },
-  expiryText: {
-    fontSize: 10,
-    fontWeight: '600',
+  editIcon: {
+    fontSize: 20,
     color: colors.primary,
-  },
-  expiryTextAlert: {
-    color: '#F57C00',
-  },
-  expiryTextAlert: {
-    color: '#D32F2F',
+    fontWeight: '300',
   },
   deleteButton: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.sm,
-    backgroundColor: '#FFE0E0',
+    padding: spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
   deleteIcon: {
-    fontSize: 12,
+    fontSize: 20,
+    color: '#999',
+    fontWeight: '300',
   },
   emptyState: {
     flex: 1,
@@ -832,16 +1222,36 @@ const styles = StyleSheet.create({
   dateInputContainer: {
     marginBottom: spacing.lg,
   },
-  dateInfo: {
+  dateMethodsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  dateMethodButton: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  dateMethodIcon: {
+    fontSize: 24,
+  },
+  dateMethodContent: {
+    flex: 1,
+  },
+  dateMethodTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  dateMethodValue: {
     fontSize: 11,
     color: colors.text.muted,
-    marginBottom: spacing.sm,
-  },
-  dateNote: {
-    fontSize: 11,
-    color: colors.text.secondary,
-    marginTop: spacing.sm,
-    fontStyle: 'italic',
+    marginTop: spacing.xs,
   },
   submitButton: {
     backgroundColor: colors.primary,
@@ -891,5 +1301,153 @@ const styles = StyleSheet.create({
   barcodePreviewSubtext: {
     fontSize: 12,
     color: colors.text.muted,
+  },
+  ocrPreview: {
+    backgroundColor: colors.background.soft,
+    borderRadius: borderRadius.md,
+    paddingVertical: 60,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.border.light,
+  },
+  ocrPreviewIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  ocrPreviewText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  ocrPreviewSubtext: {
+    fontSize: 12,
+    color: colors.text.muted,
+  },
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  camera: {
+    flex: 1,
+    width: '100%',
+  },
+  cameraControls: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  cameraButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    minWidth: 120,
+  },
+  cameraCaptureButton: {
+    backgroundColor: '#FF6B35',
+  },
+  cameraButtonText: {
+    color: colors.white,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  photoPreviewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoPreviewContainer: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    maxHeight: '90%',
+    width: '90%',
+  },
+  photoPreviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  photoPreviewTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text.primary,
+  },
+  photoPreviewClose: {
+    fontSize: 24,
+    color: colors.text.muted,
+  },
+  photoPreview: {
+    width: '100%',
+    height: 300,
+    backgroundColor: '#F5F5F5',
+  },
+  photoPreviewFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
+  },
+  photoActionButton: {
+    backgroundColor: colors.border.light,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  photoActionButtonConfirm: {
+    backgroundColor: colors.primary,
+  },
+  photoActionButtonText: {
+    color: colors.text.primary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  ocrLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  ocrLoadingText: {
+    marginTop: spacing.md,
+    fontSize: 14,
+    color: colors.text.muted,
+    fontWeight: '500',
+  },
+  ocrResultContainer: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  ocrResultLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text.muted,
+    marginBottom: spacing.xs,
+  },
+  ocrResultDate: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
   },
 });

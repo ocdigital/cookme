@@ -57,8 +57,8 @@ export class ProductImageService {
 
   /**
    * Busca URL de imagem usando múltiplas estratégias
-   * 1. Google Images (principal)
-   * 2. Bing Images
+   * 1. Bing Images (melhor parsing)
+   * 2. Google Images
    * 3. Unsplash/Pexels como fallback
    */
   async searchImageUrl(productName: string): Promise<string | null> {
@@ -68,18 +68,18 @@ export class ProductImageService {
     }
 
     try {
-      // Tentar Google Images primeiro (melhor relevância)
-      const googleUrl = await this.searchGoogleImages(productName);
-      if (googleUrl) {
-        this.imageCache.set(productName, googleUrl);
-        return googleUrl;
-      }
-
-      // Tentar Bing Images
+      // Tentar Bing Images primeiro (mais confiável para parsing)
       const bingUrl = await this.searchBingImages(productName);
       if (bingUrl) {
         this.imageCache.set(productName, bingUrl);
         return bingUrl;
+      }
+
+      // Tentar Google Images
+      const googleUrl = await this.searchGoogleImages(productName);
+      if (googleUrl) {
+        this.imageCache.set(productName, googleUrl);
+        return googleUrl;
       }
 
       // Fallback: Unsplash/Pexels (stock photos)
@@ -112,7 +112,7 @@ export class ProductImageService {
 
   /**
    * Busca em Google Images
-   * Estratégia: Usar Google Custom Search com imagens
+   * Estratégia: Extrair URLs de imagem do HTML
    */
   private async searchGoogleImages(query: string): Promise<string | null> {
     try {
@@ -130,36 +130,31 @@ export class ProductImageService {
         timeout: 8000,
       });
 
-      // Extrair URLs de imagem usando regex
-      const imageRegex = /"https:\/\/[^"]*\.(?:jpg|jpeg|png|gif|webp)"/g;
-      const matches = response.data.match(imageRegex);
+      // Tentar encontrar URLs em diferentes formatos
+      // Padrão 1: URLs em objetos de imagem (img src ou data-src)
+      const directImageRegex = /https:\/\/[^\s"<>]*\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s"<>]*)?/gi;
+      const matches = response.data.match(directImageRegex);
 
       if (matches && matches.length > 0) {
-        // Remover aspas e descodificar URL
-        let imageUrl = matches[0].replace(/"/g, '');
-
-        // Algumas URLs podem estar codificadas, descodificar
-        try {
-          imageUrl = decodeURIComponent(imageUrl);
-        } catch (e) {
-          // URL já está descodificada
+        // Filtrar imagens válidas (remover placeholders e logos do Google)
+        for (const imageUrl of matches) {
+          // Evitar imagens de placeholder/logo
+          if (
+            !imageUrl.includes('gstatic.com') &&
+            !imageUrl.includes('google.com/images') &&
+            !imageUrl.includes('encrypted') &&
+            !imageUrl.includes('lh3.googleusercontent.com/a/default') &&
+            imageUrl.length > 60
+          ) {
+            // Validação adicional: URL deve ter domínio real
+            try {
+              new URL(imageUrl);
+              return imageUrl;
+            } catch (e) {
+              // URL inválida, continua
+            }
+          }
         }
-
-        // Validar que é uma URL real (não é um placeholder)
-        if (imageUrl.includes('gstatic') || imageUrl.includes('google') || imageUrl.length < 50) {
-          return null; // Pular imagens de placeholder do Google
-        }
-
-        return imageUrl;
-      }
-
-      // Alternativa: procurar por data-src (lazy-loaded images)
-      const dataUrlRegex = /"data-src":"(https:\/\/[^"]+)"/g;
-      const dataMatches = response.data.match(dataUrlRegex);
-
-      if (dataMatches && dataMatches.length > 0) {
-        const imageUrl = dataMatches[0].match(/https:\/\/[^"]+/)[0];
-        return imageUrl;
       }
 
     } catch (error) {
@@ -171,6 +166,7 @@ export class ProductImageService {
 
   /**
    * Busca em Bing Images
+   * Bing fornece estrutura JSON mais confiável que Google
    */
   private async searchBingImages(query: string): Promise<string | null> {
     try {
@@ -180,18 +176,26 @@ export class ProductImageService {
       const response = await axios.get(url, {
         headers: {
           'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         },
         timeout: 8000,
       });
 
-      // Extrair URLs de imagem
-      const imageRegex = /"murl":"(https:\/\/[^"]+)"/g;
-      const match = imageRegex.exec(response.data);
+      // Bing retorna dados em formato "murl" na estrutura JavaScript
+      // Tentar diferentes padrões de extração
+      const patterns = [
+        /"murl":"(https:\/\/[^"]+)"/g,  // Padrão principal
+        /"imgurl":"(https:\/\/[^"]+)"/g, // Padrão alternativo
+        /\"image":\s*"(https:\/\/[^"]+)\"/g, // Outro padrão
+      ];
 
-      if (match && match[1]) {
-        return match[1];
+      for (const pattern of patterns) {
+        const match = pattern.exec(response.data);
+        if (match && match[1]) {
+          return match[1];
+        }
       }
+
     } catch (error) {
       this.logger.debug(`Bing Images search falhou para: ${query}`);
     }
