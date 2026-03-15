@@ -139,4 +139,32 @@ export const adminService = {
     });
     return response.data;
   },
+
+  listUsers: async (
+    page: number = 1,
+    limit: number = 20,
+    filters?: {
+      search?: string;
+      role?: string;
+    },
+  ) => {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    params.append('limit', String(limit));
+
+    if (filters?.search) {
+      params.append('search', filters.search);
+    }
+    if (filters?.role) {
+      params.append('role', filters.role);
+    }
+
+    const response = await api.get(`/admin/usuarios?${params.toString()}`);
+    return response.data;
+  },
+
+  getDashboardStats: async () => {
+    const response = await api.get('/admin/dashboard/stats');
+    return response.data;
+  },
 };

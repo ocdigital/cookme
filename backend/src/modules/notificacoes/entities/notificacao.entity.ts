@@ -1,51 +1,46 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  CreateDateColumn,
-} from 'typeorm';
-import { Usuario } from '../../usuarios/entities/usuario.entity';
-
-export enum NotificacaoTipo {
-  INFO = 'info',
-  SUCCESS = 'success',
-  WARNING = 'warning',
-  ERROR = 'error',
-}
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 
 @Entity('notificacoes')
+@Index(['usuario_admin_id', 'lido'])
+@Index(['tipo'])
+@Index(['criado_em'])
 export class Notificacao {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column('uuid')
-  usuario_id: string;
+  @Column('varchar', { length: 50 })
+  tipo: string;
 
-  @Column({
-    type: 'enum',
-    enum: NotificacaoTipo,
-    default: NotificacaoTipo.INFO,
-  })
-  tipo: NotificacaoTipo;
+  @Column('varchar', { length: 50 })
+  severidade: string;
 
-  @Column()
+  @Column('varchar', { length: 255 })
   titulo: string;
 
   @Column('text')
   mensagem: string;
 
-  @Column({ default: false })
-  lida: boolean;
+  @Column('jsonb', { nullable: true })
+  dados: Record<string, any> | null;
 
-  @Column({ nullable: true })
-  icone: string;
+  @Column('varchar', { length: 50, nullable: true })
+  acao_label: string | null;
+
+  @Column('varchar', { length: 255, nullable: true })
+  acao_rota: string | null;
+
+  @Column('uuid', { nullable: true })
+  acao_id: string | null;
+
+  @Column('uuid')
+  usuario_admin_id: string;
+
+  @Column('boolean', { default: false })
+  lido: boolean;
+
+  @Column('timestamp', { nullable: true })
+  lido_em: Date | null;
 
   @CreateDateColumn()
   criado_em: Date;
-
-  @ManyToOne(() => Usuario, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'usuario_id' })
-  usuario: Usuario;
 }

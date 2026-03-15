@@ -11,7 +11,7 @@ import { TablePagination } from '../components/TablePagination';
 import { StatsBar } from '../components/StatsBar';
 import { AnimatedModal } from '../components/AnimatedModal';
 import { userService } from '../services/userService';
-import { mockUsers } from '../mocks/mockData';
+import { adminService } from '../services/adminService';
 
 
 interface User {
@@ -38,10 +38,9 @@ export const UsersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'ativo' | 'inativo'>('todos');
-  const [atividadeFilter, setAtividadeFilter] = useState<'todos' | 'alta' | 'media' | 'baixa' | 'inativa'>('todos');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [roleFilter, setRoleFilter] = useState<'todos' | string>('todos');
 
   // Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -55,21 +54,26 @@ export const UsersPage: React.FC = () => {
 
   useEffect(() => {
     loadUsers();
-  }, [page, searchTerm]);
+  }, [page, searchTerm, roleFilter]);
 
   const loadUsers = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Use mock data instead of API
-      const transformedUsers: User[] = mockUsers.map((user) => ({
+      const filters = {
+        search: searchTerm || undefined,
+        role: roleFilter !== 'todos' ? roleFilter : undefined,
+      };
+
+      const response = await adminService.listUsers(page, 20, filters);
+      const transformedUsers: User[] = (response.data || []).map((user: any) => ({
         id: user.id,
         nome: user.nome,
         email: user.email,
-        funcao: user.funcao,
-        status: user.status,
-        dataCriacao: user.dataCriacao,
+        funcao: user.role,
+        status: user.ativo ? 'ativo' : 'inativo',
+        dataCriacao: user.criado_em ? new Date(user.criado_em).toLocaleDateString('pt-BR') : '',
         role: user.role,
         email_verificado: user.email_verificado,
         alertas_habilitados: user.alertas_habilitados,
@@ -80,8 +84,8 @@ export const UsersPage: React.FC = () => {
       }));
 
       setUsers(transformedUsers);
-      setTotalPages(1); // Mock data has all on one page
-      console.log('👥 Usuários carregados (mock):', transformedUsers.length);
+      setTotalPages(response.totalPages || 1);
+      console.log('👥 Usuários carregados (API):', transformedUsers.length);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Erro ao carregar usuários',
@@ -190,13 +194,7 @@ export const UsersPage: React.FC = () => {
     return { label: 'Inativo', color: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' };
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesStatus = statusFilter === 'todos' || user.status === statusFilter;
-    const matchesAtividade = atividadeFilter === 'todos' || user.nivel_atividade === atividadeFilter;
-    return matchesStatus && matchesAtividade;
-  });
-
-  // Calculate stats
+  // Calculate stats (from current page)
   const stats = {
     total: users.length,
     ativos: users.filter(u => u.status === 'ativo').length,
@@ -242,23 +240,16 @@ export const UsersPage: React.FC = () => {
             onChange={(e) => handleSearchChange(e.target.value)}
           />
           <FilterSelect
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'todos' | 'ativo' | 'inativo')}
+            value={roleFilter}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setPage(1);
+            }}
             options={[
-              { value: 'todos', label: 'Status: Todos' },
-              { value: 'ativo', label: 'Status: Ativos' },
-              { value: 'inativo', label: 'Status: Inativos' },
-            ]}
-          />
-          <FilterSelect
-            value={atividadeFilter}
-            onChange={(e) => setAtividadeFilter(e.target.value as any)}
-            options={[
-              { value: 'todos', label: 'Atividade: Todos' },
-              { value: 'alta', label: 'Atividade: Alta' },
-              { value: 'media', label: 'Atividade: Média' },
-              { value: 'baixa', label: 'Atividade: Baixa' },
-              { value: 'inativa', label: 'Atividade: Inativa' },
+              { value: 'todos', label: 'Função: Todas' },
+              { value: 'ADMIN', label: 'Função: Admin' },
+              { value: 'MODERATOR', label: 'Função: Moderador' },
+              { value: 'USER', label: 'Função: Usuário' },
             ]}
           />
         </div>
@@ -272,7 +263,7 @@ export const UsersPage: React.FC = () => {
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-gray-500">Carregando usuários...</p>
             </div>
-          ) : filteredUsers.length > 0 ? (
+          ) : users.length > 0 ? (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -287,7 +278,7 @@ export const UsersPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((user) => {
+                    {users.map((user) => {
                       const diasDesdeAcesso = getDiasDesdeAcesso(user.ultimo_acesso);
                       const badgeAcesso = getBadgeAcesso(diasDesdeAcesso);
                       const temRisco = diasDesdeAcesso >= 30 && diasDesdeAcesso !== Infinity;

@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Package, UtensilsCrossed, ShoppingCart, Loader, TrendingUp, Activity, AlertCircle } from 'lucide-react';
+import { Users, Package, UtensilsCrossed, ShoppingCart, Loader, AlertCircle } from 'lucide-react';
 import { StatsBar } from '../components/StatsBar';
-import { usuariosService, produtosService, comprasService } from '../services';
-import { mockDashboardStats, mockActivityLogs } from '../mocks/mockData';
+import { adminService } from '../services/adminService';
 
 export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState({
     usuarios: 0,
+    usuariosAtivos: 0,
     produtos: 0,
     receitas: 0,
     compras: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [useMockData] = useState(true); // Toggle para usar dados mockados
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadStats();
@@ -20,30 +20,20 @@ export const DashboardPage: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      if (useMockData) {
-        // Use mock data durante desenvolvimento
-        setStats({
-          usuarios: mockDashboardStats.usuarios,
-          produtos: mockDashboardStats.produtos,
-          receitas: mockDashboardStats.receitas,
-          compras: 89,
-        });
-      } else {
-        const [usersStats, productsStats, purchasesStats] = await Promise.all([
-          usuariosService.getStats().catch(() => ({ totalUsuarios: 0 })),
-          produtosService.getStats().catch(() => ({ totalProdutos: 0 })),
-          comprasService.getStats().catch(() => ({ totalCompras: 0 })),
-        ]);
+      setLoading(true);
+      setError(null);
+      const dashboardStats = await adminService.getDashboardStats();
 
-        setStats({
-          usuarios: usersStats.totalUsuarios || 0,
-          produtos: productsStats.totalProdutos || 0,
-          receitas: 0,
-          compras: purchasesStats.totalCompras || 0,
-        });
-      }
+      setStats({
+        usuarios: dashboardStats.usuarios?.total || 0,
+        usuariosAtivos: dashboardStats.usuarios?.ativos || 0,
+        produtos: dashboardStats.produtos?.total || 0,
+        receitas: dashboardStats.receitas?.total || 0,
+        compras: dashboardStats.compras?.total || 0,
+      });
     } catch (err) {
-      console.error('Erro ao carregar stats:', err);
+      console.error('❌ Erro ao carregar stats:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao carregar dashboard');
     } finally {
       setLoading(false);
     }
@@ -72,14 +62,22 @@ export const DashboardPage: React.FC = () => {
         />
       )}
 
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
       {/* Key Metrics */}
       <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Usuários Ativos</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{mockDashboardStats.usuarios_ativos}</p>
-              <p className="text-xs text-green-600 mt-2">↑ 12% vs mês anterior</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.usuariosAtivos}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">de {stats.usuarios} total</p>
             </div>
             <Users className="w-10 h-10 text-blue-500 opacity-80" />
           </div>
@@ -88,9 +86,9 @@ export const DashboardPage: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Receitas Populares</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{mockDashboardStats.receitas_populares}</p>
-              <p className="text-xs text-green-600 mt-2">↑ 5% vs semana anterior</p>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Receitas</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.receitas}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">no catálogo</p>
             </div>
             <UtensilsCrossed className="w-10 h-10 text-purple-500 opacity-80" />
           </div>
@@ -99,95 +97,59 @@ export const DashboardPage: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Produtos em Falta</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{mockDashboardStats.produtos_em_falta}</p>
-              <p className="text-xs text-orange-600 mt-2">Requer atenção</p>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Produtos</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.produtos}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">cadastrados</p>
             </div>
-            <AlertCircle className="w-10 h-10 text-orange-500 opacity-80" />
+            <Package className="w-10 h-10 text-green-500 opacity-80" />
           </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Taxa de Retenção</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{mockDashboardStats.taxa_retencao}%</p>
-              <p className="text-xs text-green-600 mt-2">↑ 3% vs mês anterior</p>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Compras</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.compras}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">registradas</p>
             </div>
-            <TrendingUp className="w-10 h-10 text-green-500 opacity-80" />
+            <ShoppingCart className="w-10 h-10 text-orange-500 opacity-80" />
           </div>
         </div>
       </section>
 
-      {/* Activity Feed + System Status */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Atividade Recente
-          </h3>
-          <div className="space-y-3">
-            {mockActivityLogs.map((log) => (
-              <div
-                key={log.id}
-                className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <div
-                  className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                    log.tipo === 'usuario'
-                      ? 'bg-blue-500'
-                      : log.tipo === 'receita'
-                        ? 'bg-purple-500'
-                        : log.tipo === 'produto'
-                          ? 'bg-green-500'
-                          : 'bg-orange-500'
-                  }`}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 dark:text-white">{log.usuario}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{log.acao}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    {new Date(log.data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-            ))}
+      {/* System Status */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Status do Sistema</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-800 dark:text-white">Frontend Admin</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">React + Tailwind</p>
+            </div>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="text-xs font-bold text-green-600">OK</span>
+            </span>
           </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Status do Sistema</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-800 dark:text-white">Frontend Admin</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">React + Tailwind</p>
-              </div>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-xs font-bold text-green-600">OK</span>
-              </span>
+          <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-800 dark:text-white">API Backend</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">NestJS + PostgreSQL</p>
             </div>
-            <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-800 dark:text-white">API Backend</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">NestJS + PostgreSQL</p>
-              </div>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-xs font-bold text-green-600">OK</span>
-              </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="text-xs font-bold text-green-600">OK</span>
+            </span>
+          </div>
+          <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-800 dark:text-white">Mobile App</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">React Native (Expo)</p>
             </div>
-            <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-800 dark:text-white">Mobile App</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">React Native (Expo)</p>
-              </div>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-xs font-bold text-green-600">OK</span>
-              </span>
-            </div>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="text-xs font-bold text-green-600">OK</span>
+            </span>
           </div>
         </div>
       </section>

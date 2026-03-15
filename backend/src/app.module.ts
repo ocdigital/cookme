@@ -18,7 +18,8 @@ import { ScraperModule } from './modules/scraper/scraper.module';
 import { AffiliateModule } from './modules/affiliate/affiliate.module';
 import { ProductClassificationModule } from './modules/product-classification/product-classification.module';
 import { AdminModule } from './modules/admin/admin.module';
-import { NotificacoesModule } from './modules/notificacoes/notificacoes.module';
+import { NotificacaoModule } from './modules/notificacoes/notificacao.module';
+
 import { IAModule } from './modules/ia/ia.module';
 import { ComparacoesModule } from './modules/comparacoes/comparacoes.module';
 
@@ -57,7 +58,8 @@ import { ComparacoesModule } from './modules/comparacoes/comparacoes.module';
     AffiliateModule,
     ProductClassificationModule,
     AdminModule,
-    NotificacoesModule,
+    NotificacaoModule,
+
     IAModule,
     ComparacoesModule,
   ],
