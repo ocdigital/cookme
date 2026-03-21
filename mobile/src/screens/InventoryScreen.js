@@ -474,13 +474,13 @@ export default function InventoryScreen({ navigation }) {
 
             <TouchableOpacity
               style={styles.methodButton}
-              onPress={() => navigation.navigate('ReceiptPhoto')}
+              onPress={() => navigation.navigate('ReceiptMultiPhoto')}
             >
               <Text style={styles.methodIcon}>📸</Text>
               <View style={styles.methodInfo}>
                 <Text style={styles.methodTitle}>Foto do Cupom Fiscal</Text>
                 <Text style={styles.methodSubtitle}>
-                  Fotografe o cupom e extraia os itens automaticamente
+                  Fotografe o cupom e extraia os itens automaticamente (múltiplas fotos)
                 </Text>
               </View>
               <Text style={styles.methodArrow}>›</Text>

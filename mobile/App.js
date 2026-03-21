@@ -23,6 +23,7 @@ import InventoryScreen from './src/screens/InventoryScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import QRScannerScreen from './src/screens/QRScannerScreen';
 import ReceiptPhotoScreen from './src/screens/ReceiptPhotoScreen';
+import ReceiptMultiPhotoScreen from './src/screens/ReceiptMultiPhotoScreen';
 import ProcessingScreen from './src/screens/ProcessingScreen';
 import CaptchaScreen from './src/screens/CaptchaScreen';
 import ResultScreen from './src/screens/ResultScreen';
@@ -234,6 +235,11 @@ function AppNavigator() {
             name="ReceiptPhoto"
             component={ReceiptPhotoScreen}
             options={{ title: 'Foto do Cupom' }}
+          />
+          <Stack.Screen
+            name="ReceiptMultiPhoto"
+            component={ReceiptMultiPhotoScreen}
+            options={{ title: 'Capturar Cupom' }}
           />
           <Stack.Screen
             name="History"
