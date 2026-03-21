@@ -129,6 +129,16 @@ export const useReceiptOcr = () => {
   };
 
   /**
+   * Define resultado diretamente (para testes/mock)
+   */
+  const setResult = (newResult) => {
+    setResult(newResult);
+    if (newResult?.status === 'review_required') {
+      setReviewMode(true);
+    }
+  };
+
+  /**
    * Retorna estado resumido
    */
   const getState = () => ({
@@ -159,6 +169,7 @@ export const useReceiptOcr = () => {
     clearPhotos,
     processPhotos,
     confirmItems,
+    setResult,
 
     // Informações
     getState,

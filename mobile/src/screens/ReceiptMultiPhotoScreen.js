@@ -16,6 +16,7 @@ import { Camera, CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useReceiptOcr from '../hooks/useReceiptOcr';
+import receiptOcrServiceFallback from '../services/receiptOcrServiceFallback';
 
 /**
  * Tela para capturar múltiplas fotos de cupom e processar com OCR
@@ -132,6 +133,28 @@ export default function ReceiptMultiPhotoScreen({ navigation }) {
       }
     } else {
       Alert.alert('Erro', ocr.error || 'Erro ao processar cupom');
+      setCurrentStep('capture');
+    }
+  };
+
+  const processCaptureWithMock = async () => {
+    // Para testes: usar OCR mockado
+    setCurrentStep('processing');
+    try {
+      const result = await receiptOcrServiceFallback.processMultiplePhotosMock(
+        photos.length || 3
+      );
+
+      if (result) {
+        ocr.setResult(result);
+        if (result.status === 'review_required') {
+          setCurrentStep('review');
+        } else {
+          setCurrentStep('success');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Erro', error.message || 'Erro ao processar cupom');
       setCurrentStep('capture');
     }
   };
@@ -261,6 +284,20 @@ export default function ReceiptMultiPhotoScreen({ navigation }) {
             <Text style={styles.btnText}>Galeria</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Modo teste: processar com OCR mockado (sem fotos reais) */}
+        {photos.length === 0 && (
+          <View style={styles.testSection}>
+            <Text style={styles.testLabel}>🧪 Modo Teste (sem fotos)</Text>
+            <TouchableOpacity
+              style={[styles.btn, styles.btnSecondary]}
+              onPress={() => processCaptureWithMock()}
+            >
+              <MaterialCommunityIcons name="test-tube" size={20} color="#fff" />
+              <Text style={styles.btnText}>Teste com 3 cupons</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {photos.length > 0 && (
           <View style={styles.processActions}>
@@ -619,6 +656,26 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  testSection: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f0f9ff',
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196f3',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  testLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#2196f3',
+    marginBottom: 8,
+    width: '100%',
   },
   processActions: {
     flexDirection: 'row',
