@@ -39,7 +39,7 @@ interface ValidateResponse {
   message: string;
 }
 
-@Controller('api/receitas/ocr')
+@Controller('receitas/ocr')
 export class ReceiptOcrController {
   private readonly logger = new Logger(ReceiptOcrController.name);
 

@@ -146,7 +146,7 @@ export default function ReceiptMultiPhotoScreen({ navigation }) {
       );
 
       if (result) {
-        ocr.setResult(result);
+        ocr.setResultDirect(result);
         if (result.status === 'review_required') {
           setCurrentStep('review');
         } else {
