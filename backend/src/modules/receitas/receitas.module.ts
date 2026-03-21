@@ -10,7 +10,9 @@ import { Inventario } from '../inventario/entities/inventario.entity';
 import { ReceitasService } from './receitas.service';
 import { IAReceitasService } from './services/ia-receitas.service';
 import { MOIEngineService } from './services/moi-engine.service';
+import { ReceiptOcrService } from './services/receipt-ocr.service';
 import { ReceitasController } from './receitas.controller';
+import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
 
 @Module({
   imports: [
@@ -24,8 +26,8 @@ import { ReceitasController } from './receitas.controller';
       Inventario,
     ]),
   ],
-  providers: [ReceitasService, IAReceitasService, MOIEngineService],
-  controllers: [ReceitasController],
-  exports: [TypeOrmModule, ReceitasService],
+  providers: [ReceitasService, IAReceitasService, MOIEngineService, ReceiptOcrService],
+  controllers: [ReceitasController, ReceiptOcrController],
+  exports: [TypeOrmModule, ReceitasService, ReceiptOcrService],
 })
 export class ReceitasModule {}
