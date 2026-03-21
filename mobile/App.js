@@ -35,6 +35,10 @@ import RecipeDetailsScreen from './src/screens/RecipeDetailsScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import ComprasScreen from './src/screens/ComprasScreen';
+import ComparacaoScreen from './src/screens/ComparacaoScreen';
+import HistoricoScreen from './src/screens/HistoricoScreen';
+import AnalisePage from './src/screens/AnalisePage';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -245,6 +249,26 @@ function AppNavigator() {
             name="History"
             component={HistoryScreen}
             options={{ title: 'Histórico' }}
+          />
+          <Stack.Screen
+            name="Compras"
+            component={ComprasScreen}
+            options={{ title: 'Minhas Compras' }}
+          />
+          <Stack.Screen
+            name="Comparacao"
+            component={ComparacaoScreen}
+            options={{ title: 'Comparação' }}
+          />
+          <Stack.Screen
+            name="HistoricoPrecos"
+            component={HistoricoScreen}
+            options={{ title: 'Histórico' }}
+          />
+          <Stack.Screen
+            name="Analise"
+            component={AnalisePage}
+            options={{ title: 'Análise' }}
           />
         </Stack.Navigator>
     </NavigationContainer>
