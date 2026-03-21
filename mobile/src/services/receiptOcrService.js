@@ -43,20 +43,22 @@ export const receiptOcrService = {
    */
   async extractOcrFromImage(imageUri) {
     try {
-      // Para móvel real, usar react-native-tesseract-ocr
-      // Para web, usar Tesseract.js
+      // Usar react-native-tesseract-ocr para mobile/expo
+      const TesseractOcr = require('react-native-tesseract-ocr').default;
 
-      if (Platform.OS === 'web') {
-        // Import dinâmico para não quebrar no mobile
-        const Tesseract = require('tesseract.js');
-        const result = await Tesseract.recognize(imageUri, 'por');
-        return result.data.text;
-      } else {
-        // react-native-tesseract-ocr já está instalado no mobile
-        const TesseractOcr = require('react-native-tesseract-ocr').default;
-        const ocrResult = await TesseractOcr.recognizeImage(imageUri);
-        return ocrResult;
+      console.log(`[Tesseract] Processando: ${imageUri.substring(0, 50)}...`);
+
+      // Tesseract em português brasileiro
+      const ocrResult = await TesseractOcr.recognizeImage(imageUri, {
+        language: 'por', // Português
+      });
+
+      if (!ocrResult || ocrResult.trim().length === 0) {
+        throw new Error('Nenhum texto detectado na imagem');
       }
+
+      console.log(`[Tesseract] Texto extraído (${ocrResult.length} caracteres)`);
+      return ocrResult;
     } catch (error) {
       console.error('Erro ao extrair OCR:', error);
       throw new Error('Falha ao processar imagem. Tente uma foto mais clara.');

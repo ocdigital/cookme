@@ -48,6 +48,9 @@ export const useReceiptOcr = () => {
 
   /**
    * Processa as fotos capturadas
+   * 1. Extrai OCR de cada foto
+   * 2. Deduplica itens no backend
+   * 3. Retorna resultado com status
    */
   const processPhotos = async () => {
     if (photos.length === 0) {
@@ -59,6 +62,8 @@ export const useReceiptOcr = () => {
     setError(null);
 
     try {
+      console.log(`[useReceiptOcr] Iniciando processamento de ${photos.length} foto(s)...`);
+
       const processResult = await receiptOcrService.processMultiplePhotos(
         photos
       );
@@ -68,7 +73,10 @@ export const useReceiptOcr = () => {
       // Se precisa review, ativar modo review
       if (processResult.status === 'review_required') {
         setReviewMode(true);
-        console.log('⚠️ Review necessário:', processResult.duplicatesFlagged);
+        console.log('⚠️ Review necessário:', {
+          duplicatas: processResult.duplicatesFlagged?.length,
+          itens: processResult.items?.length,
+        });
       } else {
         setReviewMode(false);
         console.log('✅ Processamento concluído sem duplicatas');
@@ -78,7 +86,7 @@ export const useReceiptOcr = () => {
     } catch (err) {
       const errorMessage = err.message || 'Erro ao processar cupom';
       setError(errorMessage);
-      console.error('Erro no processamento:', err);
+      console.error('❌ Erro no processamento:', err);
       return null;
     } finally {
       setIsLoading(false);
