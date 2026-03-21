@@ -139,6 +139,14 @@ function MainAppTabs({ navigation }) {
         }}
       />
       <Tab.Screen
+        name="Compras"
+        component={ComprasScreen}
+        options={{
+          title: 'Compras',
+          tabBarLabel: 'Compras',
+        }}
+      />
+      <Tab.Screen
         name="Favorites"
         component={FavoritesScreen}
         options={{
