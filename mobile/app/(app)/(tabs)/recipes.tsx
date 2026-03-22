@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 12,
     paddingVertical: 12,
-    paddingBottom: 100,
+    paddingBottom: 150,
   },
   recipeCard: {
     backgroundColor: '#fff',

@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    paddingBottom: 150,
   },
   purchaseCard: {
     backgroundColor: '#fff',
