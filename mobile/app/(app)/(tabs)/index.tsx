@@ -6,7 +6,11 @@ export default function HomeScreen() {
   const router = useRouter();
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.greeting}>Bem-vindo! 👋</Text>
@@ -19,7 +23,7 @@ export default function HomeScreen() {
         <View style={styles.gridContainer}>
           <TouchableOpacity
             style={styles.quickAction}
-            onPress={() => router.navigate('shopping' as any)}
+            onPress={() => router.push('/(app)/(tabs)/shopping')}
           >
             <MaterialCommunityIcons name="shopping-outline" size={32} color="#FF6B6B" />
             <Text style={styles.quickActionText}>Minha Lista</Text>
@@ -27,7 +31,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.quickAction}
-            onPress={() => router.navigate('recipes' as any)}
+            onPress={() => router.push('/(app)/(tabs)/recipes')}
           >
             <MaterialCommunityIcons name="book-outline" size={32} color="#4CAF50" />
             <Text style={styles.quickActionText}>Receitas</Text>
@@ -35,7 +39,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.quickAction}
-            onPress={() => router.navigate('favorites' as any)}
+            onPress={() => router.push('/(app)/(tabs)/favorites')}
           >
             <MaterialCommunityIcons name="heart-outline" size={32} color="#FF9800" />
             <Text style={styles.quickActionText}>Favoritos</Text>
@@ -43,7 +47,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.quickAction}
-            onPress={() => router.navigate('purchases' as any)}
+            onPress={() => router.push('/(app)/(tabs)/purchases')}
           >
             <MaterialCommunityIcons name="cart" size={32} color="#2196F3" />
             <Text style={styles.quickActionText}>Compras</Text>
@@ -88,6 +92,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   header: {
     backgroundColor: '#fff',
