@@ -9,13 +9,13 @@ export default function AuthIndex() {
         <Text style={styles.subtitle}>Seu assistente inteligente de compras</Text>
 
         <View style={styles.buttonContainer}>
-          <Link href="/login" asChild>
+          <Link href="/(auth)/login" asChild>
             <TouchableOpacity style={[styles.button, styles.primaryButton]}>
               <Text style={styles.primaryButtonText}>Login</Text>
             </TouchableOpacity>
           </Link>
 
-          <Link href="/register" asChild>
+          <Link href="/(auth)/register" asChild>
             <TouchableOpacity style={[styles.button, styles.secondaryButton]}>
               <Text style={styles.secondaryButtonText}>Criar Conta</Text>
             </TouchableOpacity>

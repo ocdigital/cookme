@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { register: registerUser, loading: authLoading } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,16 +30,10 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      // TODO: Implementar chamada real da API
-      console.log('Register:', { name, email, password });
-
-      // Por enquanto, simular registro bem-sucedido
-      setTimeout(() => {
-        Alert.alert('Sucesso', 'Conta criada com sucesso!');
-        router.replace('/login');
-      }, 500);
-    } catch (error) {
-      Alert.alert('Erro', 'Falha ao criar conta');
+      await registerUser(name, email, password);
+      // Navigation happens automatically via root layout when auth state changes
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Falha ao criar conta');
     } finally {
       setLoading(false);
     }
@@ -110,7 +106,7 @@ export default function RegisterScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Já tem conta? </Text>
-        <TouchableOpacity onPress={() => router.push('/login')}>
+        <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
           <Text style={styles.link}>Fazer login</Text>
         </TouchableOpacity>
       </View>

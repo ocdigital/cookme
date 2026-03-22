@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,16 +18,10 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      // TODO: Implementar chamada real da API
-      // Aqui iria a autenticação real
-      console.log('Login:', { email, password });
-
-      // Por enquanto, simular login bem-sucedido
-      setTimeout(() => {
-        router.replace('/(app)/(tabs)');
-      }, 500);
-    } catch (error) {
-      Alert.alert('Erro', 'Falha ao fazer login');
+      await login(email, password);
+      // Navigation happens automatically via root layout when auth state changes
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Falha ao fazer login');
     } finally {
       setLoading(false);
     }
@@ -75,7 +71,7 @@ export default function LoginScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Não tem conta? </Text>
-        <TouchableOpacity onPress={() => router.push('/register')}>
+        <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
           <Text style={styles.link}>Criar agora</Text>
         </TouchableOpacity>
       </View>
