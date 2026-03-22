@@ -6,8 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 export default function LoginScreen() {
   const router = useRouter();
   const { login, loading: authLoading } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('eduardo@ocdigital.com.br');
+  const [password, setPassword] = useState('3221edu');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
