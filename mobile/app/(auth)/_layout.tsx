@@ -7,6 +7,7 @@ export default function AuthLayout() {
         headerShown: false,
         gestureEnabled: false,
       }}
+      initialRouteName="login"
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="login" />
