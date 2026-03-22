@@ -73,7 +73,8 @@ export default function HistoricoScreen({ navigation }) {
   const [chartType, setChartType] = useState('line'); // 'line' ou 'bar'
 
   const formatarMoeda = (valor) => {
-    return `R$ ${valor.toFixed(2)}`.replace('.', ',');
+    if (!valor && valor !== 0) return 'R$ 0,00';
+    return `R$ ${Number(valor).toFixed(2)}`.replace('.', ',');
   };
 
   // Calcular stats do produto

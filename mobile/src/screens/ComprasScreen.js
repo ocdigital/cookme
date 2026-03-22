@@ -66,7 +66,8 @@ export default function ComprasScreen({ navigation }) {
   const [selectedCompra, setSelectedCompra] = useState(null);
 
   const formatarMoeda = (valor) => {
-    return `R$ ${valor.toFixed(2)}`.replace('.', ',');
+    if (!valor && valor !== 0) return 'R$ 0,00';
+    return `R$ ${Number(valor).toFixed(2)}`.replace('.', ',');
   };
 
   const getEconomiaColor = (economia) => {
@@ -155,9 +156,9 @@ export default function ComprasScreen({ navigation }) {
   );
 
   // Calcular stats
-  const totalGasto = MOCK_COMPRAS.reduce((sum, c) => sum + c.total, 0);
-  const totalEconomizado = MOCK_COMPRAS.reduce((sum, c) => sum + (c.economia > 0 ? c.economia : 0), 0);
-  const mediaCompra = (totalGasto / MOCK_COMPRAS.length).toFixed(2);
+  const totalGasto = MOCK_COMPRAS.reduce((sum, c) => sum + (Number(c.total) || 0), 0);
+  const totalEconomizado = MOCK_COMPRAS.reduce((sum, c) => sum + (Number(c.economia) > 0 ? Number(c.economia) : 0), 0);
+  const mediaCompra = MOCK_COMPRAS.length > 0 ? (totalGasto / MOCK_COMPRAS.length).toFixed(2) : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -174,7 +175,7 @@ export default function ComprasScreen({ navigation }) {
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
-              <MaterialCommunityIcons name="shopping-bag" size={24} color="#ff6b6b" />
+              <MaterialCommunityIcons name="cart" size={24} color="#ff6b6b" />
             </View>
             <Text style={styles.statLabel}>Total Gasto</Text>
             <Text style={styles.statValue}>{formatarMoeda(totalGasto)}</Text>
@@ -192,7 +193,7 @@ export default function ComprasScreen({ navigation }) {
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <View style={styles.statIcon}>
-              <MaterialCommunityIcons name="average" size={24} color="#2196f3" />
+              <MaterialCommunityIcons name="calculator" size={24} color="#2196f3" />
             </View>
             <Text style={styles.statLabel}>Média por Compra</Text>
             <Text style={styles.statValue}>{formatarMoeda(mediaCompra)}</Text>

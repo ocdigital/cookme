@@ -41,7 +41,8 @@ export default function AnalisePage({ navigation }) {
   const [filtroMes, setFiltroMes] = useState('Mar');
 
   const formatarMoeda = (valor) => {
-    return `R$ ${valor.toFixed(2)}`.replace('.', ',');
+    if (!valor && valor !== 0) return 'R$ 0,00';
+    return `R$ ${Number(valor).toFixed(2)}`.replace('.', ',');
   };
 
   // Dados do gráfico de gastos
@@ -87,7 +88,7 @@ export default function AnalisePage({ navigation }) {
 
           <View style={styles.overviewCard}>
             <View style={styles.overviewIcon}>
-              <MaterialCommunityIcons name="average" size={24} color="#2196f3" />
+              <MaterialCommunityIcons name="calculator" size={24} color="#2196f3" />
             </View>
             <Text style={styles.overviewLabel}>Média Mensal</Text>
             <Text style={styles.overviewValue}>{formatarMoeda(mediaGasto)}</Text>

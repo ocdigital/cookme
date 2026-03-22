@@ -1,195 +1,234 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-import FeatherIcon from 'react-native-vector-icons/Feather';
-import { colors, spacing, borderRadius, shadows } from '../theme/colors';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { DrawerContentScrollView } from '@react-navigation/drawer';
 
-export function DrawerContent(props) {
+const DrawerContent = (props) => {
+  const { navigation } = props;
+
   const menuItems = [
-    { icon: 'home', label: 'Início', route: 'Home' },
-    { icon: 'grid', label: 'Categorias', route: 'Categorias' },
-    { icon: 'search', label: 'Pesquisa', route: 'Pesquisa' },
-    { icon: 'heart', label: 'Favoritos', route: 'Favorites' },
-    { icon: 'history', label: 'Histórico', route: 'History' },
-    { icon: 'settings', label: 'Configurações', route: 'Settings' },
+    {
+      section: 'COMPRAS',
+      items: [
+        { label: 'Minhas Compras', icon: 'shopping-bag', screen: 'Compras' },
+        { label: 'Minha Lista', icon: 'list-box', screen: 'MinhaLista' },
+        { label: 'Análise de Gastos', icon: 'chart-line', screen: 'Analise' },
+        { label: 'Histórico de Preços', icon: 'history', screen: 'HistoricoPrecos' },
+      ],
+    },
+    {
+      section: 'NAVEGAÇÃO',
+      items: [
+        { label: 'Categorias', icon: 'folder-multiple', screen: 'Categorias' },
+        { label: 'Meus Favoritos', icon: 'heart', screen: 'Favorites' },
+      ],
+    },
+    {
+      section: 'CONTA',
+      items: [
+        { label: 'Meu Perfil', icon: 'account', screen: 'Profile' },
+        { label: 'Configurações', icon: 'cog', screen: 'Settings' },
+      ],
+    },
   ];
 
   return (
-    <DrawerContentScrollView {...props} scrollEnabled={false}>
-      {/* Header do Drawer */}
-      <View style={styles.drawerHeader}>
-        <Text style={styles.drawerTitle}>CookMe</Text>
-        <Text style={styles.drawerSubtitle}>Receitas & Inventário</Text>
-      </View>
+    <SafeAreaView style={styles.container}>
+      <DrawerContentScrollView {...props} scrollEnabled={false}>
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          <View style={styles.logoContainer}>
+            <MaterialCommunityIcons name="cart" size={40} color="#ff6b6b" />
+          </View>
+          <Text style={styles.appName}>CookMe</Text>
+          <Text style={styles.appSubtitle}>Sua economia no mercado</Text>
+        </View>
 
-      {/* Menu Items */}
-      <View style={styles.menuContainer}>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.menuItem}
-            onPress={() => props.navigation.navigate(item.route)}
-            activeOpacity={0.6}
-          >
-            <FeatherIcon
-              name={item.icon}
-              size={20}
-              color={colors.primary}
-              style={styles.menuIcon}
-            />
-            <Text style={styles.menuLabel}>{item.label}</Text>
-            <FeatherIcon
-              name="chevron-right"
-              size={18}
-              color={colors.text.muted}
-              style={styles.menuChevron}
-            />
-          </TouchableOpacity>
+        <View style={styles.divider} />
+
+        {/* Menu Items */}
+        {menuItems.map((section, sectionIdx) => (
+          <View key={sectionIdx} style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>{section.section}</Text>
+
+            {section.items.map((item, itemIdx) => (
+              <TouchableOpacity
+                key={itemIdx}
+                style={styles.menuItem}
+                onPress={() => {
+                  navigation.navigate(item.screen);
+                  navigation.closeDrawer();
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name={item.icon}
+                  size={24}
+                  color="#666"
+                  style={styles.menuIcon}
+                />
+                <Text style={styles.menuLabel}>{item.label}</Text>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={20}
+                  color="#ccc"
+                  style={styles.menuChevron}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
         ))}
+
+        <View style={styles.divider} />
+
+        {/* Info Section */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoItem}>
+            <MaterialCommunityIcons name="information" size={20} color="#2196f3" />
+            <View style={styles.infoText}>
+              <Text style={styles.infoTitle}>Versão 1.0</Text>
+              <Text style={styles.infoDesc}>Beta</Text>
+            </View>
+          </View>
+        </View>
+      </DrawerContentScrollView>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.footerBtn}>
+          <MaterialCommunityIcons name="help-circle" size={20} color="#2196f3" />
+          <Text style={styles.footerBtnText}>Ajuda</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.footerBtn}>
+          <MaterialCommunityIcons name="logout" size={20} color="#ff6b6b" />
+          <Text style={styles.footerBtnText}>Sair</Text>
+        </TouchableOpacity>
       </View>
-
-      {/* Divider */}
-      <View style={styles.divider} />
-
-      {/* Profile Section */}
-      <TouchableOpacity
-        style={styles.profileSection}
-        onPress={() => props.navigation.navigate('Profile')}
-        activeOpacity={0.6}
-      >
-        <View style={styles.profileAvatar}>
-          <Text style={styles.profileAvatarText}>👤</Text>
-        </View>
-        <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>Meu Perfil</Text>
-          <Text style={styles.profileSubtext}>Gerenciar conta</Text>
-        </View>
-        <FeatherIcon
-          name="chevron-right"
-          size={18}
-          color={colors.text.muted}
-        />
-      </TouchableOpacity>
-
-      {/* Logout */}
-      <TouchableOpacity
-        style={styles.logoutButton}
-        activeOpacity={0.6}
-      >
-        <FeatherIcon
-          name="log-out"
-          size={18}
-          color="#D32F2F"
-          style={styles.logoutIcon}
-        />
-        <Text style={styles.logoutText}>Sair da Conta</Text>
-      </TouchableOpacity>
-    </DrawerContentScrollView>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  drawerHeader: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-    borderBottomLeftRadius: borderRadius.lg,
-    borderBottomRightRadius: borderRadius.lg,
-    marginBottom: spacing.lg,
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
   },
-  drawerTitle: {
-    fontSize: 28,
+  headerContainer: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  logoContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#fff3f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  appName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  appSubtitle: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 12,
+  },
+  sectionContainer: {
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 11,
     fontWeight: '700',
-    color: colors.white,
-    marginBottom: spacing.xs,
-  },
-  drawerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  menuContainer: {
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
+    color: '#999',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    textTransform: 'uppercase',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 8,
+    marginVertical: 2,
+    borderRadius: 8,
   },
   menuIcon: {
-    marginRight: spacing.md,
+    marginRight: 12,
+    width: 24,
   },
   menuLabel: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text.primary,
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
   },
   menuChevron: {
-    marginLeft: spacing.sm,
+    marginLeft: 8,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.light,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.lg,
+  infoSection: {
+    paddingHorizontal: 16,
+    marginVertical: 12,
   },
-  profileSection: {
+  infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    marginHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.card,
-    marginBottom: spacing.lg,
-    ...shadows.sm,
+    gap: 12,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 8,
+    padding: 12,
   },
-  profileAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  profileAvatarText: {
-    fontSize: 20,
-  },
-  profileInfo: {
+  infoText: {
     flex: 1,
   },
-  profileName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  profileSubtext: {
+  infoTitle: {
     fontSize: 12,
-    color: colors.text.muted,
+    fontWeight: '600',
+    color: '#2196f3',
+  },
+  infoDesc: {
+    fontSize: 11,
+    color: '#666',
     marginTop: 2,
   },
-  logoutButton: {
+  footer: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  footerBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    marginHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#FFEBEE',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 8,
+    borderRightWidth: 1,
+    borderRightColor: '#eee',
   },
-  logoutIcon: {
-    marginRight: spacing.md,
-  },
-  logoutText: {
-    flex: 1,
-    fontSize: 15,
+  footerBtnText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#D32F2F',
+    color: '#333',
   },
 });
+
+export default DrawerContent;

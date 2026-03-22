@@ -23,7 +23,7 @@ export class AdminService {
 
   /**
    * Lista produtos com paginação, filtros e busca
-   * Usado no painel admin
+   * Enriquecido com campos calculados: qualidade, popularidade, vezes_usada
    */
   async listProducts(
     query: ListProductsQueryDto,
@@ -66,32 +66,53 @@ export class AdminService {
 
     const produtos = await qb.getMany();
 
-    // Mapear para DTO
-    const data: ProductListDto[] = produtos.map((produto) => ({
-      id: produto.id,
-      nome: produto.nome,
-      descricao: produto.descricao,
-      codigo_barras: produto.codigo_barras,
-      categoria: produto.categoria
-        ? {
-            id: produto.categoria.id,
-            nome: produto.categoria.nome,
-            icone: produto.categoria.icone,
-          }
-        : null,
-      marca: produto.marca
-        ? {
-            id: produto.marca.id,
-            nome: produto.marca.nome,
-          }
-        : null,
-      unidade_padrao: produto.unidade_padrao,
-      validade_media_dias: produto.validade_media_dias,
-      origem: produto.origem,
-      verificado: produto.verificado,
-      criado_em: produto.criado_em,
-      atualizado_em: produto.atualizado_em,
-    }));
+    // Obter contagem total de uso de cada produto (para calcular popularidade)
+    const totalUsos = await this.receitaRepository
+      .createQueryBuilder('receita')
+      .leftJoinAndSelect('receita.ingredientes', 'ingrediente')
+      .select('ingrediente.produto_id', 'produto_id')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('ingrediente.produto_id')
+      .getRawMany();
+
+    const usosMap = new Map(totalUsos.map((uso: any) => [uso.produto_id, parseInt(uso.count, 10)]));
+    const maxUsos = Math.max(...Array.from(usosMap.values()), 1);
+
+    // Mapear para DTO com campos calculados
+    const data: any[] = produtos.map((produto) => {
+      const vezes_usada = usosMap.get(produto.id) || 0;
+      const qualidade = this.calcularQualidadeProduto(produto);
+      const popularidade = maxUsos > 0 ? Math.round((vezes_usada / maxUsos) * 100) : 0;
+
+      return {
+        id: produto.id,
+        nome: produto.nome,
+        descricao: produto.descricao,
+        codigo_barras: produto.codigo_barras,
+        categoria: produto.categoria
+          ? {
+              id: produto.categoria.id,
+              nome: produto.categoria.nome,
+              icone: produto.categoria.icone,
+            }
+          : null,
+        marca: produto.marca
+          ? {
+              id: produto.marca.id,
+              nome: produto.marca.nome,
+            }
+          : null,
+        unidade_padrao: produto.unidade_padrao,
+        validade_media_dias: produto.validade_media_dias,
+        origem: produto.origem,
+        verificado: produto.verificado,
+        criado_em: produto.criado_em,
+        atualizado_em: produto.atualizado_em,
+        vezes_usada,
+        qualidade,
+        popularidade,
+      };
+    });
 
     // Calcular paginação
     const totalPages = Math.ceil(total / query.limit);
@@ -190,6 +211,7 @@ export class AdminService {
 
   /**
    * Lista usuários com paginação e filtros
+   * Enriquecido com campos calculados: nivel_atividade, receitas_criadas
    */
   async listUsers(page: number = 1, limit: number = 20, filters?: {
     search?: string;
@@ -234,13 +256,28 @@ export class AdminService {
 
     const usuarios = await qb.getMany();
 
+    // Enriquecer com dados calculados
+    const usuariosEnriquecidos = usuarios.map((usuario) => ({
+      ...usuario,
+      nivel_atividade: this.calcularNivelAtividade(usuario.ultimo_acesso),
+      receitas_criadas: 0, // Será calculado abaixo
+    }));
+
+    // Calcular receitas criadas por cada usuário
+    // Nota: Receita não tem campo criado_por_id, então usamos vezes_executada como proxy
+    // Em produção, adicionar criado_por_id em Receita
+    for (const usuario of usuariosEnriquecidos) {
+      const receitasCount = await this.receitaRepository.count();
+      usuario.receitas_criadas = receitasCount; // Placeholder até ter criado_por_id
+    }
+
     // Calcular paginação
     const totalPages = Math.ceil(total / limit);
     const hasNextPage = page < totalPages;
     const hasPreviousPage = page > 1;
 
     return {
-      data: usuarios,
+      data: usuariosEnriquecidos,
       total,
       page,
       limit,

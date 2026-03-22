@@ -45,7 +45,15 @@ if [ "$1" == "frontend" ]; then
 fi
 
 if [ "$1" == "mobile" ]; then
-    print_status "Iniciando Mobile com Expo..."
+    print_status "Matando processos Expo/npm anteriores..."
+    pkill -9 -f "expo start|npm start" 2>/dev/null || true
+    sleep 2
+
+    print_status "Limpando cache do Expo..."
+    rm -rf node_modules/.cache 2>/dev/null || true
+
+    print_status "Iniciando Mobile com Expo na porta 8081..."
+    echo ""
     cd mobile
     npx expo start
     exit 0

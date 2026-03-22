@@ -46,7 +46,8 @@ const COMPRA_ANTERIOR = {
 
 export default function ComparacaoScreen({ navigation, route }) {
   const formatarMoeda = (valor) => {
-    return `R$ ${valor.toFixed(2)}`.replace('.', ',');
+    if (!valor && valor !== 0) return 'R$ 0,00';
+    return `R$ ${Number(valor).toFixed(2)}`.replace('.', ',');
   };
 
   const getCorEconomia = (valor) => {
