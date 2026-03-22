@@ -19,7 +19,7 @@ export default function HomeScreen() {
         <View style={styles.gridContainer}>
           <TouchableOpacity
             style={styles.quickAction}
-            onPress={() => router.push('/shopping')}
+            onPress={() => router.navigate('shopping' as any)}
           >
             <MaterialCommunityIcons name="shopping-outline" size={32} color="#FF6B6B" />
             <Text style={styles.quickActionText}>Minha Lista</Text>
@@ -27,7 +27,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.quickAction}
-            onPress={() => router.push('/recipes')}
+            onPress={() => router.navigate('recipes' as any)}
           >
             <MaterialCommunityIcons name="book-outline" size={32} color="#4CAF50" />
             <Text style={styles.quickActionText}>Receitas</Text>
@@ -35,7 +35,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.quickAction}
-            onPress={() => router.push('/favorites')}
+            onPress={() => router.navigate('favorites' as any)}
           >
             <MaterialCommunityIcons name="heart-outline" size={32} color="#FF9800" />
             <Text style={styles.quickActionText}>Favoritos</Text>
@@ -43,10 +43,10 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.quickAction}
-            onPress={() => router.push('/purchases')}
+            onPress={() => router.navigate('purchases' as any)}
           >
-            <MaterialCommunityIcons name="history" size={32} color="#2196F3" />
-            <Text style={styles.quickActionText}>Histórico</Text>
+            <MaterialCommunityIcons name="cart" size={32} color="#2196F3" />
+            <Text style={styles.quickActionText}>Compras</Text>
           </TouchableOpacity>
         </View>
       </View>

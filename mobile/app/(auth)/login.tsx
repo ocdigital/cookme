@@ -22,7 +22,7 @@ export default function LoginScreen() {
 
       // Por enquanto, simular login bem-sucedido
       setTimeout(() => {
-        router.replace('/(app)');
+        router.replace('/(app)/(tabs)');
       }, 500);
     } catch (error) {
       Alert.alert('Erro', 'Falha ao fazer login');

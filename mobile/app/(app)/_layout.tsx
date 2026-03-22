@@ -16,6 +16,7 @@ export default function AppLayout() {
         },
         drawerActiveTintColor: '#FF6B6B',
         drawerInactiveTintColor: '#666',
+        headerShown: true,
         headerStyle: {
           backgroundColor: '#fff',
           borderBottomWidth: 1,
@@ -28,62 +29,14 @@ export default function AppLayout() {
         },
       }}
     >
-      {/* Home Screen */}
+      {/* Início (Home with Tabs) */}
       <Drawer.Screen
-        name="index"
+        name="(tabs)"
         options={{
           drawerLabel: 'Início',
-          title: 'CookMe',
+          headerShown: false,
           drawerIcon: ({ size, color }) => (
             <MaterialCommunityIcons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* Shopping List */}
-      <Drawer.Screen
-        name="shopping"
-        options={{
-          drawerLabel: 'Minha Lista',
-          title: 'Minha Lista',
-          drawerIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="shopping-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* Recipes */}
-      <Drawer.Screen
-        name="recipes"
-        options={{
-          drawerLabel: 'Receitas',
-          title: 'Receitas',
-          drawerIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="book-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* Purchases History */}
-      <Drawer.Screen
-        name="purchases"
-        options={{
-          drawerLabel: 'Histórico de Compras',
-          title: 'Compras',
-          drawerIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="history" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* Favorites */}
-      <Drawer.Screen
-        name="favorites"
-        options={{
-          drawerLabel: 'Favoritos',
-          title: 'Favoritos',
-          drawerIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="heart-outline" size={size} color={color} />
           ),
         }}
       />
