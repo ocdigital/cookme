@@ -96,45 +96,51 @@ export default function ShoppingScreen() {
 
   return (
     <View style={styles.container}>
-      {stats && (
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons
-              name="shopping-outline"
-              size={24}
-              color="#FF6B6B"
-            />
-            <Text style={styles.statValue}>{stats.totalCompras || 0}</Text>
-            <Text style={styles.statLabel}>Compras</Text>
-          </View>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons
-              name="cash"
-              size={24}
-              color="#FF6B6B"
-            />
-            <Text style={styles.statValue}>
-              {formatCurrency(stats.totalGasto || 0)}
-            </Text>
-            <Text style={styles.statLabel}>Total Gasto</Text>
-          </View>
-          {stats.totalEconomia > 0 && (
-            <View style={styles.statCard}>
-              <MaterialCommunityIcons
-                name="coin-multiple"
-                size={24}
-                color="#4CAF50"
-              />
-              <Text style={[styles.statValue, { color: '#4CAF50' }]}>
-                {formatCurrency(stats.totalEconomia)}
-              </Text>
-              <Text style={styles.statLabel}>Economia</Text>
-            </View>
-          )}
-        </View>
-      )}
+      <View style={styles.headerFixed}>
+        <Text style={styles.headerTitle}>Minha Lista</Text>
+      </View>
 
       <FlatList
+        ListHeaderComponent={
+          stats ? (
+            <View style={styles.statsContainer}>
+              <View style={styles.statCard}>
+                <MaterialCommunityIcons
+                  name="shopping-outline"
+                  size={24}
+                  color="#FF6B6B"
+                />
+                <Text style={styles.statValue}>{stats.totalCompras || 0}</Text>
+                <Text style={styles.statLabel}>Compras</Text>
+              </View>
+              <View style={styles.statCard}>
+                <MaterialCommunityIcons
+                  name="cash"
+                  size={24}
+                  color="#FF6B6B"
+                />
+                <Text style={styles.statValue}>
+                  {formatCurrency(stats.totalGasto || 0)}
+                </Text>
+                <Text style={styles.statLabel}>Total Gasto</Text>
+              </View>
+              {stats.totalEconomia > 0 && (
+                <View style={styles.statCard}>
+                  <MaterialCommunityIcons
+                    name="coin-multiple"
+                    size={24}
+                    color="#4CAF50"
+                  />
+                  <Text style={[styles.statValue, { color: '#4CAF50' }]}>
+                    {formatCurrency(stats.totalEconomia)}
+                  </Text>
+                  <Text style={styles.statLabel}>Economia</Text>
+                </View>
+              )}
+            </View>
+          ) : null
+        }
+        data={purchases}
         data={purchases}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -208,6 +214,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  headerFixed: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
   },
   centerContainer: {
     flex: 1,

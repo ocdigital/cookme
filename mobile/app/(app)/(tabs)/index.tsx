@@ -12,6 +12,10 @@ export default function HomeScreen() {
       contentContainerStyle={styles.scrollContent}
     >
       {/* Header */}
+      <View style={styles.headerFixed}>
+        <Text style={styles.headerTitle}>Início</Text>
+      </View>
+
       <View style={styles.header}>
         <Text style={styles.greeting}>Bem-vindo! 👋</Text>
         <Text style={styles.date}>{new Date().toLocaleDateString('pt-BR')}</Text>
@@ -95,6 +99,18 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 150,
+  },
+  headerFixed: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
   },
   header: {
     backgroundColor: '#fff',

@@ -95,6 +95,10 @@ export default function FavoritesScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerFixed}>
+        <Text style={styles.headerTitle}>Favoritos</Text>
+      </View>
+
       <FlatList
         data={favorites}
         keyExtractor={(item) => item.id}
@@ -195,6 +199,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  headerFixed: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
   },
   centerContainer: {
     flex: 1,
