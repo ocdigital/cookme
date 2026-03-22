@@ -178,6 +178,6 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   spacing: {
-    height: 20,
+    height: 100,
   },
 });
