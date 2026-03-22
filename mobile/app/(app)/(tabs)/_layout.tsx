@@ -1,7 +1,11 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function TabsLayout() {
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
@@ -14,7 +18,9 @@ export default function TabsLayout() {
           borderTopColor: '#eee',
           paddingBottom: 8,
           paddingTop: 8,
-          height: 65,
+          height: 70,
+          flexDirection: 'row',
+          justifyContent: 'space-around',
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -68,6 +74,26 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* Center Button - Add */}
+      <Tabs.Screen
+        name="add"
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push('/(app)/(tabs)/recipes');
+          },
+        }}
+        options={{
+          title: '',
+          tabBarIcon: ({ color }) => (
+            <View style={styles.centerButton}>
+              <MaterialCommunityIcons name="plus" size={28} color="#fff" />
+            </View>
+          ),
+          tabBarLabel: () => null,
+        }}
+      />
+
       {/* Purchases */}
       <Tabs.Screen
         name="purchases"
@@ -100,3 +126,20 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  centerButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF6B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    elevation: 8,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+});
