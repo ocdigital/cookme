@@ -4,13 +4,22 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useAuth } from '@/hooks/useAuth';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const { isSignedIn, loading } = useAuth();
+
   useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
+    if (!loading) {
+      SplashScreen.hideAsync();
+    }
+  }, [loading]);
+
+  if (loading) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -21,18 +30,21 @@ export default function RootLayout() {
               headerShown: false,
             }}
           >
-            <Stack.Screen
-              name="(auth)"
-              options={{
-                gestureEnabled: false,
-              }}
-            />
-            <Stack.Screen
-              name="(app)"
-              options={{
-                gestureEnabled: false,
-              }}
-            />
+            {isSignedIn ? (
+              <Stack.Screen
+                name="(app)"
+                options={{
+                  gestureEnabled: false,
+                }}
+              />
+            ) : (
+              <Stack.Screen
+                name="(auth)"
+                options={{
+                  gestureEnabled: false,
+                }}
+              />
+            )}
           </Stack>
         </ThemeProvider>
       </SafeAreaProvider>
