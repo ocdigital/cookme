@@ -19,7 +19,8 @@ export function useAuth() {
       if (token) {
         // Verify token by fetching user profile
         const response = await api.get('/usuarios/me');
-        setUser(response.data.data);
+        const userData = response.data.data || response.data.user || response.data;
+        setUser(userData);
       }
     } catch (e) {
       console.error('Failed to restore token:', e);
@@ -39,7 +40,13 @@ export function useAuth() {
       });
 
       const responseData = response.data as any;
-      const { accessToken, refreshToken, user: userData } = responseData.data || responseData;
+      const accessToken = responseData.access_token || responseData.accessToken;
+      const refreshToken = responseData.refresh_token || responseData.refreshToken;
+      const userData = responseData.user;
+
+      if (!accessToken || !userData) {
+        throw new Error('Resposta inválida do servidor');
+      }
 
       await SecureStore.setItemAsync('accessToken', accessToken);
       await SecureStore.setItemAsync('refreshToken', refreshToken);
@@ -67,7 +74,13 @@ export function useAuth() {
       });
 
       const responseData = response.data as any;
-      const { accessToken, refreshToken, user: userData } = responseData.data || responseData;
+      const accessToken = responseData.access_token || responseData.accessToken;
+      const refreshToken = responseData.refresh_token || responseData.refreshToken;
+      const userData = responseData.user;
+
+      if (!accessToken || !userData) {
+        throw new Error('Resposta inválida do servidor');
+      }
 
       await SecureStore.setItemAsync('accessToken', accessToken);
       await SecureStore.setItemAsync('refreshToken', refreshToken);
