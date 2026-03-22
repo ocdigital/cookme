@@ -29,21 +29,6 @@ export default function TabsLayout() {
         },
       }}
     >
-      {/* Home */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Início',
-          tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'home' : 'home-outline'}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-
       {/* Shopping List */}
       <Tabs.Screen
         name="shopping"
