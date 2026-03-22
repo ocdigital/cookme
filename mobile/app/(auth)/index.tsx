@@ -1,13 +1,18 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 
 export default function AuthIndex() {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header} />
+
       <View style={styles.content}>
         <Text style={styles.title}>🍳 CookMe</Text>
         <Text style={styles.subtitle}>Seu assistente inteligente de compras</Text>
+      </View>
 
+      <View style={styles.footer}>
         <View style={styles.buttonContainer}>
           <Link href="/(auth)/login" asChild>
             <TouchableOpacity style={[styles.button, styles.primaryButton]}>
@@ -22,7 +27,7 @@ export default function AuthIndex() {
           </Link>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -30,24 +35,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  header: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  content: {
-    alignItems: 'center',
-    width: '100%',
-  },
   title: {
-    fontSize: 48,
+    fontSize: 52,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 40,
     textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    paddingBottom: 40,
   },
   buttonContainer: {
     width: '100%',
