@@ -105,7 +105,7 @@ docker_up() {
     print_warning "PostgreSQL já está rodando"
   else
     print_info "Iniciando PostgreSQL..."
-    docker-compose -f "$PROJECT_ROOT/docker-compose.yml" up -d postgres || {
+    docker compose -f "$PROJECT_ROOT/docker-compose.yml" up -d postgres || {
       print_error "Falha ao iniciar PostgreSQL"
       return 1
     }
@@ -117,7 +117,7 @@ docker_up() {
     print_warning "Redis já está rodando"
   else
     print_info "Iniciando Redis..."
-    docker-compose -f "$PROJECT_ROOT/docker-compose.yml" up -d redis || {
+    docker compose -f "$PROJECT_ROOT/docker-compose.yml" up -d redis || {
       print_error "Falha ao iniciar Redis"
       return 1
     }
@@ -136,7 +136,7 @@ docker_stop() {
     return 0
   fi
 
-  docker-compose -f "$PROJECT_ROOT/docker-compose.yml" down 2>/dev/null || true
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" down 2>/dev/null || true
   print_success "Docker parado"
   return 0
 }
@@ -152,7 +152,7 @@ docker_clean() {
   read -p "Tem certeza que deseja remover todos os containers e volumes? (s/n) " -n 1 -r
   echo
   if [[ $REPLY =~ ^[Ss]$ ]]; then
-    docker-compose -f "$PROJECT_ROOT/docker-compose.yml" down -v 2>/dev/null || true
+    docker compose -f "$PROJECT_ROOT/docker-compose.yml" down -v 2>/dev/null || true
     print_success "Docker limpo"
   else
     print_warning "Operação cancelada"
