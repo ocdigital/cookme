@@ -120,7 +120,7 @@ export default function ValidacaoScreen() {
               Alert.alert('✅ Sucesso', 'Produtos salvos no inventário!', [
                 {
                   text: 'Ver Inventário',
-                  onPress: () => router.push('/(app)/inventario'),
+                  onPress: () => router.push('/(app)/(tabs)'),
                 },
               ]);
             } catch (error) {

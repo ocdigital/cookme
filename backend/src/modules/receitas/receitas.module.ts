@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Receita } from './entities/receita.entity';
 import { ReceitaIngrediente } from './entities/receita-ingrediente.entity';
@@ -26,6 +27,7 @@ import { InventarioService } from '../inventario/inventario.service';
 
 @Module({
   imports: [
+    ConfigModule,
     TypeOrmModule.forFeature([
       Receita,
       ReceitaIngrediente,

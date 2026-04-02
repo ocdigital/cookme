@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Anthropic } from '@anthropic-ai/sdk';
 import axios from 'axios';
 
@@ -14,13 +15,14 @@ export interface Receita {
 
 @Injectable()
 export class RecipeGeneratorService {
+  private readonly logger = new Logger('RecipeGeneratorService');
   private claudeClient: Anthropic | null;
   private geminiKey: string;
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     try {
-      const apiKey = process.env.CLAUDE_API_KEY;
-      console.log('🔍 CLAUDE_API_KEY existe?', !!apiKey);
+      const apiKey = this.configService.get<string>('CLAUDE_API_KEY');
+      this.logger.log(`CLAUDE_API_KEY exists: ${!!apiKey}`);
 
       if (!apiKey) {
         throw new Error('CLAUDE_API_KEY não configurada');
@@ -29,14 +31,14 @@ export class RecipeGeneratorService {
       this.claudeClient = new Anthropic({
         apiKey,
       });
-      console.log('✅ Claude API inicializada com sucesso');
+      this.logger.log('Claude API initialized successfully');
     } catch (error: any) {
-      console.error('❌ Erro ao inicializar Claude:', error.message);
+      this.logger.error(`Error initializing Claude: ${error.message}`);
       this.claudeClient = null;
     }
 
-    this.geminiKey = process.env.GEMINI_API_KEY || '';
-    console.log('🔍 GEMINI_API_KEY existe?', !!this.geminiKey);
+    this.geminiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
+    this.logger.log(`GEMINI_API_KEY exists: ${!!this.geminiKey}`);
   }
 
   async gerarReceitas(ingredientes: string[]): Promise<Receita[]> {
@@ -64,28 +66,28 @@ Retorne APENAS um JSON array válido, sem markdown ou explicação adicional. Fo
     // Tenta Claude primeiro
     if (this.claudeClient) {
       try {
-        console.log('📍 Tentando Claude API...');
+        this.logger.log('Trying Claude API...');
         const resultado = await this.gerarComClaude(prompt);
         return resultado;
       } catch (error: any) {
-        console.error('❌ Claude ERRO:', error.message || error);
+        this.logger.error(`Claude error: ${error.message || error}`);
       }
     } else {
-      console.log('⚠️ Claude client não disponível');
+      this.logger.warn('Claude client not available');
     }
 
     // Fallback para Gemini
     if (this.geminiKey) {
       try {
-        console.log('📍 Tentando Gemini API...');
+        this.logger.log('Trying Gemini API...');
         return await this.gerarComGemini(prompt);
       } catch (error) {
-        console.warn('⚠️ Gemini falhou:', error);
+        this.logger.warn(`Gemini failed: ${error}`);
       }
     }
 
     // Se tudo falhar, retorna mock
-    console.log('📍 Usando receitas mock');
+    this.logger.log('Using mock recipes');
     return this.getReceitasMock(ingredientes);
   }
 
@@ -109,7 +111,7 @@ Retorne APENAS um JSON array válido, sem markdown ou explicação adicional. Fo
     }
 
     const receitas = JSON.parse(content.text);
-    console.log('✅ Receitas geradas com Claude');
+    this.logger.log('Recipes generated with Claude');
     return receitas;
   }
 
@@ -132,7 +134,7 @@ Retorne APENAS um JSON array válido, sem markdown ou explicação adicional. Fo
     const text =
       response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const receitas = JSON.parse(text);
-    console.log('✅ Receitas geradas com Gemini');
+    this.logger.log('Recipes generated with Gemini');
     return receitas;
   }
 
