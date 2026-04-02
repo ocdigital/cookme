@@ -103,6 +103,7 @@ export default function ValidacaoScreen() {
                   nome: item.nome,
                   ingrediente_receita: item.eh_alimento,
                   confianca_classificacao: Math.round(item.confianca),
+                  unidade_padrao: 'un',
                 });
 
                 const produtoId = produtoRes.data.id;

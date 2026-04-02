@@ -23,6 +23,10 @@ api.interceptors.request.use(
     } catch (error) {
       console.error('Error getting token:', error);
     }
+    console.log(`🔵 [API] ${config.method?.toUpperCase()} ${config.url}`, {
+      data: config.data,
+      headers: config.headers,
+    });
     return config;
   },
   (error) => Promise.reject(error)
@@ -30,8 +34,17 @@ api.interceptors.request.use(
 
 // Response interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`🟢 [API] ${response.status} ${response.config.url}`);
+    return response;
+  },
   async (error: AxiosError) => {
+    console.log(`🔴 [API] Error:`, {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      url: error.config?.url,
+    });
     const originalRequest = error.config as any;
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
