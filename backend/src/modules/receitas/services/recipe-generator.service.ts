@@ -46,24 +46,40 @@ export class RecipeGeneratorService {
       return [];
     }
 
-    const prompt = `Você é um chef de culinária. Dado esta lista de ingredientes: ${ingredientes.join(', ')}
+    const prompt = `Você é um chef experiente de culinária brasileira.
 
-Gere 3 receitas criativas que usem ALGUNS destes ingredientes (não precisa usar todos).
+Dados estes ingredientes disponíveis: ${ingredientes.join(', ')}
 
-Retorne APENAS um JSON array válido, sem markdown ou explicação adicional. Formato:
+Gere 3 receitas criativas e práticas que usem ALGUNS destes ingredientes (não precisa usar todos, mas use pelo menos 2 de cada receita).
+
+IMPORTANTE: Retorne APENAS um JSON array válido, sem markdown, sem explicações adicionais, sem blocos de código.
+
+Formato exato esperado:
 [
   {
-    "titulo": "Nome da Receita",
-    "descricao": "Descrição curta",
-    "tempo_preparo": "30 minutos",
+    "titulo": "Nome descritivo da receita",
+    "descricao": "Uma frase curta sobre o prato",
+    "tempo_preparo": "20 minutos",
     "dificuldade": "fácil",
-    "ingredientes": ["ingrediente 1", "ingrediente 2"],
-    "modo_preparo": "Instruções passo a passo",
-    "rendimento": "4 porções"
+    "ingredientes": ["ingrediente 1", "ingrediente 2", "ingrediente 3"],
+    "modo_preparo": "Passo 1. Descrição.\\nPasso 2. Descrição.",
+    "rendimento": "2 porções"
   }
-]`;
+]
 
-    // Tenta Claude primeiro
+Lembre-se: APENAS JSON, NADA MAIS.`;
+
+    // Tenta Gemini primeiro (mais confiável e disponível)
+    if (this.geminiKey) {
+      try {
+        this.logger.log('Trying Gemini API...');
+        return await this.gerarComGemini(prompt);
+      } catch (error) {
+        this.logger.warn(`Gemini failed: ${error}`);
+      }
+    }
+
+    // Fallback para Claude
     if (this.claudeClient) {
       try {
         this.logger.log('Trying Claude API...');
@@ -74,16 +90,6 @@ Retorne APENAS um JSON array válido, sem markdown ou explicação adicional. Fo
       }
     } else {
       this.logger.warn('Claude client not available');
-    }
-
-    // Fallback para Gemini
-    if (this.geminiKey) {
-      try {
-        this.logger.log('Trying Gemini API...');
-        return await this.gerarComGemini(prompt);
-      } catch (error) {
-        this.logger.warn(`Gemini failed: ${error}`);
-      }
     }
 
     // Se tudo falhar, retorna mock
@@ -117,7 +123,7 @@ Retorne APENAS um JSON array válido, sem markdown ou explicação adicional. Fo
 
   private async gerarComGemini(prompt: string): Promise<Receita[]> {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.geminiKey}`,
       {
         contents: [
           {
@@ -131,10 +137,39 @@ Retorne APENAS um JSON array válido, sem markdown ou explicação adicional. Fo
       }
     );
 
-    const text =
+    let text =
       response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const receitas = JSON.parse(text);
-    this.logger.log('Recipes generated with Gemini');
+
+    // Remove markdown code blocks if present
+    const jsonMatch = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
+    if (jsonMatch) {
+      text = jsonMatch[1];
+    }
+
+    // Try to parse as array first, then wrap if single object
+    let receitas: Receita[] = [];
+    const parsed = JSON.parse(text);
+
+    if (Array.isArray(parsed)) {
+      receitas = parsed;
+    } else {
+      // If it's a single recipe, wrap it in array and normalize fields
+      receitas = [{
+        titulo: parsed.titulo || parsed.nome || '',
+        descricao: parsed.descricao || '',
+        tempo_preparo: parsed.tempo_preparo || `${parsed.tempo_preparo_minutos || 30} minutos`,
+        dificuldade: (parsed.dificuldade || 'médio').toLowerCase() as 'fácil' | 'médio' | 'difícil',
+        ingredientes: parsed.ingredientes?.map((ing: any) =>
+          typeof ing === 'string' ? ing : `${ing.item} - ${ing.quantidade}`
+        ) || [],
+        modo_preparo: Array.isArray(parsed.instrucoes)
+          ? parsed.instrucoes.join('\n')
+          : parsed.modo_preparo || '',
+        rendimento: parsed.rendimento || `${parsed.rendimento_porcoes || 2} porções`,
+      }];
+    }
+
+    this.logger.log(`Recipes generated with Gemini (${receitas.length} recipes)`);
     return receitas;
   }
 
