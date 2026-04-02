@@ -139,32 +139,46 @@ Retorne APENAS um JSON array válido, sem markdown ou explicação adicional. Fo
   }
 
   private getReceitasMock(ingredientes: string[]): Receita[] {
+    const ingred1 = ingredientes.slice(0, 2).join(', ') || 'vegetais';
+    const ingred2 = ingredientes.slice(1, 3).join(', ') || 'ingredientes selecionados';
+    const ingred3 = ingredientes.slice(0, 4).join(', ') || 'ingredientes disponíveis';
+
     return [
       {
-        titulo: 'Salada Nutritiva',
-        descricao: 'Uma salada fresca e saudável',
-        tempo_preparo: '10 minutos',
+        titulo: `Prato com ${ingredientes[0] || 'Vegetais'}`,
+        descricao: `Receita deliciosa usando ${ingred1}`,
+        tempo_preparo: '15 minutos',
         dificuldade: 'fácil',
         ingredientes: ingredientes.slice(0, 3),
-        modo_preparo: '1. Lave e corte os vegetais\n2. Misture em uma tigela\n3. Adicione tempero a gosto',
+        modo_preparo: `1. Prepare ${ingredientes[0] || 'os ingredientes'}
+2. Tempere conforme seu gosto
+3. Cozinhe em fogo médio por 10-15 minutos
+4. Sirva quente e aproveite`,
         rendimento: '2 porções',
       },
       {
-        titulo: 'Refogado Rápido',
-        descricao: 'Refogado colorido e saboroso',
-        tempo_preparo: '15 minutos',
+        titulo: `Refogado com ${ingredientes[1] || 'Ingredientes Selecionados'}`,
+        descricao: `Refogado prático usando ${ingred2}`,
+        tempo_preparo: '20 minutos',
         dificuldade: 'fácil',
         ingredientes: ingredientes.slice(0, 4),
-        modo_preparo: '1. Aqueça óleo\n2. Refogue os ingredientes\n3. Tempere e sirva',
+        modo_preparo: `1. Aqueça óleo em uma panela
+2. Adicione ${ingredientes.slice(0, 2).join(' e ') || 'seus ingredientes'}
+3. Refogue até ficar macio (cerca de 10 minutos)
+4. Tempere e sirva acompanhado`,
         rendimento: '3 porções',
       },
       {
-        titulo: 'Prato Completo',
-        descricao: 'Uma refeição balanceada',
+        titulo: `Combinação Especial`,
+        descricao: `Prato completo com ${ingred3}`,
         tempo_preparo: '30 minutos',
         dificuldade: 'médio',
-        ingredientes: ingredientes,
-        modo_preparo: '1. Prepare a base\n2. Cozinhe os ingredientes\n3. Finalize e sirva quente',
+        ingredientes: ingredientes.slice(0, 5),
+        modo_preparo: `1. Prepare todos os ${ingredientes.length} ingredientes
+2. Cozinhe os que precisam de mais tempo primeiro
+3. Combine gradualmente os outros
+4. Ajuste tempero e deixar em fogo baixo por 5 minutos
+5. Sirva em prato quente`,
         rendimento: '4 porções',
       },
     ];
