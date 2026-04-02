@@ -29,9 +29,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const token = await SecureStore.getItemAsync('accessToken');
       if (token) {
-        const response = await api.get('/usuarios/me');
-        const userData = response.data.data || response.data.user || response.data;
-        setUser(userData);
+        try {
+          const response = await api.get('/usuarios/me');
+          const userData = response.data.data || response.data.user || response.data;
+          setUser(userData);
+        } catch (err: any) {
+          // Token inválido/expirado - limpar
+          if (err.response?.status === 401) {
+            await SecureStore.deleteItemAsync('accessToken');
+            await SecureStore.deleteItemAsync('refreshToken');
+            setUser(null);
+          }
+          console.error('Failed to restore token:', err);
+        }
       }
     } catch (e) {
       console.error('Failed to restore token:', e);

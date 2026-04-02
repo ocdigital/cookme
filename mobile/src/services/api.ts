@@ -54,21 +54,24 @@ api.interceptors.response.use(
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
         if (refreshToken) {
           const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refreshToken,
+            refresh_token: refreshToken, // Backend espera refresh_token
           });
 
-          const { accessToken } = response.data.data;
-          await SecureStore.setItemAsync('accessToken', accessToken);
+          // Backend retorna AuthResponseDto diretamente
+          const newAccessToken = response.data.access_token || response.data.accessToken;
+          if (newAccessToken) {
+            await SecureStore.setItemAsync('accessToken', newAccessToken);
 
-          api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-          (originalRequest as any).headers.Authorization = `Bearer ${accessToken}`;
-          return api(originalRequest);
+            api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
+            (originalRequest as any).headers.Authorization = `Bearer ${newAccessToken}`;
+            return api(originalRequest);
+          }
         }
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         await SecureStore.deleteItemAsync('accessToken');
         await SecureStore.deleteItemAsync('refreshToken');
         // Redirect to login
-        console.error('Token refresh failed:', refreshError);
       }
     }
 
