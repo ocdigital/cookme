@@ -160,7 +160,22 @@ export default function ReceiptOcrScreen() {
   };
 
   const handleConfirm = () => {
-    setCurrentStep('success');
+    // Enviar para validação com os produtos extraídos
+    if (ocrResult) {
+      const produtosJson = JSON.stringify(
+        ocrResult.items.map(item => ({
+          nome: item.name,
+          categoria: 'Alimento',
+          confianca_classificacao: 85,
+          motivo: 'Extraído do cupom fiscal',
+          ingrediente_receita: true,
+        }))
+      );
+      router.push({
+        pathname: '/(app)/validacao',
+        params: { produtos_json: produtosJson }
+      });
+    }
   };
 
   const handleDone = () => {
