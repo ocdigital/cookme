@@ -1,18 +1,38 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  Modal,
+  TextInput,
+  SafeAreaView,
   ActivityIndicator,
+  Alert,
   RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useListas } from '@/hooks/useListas';
 import api from '@/services/api';
-import { Compra } from '@/types';
+
+interface Compra {
+  id: string;
+  local: string;
+  data: string;
+  total: number;
+  economia?: number;
+  itens?: Array<{
+    nome: string;
+    quantidade: number;
+    preco_unitario: number;
+  }>;
+}
 
 export default function ShoppingScreen() {
+  const router = useRouter();
   const [purchases, setPurchases] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -20,30 +40,34 @@ export default function ShoppingScreen() {
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
-    loadPurchases();
-    loadStats();
+    // loadPurchases();
+    // loadStats();
+    // Placeholder - compras endpoint não existe yet
+    setLoading(false);
   }, []);
 
   const loadPurchases = async () => {
-    try {
-      setError(null);
-      const response = await api.get('/compras');
-      setPurchases(response.data || []);
-    } catch (err) {
-      console.error('Erro ao carregar compras:', err);
-      setError('Erro ao carregar compras');
-    } finally {
-      setLoading(false);
-    }
+    // TODO: Implement when compras API is ready
+    // try {
+    //   setError(null);
+    //   const response = await api.get('/compras');
+    //   setPurchases(response.data || []);
+    // } catch (err) {
+    //   console.error('Erro ao carregar compras:', err);
+    //   setError('Erro ao carregar compras');
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   const loadStats = async () => {
-    try {
-      const response = await api.get('/compras/stats');
-      setStats(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar estatísticas:', err);
-    }
+    // TODO: Implement when compras API is ready
+    // try {
+    //   const response = await api.get('/compras/stats');
+    //   setStats(response.data);
+    // } catch (err) {
+    //   console.error('Erro ao carregar estatísticas:', err);
+    // }
   };
 
   const onRefresh = async () => {
@@ -127,7 +151,7 @@ export default function ShoppingScreen() {
               {stats.totalEconomia > 0 && (
                 <View style={styles.statCard}>
                   <MaterialCommunityIcons
-                    name="coin-multiple"
+                    name="cash-multiple"
                     size={24}
                     color="#4CAF50"
                   />
@@ -140,7 +164,6 @@ export default function ShoppingScreen() {
             </View>
           ) : null
         }
-        data={purchases}
         data={purchases}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -206,6 +229,14 @@ export default function ShoppingScreen() {
         }
         contentContainerStyle={styles.listContent}
       />
+
+      {/* FAB para OCR */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/(app)/receita-ocr')}
+      >
+        <MaterialCommunityIcons name="receipt" size={28} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -374,5 +405,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 100,
+    right: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FF6B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });

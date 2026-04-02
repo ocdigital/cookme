@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Put,
   Delete,
   Body,
   Param,
@@ -45,14 +46,25 @@ export class InventarioController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar todo o inventário' })
+  @ApiOperation({ summary: 'Listar inventário com detalhes de produtos' })
+  @ApiQuery({
+    name: 'ingrediente_receita',
+    required: false,
+    type: Boolean,
+    description: 'Filtrar apenas ingredientes de receita (true/false)',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Lista do inventário (ordenado por validade)',
-    type: [Inventario],
+    description: 'Lista do inventário enriquecida com detalhes de classificação',
   })
-  async findAll(@CurrentUser() user: Usuario): Promise<Inventario[]> {
-    return this.inventarioService.findAll(user.id);
+  async findAll(
+    @CurrentUser() user: Usuario,
+    @Query('ingrediente_receita') ingrediente_receita?: string,
+  ): Promise<any> {
+    return this.inventarioService.findAllWithProductDetails(
+      user.id,
+      ingrediente_receita === 'true' ? true : ingrediente_receita === 'false' ? false : undefined,
+    );
   }
 
   @Get('stats')
@@ -103,8 +115,23 @@ export class InventarioController {
     return this.inventarioService.findOne(id, user.id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Atualizar item do inventário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Item atualizado com sucesso',
+  })
+  @ApiResponse({ status: 404, description: 'Item não encontrado' })
+  async updatePut(
+    @CurrentUser() user: Usuario,
+    @Param('id') id: string,
+    @Body() updateInventarioDto: UpdateInventarioDto,
+  ): Promise<any> {
+    return this.inventarioService.updateWithProductDetails(id, user.id, updateInventarioDto);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Atualizar item do inventário (PATCH)' })
   @ApiResponse({
     status: 200,
     description: 'Item atualizado com sucesso',

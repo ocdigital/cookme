@@ -4,6 +4,7 @@ Sistema completo para gerenciamento inteligente de inventário alimentar, com su
 
 ## 📋 Índice
 
+- [🚀 Início Rápido](#-início-rápido)
 - [Visão Geral](#visão-geral)
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Tecnologias Utilizadas](#tecnologias-utilizadas)
@@ -12,6 +13,50 @@ Sistema completo para gerenciamento inteligente de inventário alimentar, com su
 - [Como Usar](#como-usar)
 - [Funcionalidades](#funcionalidades)
 - [Contribuindo](#contribuindo)
+
+## 🚀 Início Rápido
+
+### Opção 1: Automática (Recomendado)
+
+```bash
+# Inicia tudo automaticamente (Docker + Backend + Frontend + Mobile)
+./startup.sh
+
+# Ver status dos serviços
+./startup.sh --status
+
+# Parar tudo quando terminar
+./startup.sh --stop
+```
+
+**Documentação completa:** [STARTUP_SCRIPT.md](STARTUP_SCRIPT.md)
+
+### Opção 2: Manual Rápido
+
+```bash
+# Terminal 1: Docker
+docker-compose up -d
+
+# Terminal 2: Backend (NestJS)
+cd backend && npm install && npm run start:dev
+
+# Terminal 3: Frontend (Vite React)
+cd frontend && npm install && npm run dev
+
+# Terminal 4: Mobile (Expo React Native)
+cd mobile && npm install && npx expo start
+```
+
+### Acessar Serviços
+
+| Serviço | URL |
+|---------|-----|
+| Backend API | http://localhost:3000 |
+| Swagger Docs | http://localhost:3000/api/docs |
+| Frontend | http://localhost:5173 |
+| Mobile | Expo Go (QR code) |
+
+---
 
 ## 🎯 Visão Geral
 

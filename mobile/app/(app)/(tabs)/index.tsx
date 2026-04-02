@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
@@ -136,19 +136,19 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.popularSection}>
+            <TouchableOpacity style={styles.popularCard} onPress={() => router.push('/(app)/qr-scanner')}>
+              <MaterialCommunityIcons name="qrcode-scan" size={40} color="#FF6B6B" />
+              <Text style={styles.popularText}>QR Scan</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.popularCard} onPress={() => router.push('/(app)/receita-ocr')}>
+              <MaterialCommunityIcons name="receipt" size={40} color="#FF6B6B" />
+              <Text style={styles.popularText}>OCR Receipt</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.popularCard}>
               <MaterialCommunityIcons name="apple" size={40} color="#FF6B6B" />
               <Text style={styles.popularText}>Fresh Items</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.popularCard}>
-              <MaterialCommunityIcons name="bottle-wine" size={40} color="#FF6B6B" />
-              <Text style={styles.popularText}>Beverages</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.popularCard}>
-              <MaterialCommunityIcons name="wheat" size={40} color="#FF6B6B" />
-              <Text style={styles.popularText}>Grains</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -9,10 +9,12 @@ import {
   RefreshControl,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import api from '@/services/api';
 import { Compra } from '@/types';
 
-export default function PurchasesScreen() {
+export default function ComprasScreen() {
+  const router = useRouter();
   const [purchases, setPurchases] = useState<Compra[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -171,6 +173,18 @@ export default function PurchasesScreen() {
                     <Text style={styles.cupomText}>{item.cupom}</Text>
                   </View>
                 )}
+
+                <TouchableOpacity
+                  style={styles.compareButton}
+                  onPress={() => router.push(`/(app)/comparacao?id=${item.id}`)}
+                >
+                  <MaterialCommunityIcons
+                    name="scale-balance"
+                    size={16}
+                    color="#FF6B6B"
+                  />
+                  <Text style={styles.compareButtonText}>Comparar com anterior</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -372,5 +386,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
+  },
+  compareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f5f5f5',
+    gap: 8,
+  },
+  compareButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FF6B6B',
   },
 });

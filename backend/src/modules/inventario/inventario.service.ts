@@ -4,12 +4,15 @@ import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Inventario } from './entities/inventario.entity';
 import { CreateInventarioDto } from './dto/create-inventario.dto';
 import { UpdateInventarioDto } from './dto/update-inventario.dto';
+import { Produto } from '../produtos/entities/produto.entity';
 
 @Injectable()
 export class InventarioService {
   constructor(
     @InjectRepository(Inventario)
     private readonly inventarioRepository: Repository<Inventario>,
+    @InjectRepository(Produto)
+    private readonly produtoRepository: Repository<Produto>,
   ) {}
 
   /**
@@ -186,5 +189,115 @@ export class InventarioService {
       itens_vencidos: vencidos.length,
       valor_estimado: 0, // Pode calcular baseado em preços médios
     };
+  }
+
+  /**
+   * Lista inventário enriquecido com detalhes de classificação dos produtos
+   * Formato esperado pelo mobile app
+   */
+  async findAllWithProductDetails(
+    usuarioId: string,
+    ingrediente_receita?: boolean,
+  ): Promise<any> {
+    let query = this.inventarioRepository
+      .createQueryBuilder('inventario')
+      .leftJoinAndSelect('inventario.produto', 'produto')
+      .leftJoinAndSelect('produto.categoria', 'categoria')
+      .where('inventario.usuario_id = :usuarioId', { usuarioId })
+      .orderBy('inventario.data_validade', 'ASC');
+
+    if (ingrediente_receita !== undefined) {
+      query = query.andWhere('produto.ingrediente_receita = :ingrediente_receita', {
+        ingrediente_receita,
+      });
+    }
+
+    const itens = await query.getMany();
+
+    // Mapear para o formato esperado pelo mobile
+    const produtos = itens.map((item) => ({
+      id: item.id,
+      nome: item.produto.nome,
+      categoria: item.produto.categoria?.nome || 'Sem categoria',
+      quantidade_disponivel: Number(item.quantidade_disponivel),
+      unidade: item.unidade,
+      ingrediente_receita: item.produto.ingrediente_receita,
+      confianca_classificacao: item.produto.confianca_classificacao || 0,
+      data_adicao: item.criado_em,
+      imagem_url: item.produto.imagem_url,
+    }));
+
+    // Calcular estatísticas
+    const alimentos = produtos.filter((p) => p.ingrediente_receita).length;
+    const nao_alimentos = produtos.filter((p) => !p.ingrediente_receita).length;
+
+    return {
+      total_produtos: produtos.length,
+      alimentos,
+      nao_alimentos,
+      produtos,
+    };
+  }
+
+  /**
+   * Atualiza item e retorna detalhes com classificação
+   */
+  async updateWithProductDetails(
+    id: string,
+    usuarioId: string,
+    updateInventarioDto: UpdateInventarioDto,
+  ): Promise<any> {
+    const item = await this.findOne(id, usuarioId);
+
+    if (updateInventarioDto.quantidade_disponivel !== undefined) {
+      item.quantidade_disponivel = updateInventarioDto.quantidade_disponivel;
+    }
+
+    if (updateInventarioDto.data_validade) {
+      item.data_validade = new Date(updateInventarioDto.data_validade);
+    }
+
+    if (updateInventarioDto.localizacao) {
+      item.localizacao = updateInventarioDto.localizacao;
+    }
+
+    const updated = await this.inventarioRepository.save(item);
+
+    // Recarregar com relações
+    const reloaded = await this.inventarioRepository.findOne({
+      where: { id: updated.id },
+      relations: ['produto', 'produto.categoria'],
+    });
+
+    if (!reloaded) {
+      throw new NotFoundException('Item não encontrado após atualização');
+    }
+
+    return {
+      id: reloaded.id,
+      nome: reloaded.produto.nome,
+      categoria: reloaded.produto.categoria?.nome || 'Sem categoria',
+      quantidade_disponivel: Number(reloaded.quantidade_disponivel),
+      unidade: reloaded.unidade,
+      ingrediente_receita: reloaded.produto.ingrediente_receita,
+      confianca_classificacao: reloaded.produto.confianca_classificacao || 0,
+      data_adicao: reloaded.criado_em,
+      imagem_url: reloaded.produto.imagem_url,
+    };
+  }
+
+  /**
+   * Busca item de inventário por usuário e produto
+   */
+  async findByProdutoAndUsuario(
+    usuarioId: string,
+    produtoId: string,
+  ): Promise<Inventario | null> {
+    return this.inventarioRepository.findOne({
+      where: {
+        usuario_id: usuarioId,
+        produto_id: produtoId,
+      },
+    });
   }
 }

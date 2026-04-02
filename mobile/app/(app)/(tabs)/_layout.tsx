@@ -2,14 +2,35 @@ import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { DrawerNavigationProp } from '@react-navigation/drawer';
+import { useNavigation } from '@react-navigation/native';
 
 export default function TabsLayout() {
   const router = useRouter();
+  const navigation = useNavigation<DrawerNavigationProp<any>>();
 
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: '#fff',
+          borderBottomWidth: 1,
+          borderBottomColor: '#eee',
+        },
+        headerTintColor: '#333',
+        headerTitleStyle: {
+          fontWeight: '700',
+          fontSize: 18,
+        },
+        headerLeft: () => (
+          <TouchableOpacity
+            style={{ paddingLeft: 16 }}
+            onPress={() => navigation.toggleDrawer()}
+          >
+            <MaterialCommunityIcons name="menu" size={24} color="#333" />
+          </TouchableOpacity>
+        ),
         tabBarActiveTintColor: '#FF6B6B',
         tabBarInactiveTintColor: '#999',
         tabBarStyle: {
@@ -21,6 +42,9 @@ export default function TabsLayout() {
           height: 70,
           flexDirection: 'row',
           justifyContent: 'space-around',
+          marginBottom: 35,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -121,10 +145,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    elevation: 8,
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
 });

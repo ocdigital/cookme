@@ -22,6 +22,7 @@ import { NotificacaoModule } from './modules/notificacoes/notificacao.module';
 
 import { IAModule } from './modules/ia/ia.module';
 import { ComparacoesModule } from './modules/comparacoes/comparacoes.module';
+import { ListasModule } from './modules/listas/listas.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { ComparacoesModule } from './modules/comparacoes/comparacoes.module';
 
     IAModule,
     ComparacoesModule,
+    ListasModule,
   ],
 })
 export class AppModule { }

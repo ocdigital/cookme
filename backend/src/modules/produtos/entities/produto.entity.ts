@@ -94,6 +94,18 @@ export class Produto {
     @Column({ default: false })
     verificado: boolean;
 
+    // Flag: pode ser usado como ingrediente em receitas
+    @Column({ default: false })
+    ingrediente_receita: boolean;
+
+    // Classificação IA: confiança da classificação (0-100)
+    @Column({ type: 'int', nullable: true, default: null })
+    confianca_classificacao: number;
+
+    // Precisa validação manual?
+    @Column({ default: false })
+    requer_validacao_manual: boolean;
+
     @CreateDateColumn()
     criado_em: Date;
 
