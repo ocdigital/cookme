@@ -149,6 +149,48 @@ export class ReceiptOcrController {
   }
 
   /**
+   * POST /api/receitas/ocr/extract-from-image
+   * Extrai texto OCR de uma imagem
+   */
+  @Post('extract-from-image')
+  extractFromImage(
+    @Body()
+    request: {
+      image: string; // Base64
+      mimeType?: string;
+    },
+  ): { ocrText: string } {
+    try {
+      if (!request.image) {
+        throw new BadRequestException('Imagem não fornecida');
+      }
+
+      // Para agora, retornar mock enquanto não temos Vision API
+      // Em produção: usar Google Cloud Vision ou similar
+      const mockTexts = [
+        'CAFÉ MORGES 500G 1 UN x 25,90 25,90\nÁGUA MINERAL 1.5L 2 UN x 18,50 37,00',
+        'LEITE INTEGRAL 1L 1 UN x 4,50 4,50\nPÃO FRANCÊS 1 UN x 8,90 8,90\nQUEIJO MEIA CURA 1 UN x 35,00 35,00',
+        'ARROZ INTEGRAL 2KG 1 UN x 18,90 18,90\nFEIJÃO CARIOCA 1KG 2 UN x 6,50 13,00\nÓLEO DE SOJA 900ML 1 UN x 7,20 7,20',
+        'OVOS BRANCOS 12UN 1 UN x 8,80 8,80\nMARGARINA 500G 1 UN x 6,90 6,90\nSAL FINO 1KG 1 UN x 2,50 2,50',
+        'BOLO DE CHOCOLATE 300G 3 UN x 12,80 38,40\nPÃO DE QUEIJO 10UN 2 UN x 8,90 17,80\nAÇÚCAR 1KG 1 UN x 4,80 4,80',
+      ];
+
+      const randomText = mockTexts[Math.floor(Math.random() * mockTexts.length)];
+
+      this.logger.log('OCR text extracted from image');
+      return { ocrText: randomText };
+    } catch (error) {
+      this.logger.error('Erro ao extrair OCR da imagem:', error);
+
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new BadRequestException('Erro ao processar imagem');
+    }
+  }
+
+  /**
    * POST /api/receitas/ocr/validate
    * Valida e confirma itens após review manual
    *

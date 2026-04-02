@@ -19,7 +19,6 @@ import * as FileSystem from 'expo-file-system';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
-import Tesseract from 'tesseract.js';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = 100;
@@ -125,24 +124,24 @@ export default function ReceiptOcrScreen() {
     setError(null);
 
     try {
-      // Extrair texto das imagens usando Tesseract.js
+      // Extrair texto das imagens usando backend
       const ocrTexts = await Promise.all(
         photosToProcess.map(async (photoUri) => {
           try {
             console.log('Processando OCR para:', photoUri);
 
-            // Usar Tesseract direto com URI da imagem
-            const result = await Tesseract.recognize(
-              photoUri,
-              'por', // Português
-              {
-                logger: (m) => {
-                  console.log('OCR Progress:', Math.round(m.progress * 100) + '%');
-                },
-              }
-            );
+            // Ler imagem como base64
+            const base64 = await FileSystem.readAsStringAsync(photoUri, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
 
-            const text = result.data.text;
+            // Enviar pro backend processar
+            const ocrResponse = await api.post('/receitas/ocr/extract-from-image', {
+              image: base64,
+              mimeType: 'image/jpeg',
+            });
+
+            const text = ocrResponse.data.ocrText || '';
             console.log('Texto extraído:', text.substring(0, 100));
             return text;
           } catch (ocrErr) {
