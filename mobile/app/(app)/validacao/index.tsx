@@ -78,7 +78,7 @@ export default function ValidacaoScreen() {
     }
   };
 
-  const handleFinalizarValidacao = () => {
+  const handleFinalizarValidacao = async () => {
     const alimentos = items.filter((p) => p.eh_alimento).length;
     const nao_alimentos = items.filter((p) => !p.eh_alimento).length;
 
@@ -93,9 +93,39 @@ export default function ValidacaoScreen() {
         },
         {
           text: 'Confirmar',
-          onPress: () => {
-            // TODO: Salvar e ir para inventário
-            router.push('/inventario');
+          onPress: async () => {
+            // Salvar produtos validados no inventário
+            try {
+              for (const item of items) {
+                // Criar/atualizar produto
+                const produtoRes = await api.post('/produtos', {
+                  nome: item.nome,
+                  categoria: item.categoria,
+                  ingrediente_receita: item.eh_alimento,
+                  confianca_classificacao: Math.round(item.confianca),
+                });
+
+                const produtoId = produtoRes.data.id;
+
+                // Adicionar ao inventário
+                await api.post('/inventario', {
+                  produto_id: produtoId,
+                  quantidade_disponivel: 1,
+                  unidade: 'un',
+                  metodo_atualizacao: 'OCR_NOTA',
+                });
+              }
+
+              Alert.alert('✅ Sucesso', 'Produtos salvos no inventário!', [
+                {
+                  text: 'Ver Inventário',
+                  onPress: () => router.push('/(app)/inventario'),
+                },
+              ]);
+            } catch (error) {
+              Alert.alert('Erro', 'Falha ao salvar produtos');
+              console.error(error);
+            }
           },
         },
       ],
