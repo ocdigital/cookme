@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { Camera, CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
@@ -130,10 +129,22 @@ export default function ReceiptOcrScreen() {
           try {
             console.log('Processando OCR para:', photoUri);
 
-            // Ler imagem como base64
-            const base64 = await FileSystem.readAsStringAsync(photoUri, {
-              encoding: 'base64',
+            // Ler imagem como base64 usando fetch
+            const response = await fetch(photoUri);
+            const blob = await response.blob();
+
+            // Converter blob pra base64
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve, reject) => {
+              reader.onload = () => {
+                const result = reader.result as string;
+                const base64 = result.split(',')[1]; // Remove "data:image/jpeg;base64,"
+                resolve(base64);
+              };
+              reader.onerror = reject;
             });
+            reader.readAsDataURL(blob);
+            const base64 = await base64Promise;
 
             // Enviar pro backend processar
             const ocrResponse = await api.post('/receitas/ocr/extract-from-image', {
