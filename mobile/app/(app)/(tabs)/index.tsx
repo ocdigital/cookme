@@ -1,345 +1,235 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  SafeAreaView,
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+} from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import api from '@/services/api';
 
-export default function HomeScreen() {
+interface Produto {
+  id: string;
+  nome: string;
+  quantidade_disponivel: number;
+  unidade: string;
+  confianca_classificacao?: number;
+  ingrediente_receita?: boolean;
+}
+
+export default function InventarioScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [recipes, setRecipes] = useState<any[]>([]);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadRecipes();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      carregarInventario();
+    }, [])
+  );
 
-  const loadRecipes = async () => {
+  const carregarInventario = async () => {
     try {
-      const response = await api.get('/receitas', { params: { limit: 6 } });
-      setRecipes(response.data?.data || response.data || []);
-    } catch (err) {
-      console.error('Erro ao carregar receitas:', err);
+      setLoading(true);
+      const response = await api.get('/inventario');
+      const data = response.data?.produtos || response.data?.data || [];
+      setProdutos(data);
+    } catch (error) {
+      console.error('Erro ao carregar inventário:', error);
+      Alert.alert('Erro', 'Falha ao carregar inventário');
     } finally {
       setLoading(false);
     }
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await carregarInventario();
+    setRefreshing(false);
   };
 
+  const abrirScanCupom = () => {
+    router.push('/(app)/receita-ocr');
+  };
+
+  const removerProduto = async (id: string) => {
+    try {
+      await api.delete(`/inventario/${id}`);
+      setProdutos(produtos.filter(p => p.id !== id));
+      Alert.alert('Sucesso', 'Produto removido');
+    } catch (error) {
+      Alert.alert('Erro', 'Falha ao remover produto');
+    }
+  };
+
+  const renderProdutoItem = ({ item }: { item: Produto }) => (
+    <View style={styles.produtoCard}>
+      <View style={styles.produtoInfo}>
+        <Text style={styles.produtoNome}>{item.nome}</Text>
+        <Text style={styles.produtoQtd}>
+          {item.quantidade_disponivel} {item.unidade}
+        </Text>
+        {item.confianca_classificacao !== undefined && (
+          <Text style={styles.confianca}>
+            Confiança: {Math.round(item.confianca_classificacao)}%
+          </Text>
+        )}
+      </View>
+      <TouchableOpacity
+        style={styles.btnRemover}
+        onPress={() => removerProduto(item.id)}
+      >
+        <MaterialCommunityIcons name="trash-can-outline" size={20} color="#FF6B6B" />
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      {/* Fixed Header */}
-      <View style={styles.headerFixed}>
-        <View style={styles.headerTop}>
-          <View style={styles.locationSection}>
-            <MaterialCommunityIcons name="map-marker" size={20} color="#FF6B6B" />
-            <View style={styles.locationText}>
-              <Text style={styles.deliverLabel}>DELIVER TO</Text>
-              <View style={styles.locationPicker}>
-                <Text style={styles.locationName}>Minha Casa</Text>
-                <MaterialCommunityIcons name="chevron-down" size={16} color="#333" />
-              </View>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.profileButton}>
-            <View style={styles.profileIcon}>
-              <MaterialCommunityIcons name="account-circle" size={32} color="#fff" />
-            </View>
-          </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      {/* Header com stats */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Inventário</Text>
+          <Text style={styles.subtitle}>{produtos.length} produtos</Text>
         </View>
       </View>
 
-      {/* Scrollable Content */}
-      <ScrollView
-        style={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Greeting */}
-        <View style={styles.greetingSection}>
-          <Text style={styles.greeting}>Hey {user?.nome?.split(' ')[0]}, {getGreeting()}!</Text>
+      {/* Botão Scan Cupom */}
+      <TouchableOpacity style={styles.btnScan} onPress={abrirScanCupom}>
+        <MaterialCommunityIcons name="barcode-scan" size={24} color="#fff" />
+        <Text style={styles.btnScanText}>Escanear Cupom</Text>
+      </TouchableOpacity>
+
+      {/* Lista de produtos */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF6B6B" />
         </View>
-
-        {/* Search Bar */}
-        <View style={styles.searchSection}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#999" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search recipes, ingredients"
-            placeholderTextColor="#999"
-            value={searchText}
-            onChangeText={setSearchText}
-          />
+      ) : produtos.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="inbox-multiple-outline" size={64} color="#ddd" />
+          <Text style={styles.emptyText}>Nenhum produto no inventário</Text>
+          <Text style={styles.emptySubtext}>Escaneie um cupom para começar</Text>
         </View>
-
-        {/* All Recipes */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>All Recipes</Text>
-            <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/recipes')}>
-              <Text style={styles.seeAll}>See All</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.recipesGrid}>
-            {recipes.slice(0, 2).map((recipe, idx) => (
-              <TouchableOpacity
-                key={recipe.id}
-                style={styles.recipeCard}
-                onPress={() => router.push('/(app)/(tabs)/recipes')}
-              >
-                {recipe.imagem_url ? (
-                  <Image
-                    source={{ uri: recipe.imagem_url }}
-                    style={styles.recipeImage}
-                  />
-                ) : (
-                  <View style={styles.recipeImagePlaceholder}>
-                    <MaterialCommunityIcons name="book-outline" size={40} color="#ddd" />
-                  </View>
-                )}
-                <View style={styles.recipeCardContent}>
-                  <Text style={styles.recipeCardTitle} numberOfLines={2}>
-                    {recipe.nome}
-                  </Text>
-                  <View style={styles.recipeCardMeta}>
-                    <View style={styles.metaItem}>
-                      <MaterialCommunityIcons name="clock-outline" size={14} color="#999" />
-                      <Text style={styles.metaText}>{recipe.tempo_preparo || '-'}min</Text>
-                    </View>
-                    <View style={styles.metaItem}>
-                      <MaterialCommunityIcons name="star" size={14} color="#FFA500" />
-                      <Text style={styles.metaText}>{recipe.avaliacao_media?.toFixed(1) || '-'}</Text>
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Popular Ingredients */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Popular Ingredients</Text>
-            <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/shopping')}>
-              <Text style={styles.seeAll}>See All</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.popularSection}>
-            <TouchableOpacity style={styles.popularCard} onPress={() => router.push('/(app)/qr-scanner')}>
-              <MaterialCommunityIcons name="qrcode-scan" size={40} color="#FF6B6B" />
-              <Text style={styles.popularText}>QR Scan</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.popularCard} onPress={() => router.push('/(app)/receita-ocr')}>
-              <MaterialCommunityIcons name="receipt" size={40} color="#FF6B6B" />
-              <Text style={styles.popularText}>OCR Receipt</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.popularCard}>
-              <MaterialCommunityIcons name="apple" size={40} color="#FF6B6B" />
-              <Text style={styles.popularText}>Fresh Items</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.spacing} />
-      </ScrollView>
-    </View>
+      ) : (
+        <FlatList
+          data={produtos}
+          renderItem={renderProdutoItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  headerFixed: {
     backgroundColor: '#fff',
+  },
+  header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  locationSection: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  locationText: {
-    flex: 1,
-  },
-  deliverLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FF6B6B',
-    letterSpacing: 0.5,
-  },
-  locationPicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  profileButton: {
-    padding: 8,
-  },
-  profileIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 150,
-  },
-  greetingSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
   greeting: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
     color: '#333',
+    marginBottom: 4,
   },
-  searchSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 12,
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: 24,
-    top: 16,
-    zIndex: 1,
-  },
-  searchInput: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    paddingHorizontal: 44,
-    paddingVertical: 12,
+  subtitle: {
     fontSize: 14,
-    color: '#333',
-  },
-  section: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  seeAll: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FF6B6B',
-  },
-  recipesGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  recipeCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  recipeImage: {
-    width: '100%',
-    height: 120,
-    backgroundColor: '#f0f0f0',
-  },
-  recipeImagePlaceholder: {
-    width: '100%',
-    height: 120,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  recipeCardContent: {
-    padding: 12,
-  },
-  recipeCardTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  recipeCardMeta: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 11,
     color: '#999',
   },
-  popularSection: {
+  btnScan: {
+    backgroundColor: '#FF6B6B',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  popularCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
-  popularText: {
-    fontSize: 12,
+  btnScanText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  listContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  produtoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  produtoInfo: {
+    flex: 1,
+  },
+  produtoNome: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
+    marginBottom: 4,
+  },
+  produtoQtd: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  confianca: {
+    fontSize: 11,
+    color: '#FF6B6B',
+    fontWeight: '500',
+  },
+  btnRemover: {
+    padding: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 12,
     textAlign: 'center',
   },
-  spacing: {
-    height: 20,
+  emptySubtext: {
+    fontSize: 13,
+    color: '#999',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

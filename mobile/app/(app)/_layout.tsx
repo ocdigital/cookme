@@ -65,41 +65,6 @@ export default function AppLayout() {
         }}
       />
 
-      {/* OCR Receipt Scanner */}
-      <Drawer.Screen
-        name="receita-ocr/index"
-        options={{
-          drawerLabel: 'Digitalizar Cupom',
-          title: 'Cupom Fiscal',
-          drawerIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="receipt" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* QR Scanner */}
-      <Drawer.Screen
-        name="qr-scanner/index"
-        options={{
-          drawerLabel: 'Escanear Código',
-          title: 'Código de Barras',
-          drawerIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="qrcode-scan" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* Purchase Comparison */}
-      <Drawer.Screen
-        name="comparacao/index"
-        options={{
-          drawerLabel: 'Comparação de Compras',
-          title: 'Comparação',
-          drawerIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="scale-balance" size={size} color={color} />
-          ),
-        }}
-      />
     </Drawer>
   );
 }
