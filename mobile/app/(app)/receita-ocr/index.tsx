@@ -132,7 +132,7 @@ export default function ReceiptOcrScreen() {
 
             // Ler imagem como base64
             const base64 = await FileSystem.readAsStringAsync(photoUri, {
-              encoding: FileSystem.EncodingType.Base64,
+              encoding: 'base64',
             });
 
             // Enviar pro backend processar
