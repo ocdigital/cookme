@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.86.9:3000/api';
+// Try custom URL first, then localhost (for emulator), then fallback to fixed IP
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
