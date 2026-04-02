@@ -129,23 +129,22 @@ export default function ReceiptOcrScreen() {
       const ocrTexts = await Promise.all(
         photosToProcess.map(async (photoUri) => {
           try {
-            // Converter URI para base64 ou arquivo
-            const fileInfo = await FileSystem.readAsStringAsync(photoUri, {
-              encoding: FileSystem.EncodingType.Base64,
-            });
+            console.log('Processando OCR para:', photoUri);
 
-            // Usar Tesseract pra extrair texto
+            // Usar Tesseract direto com URI da imagem
             const result = await Tesseract.recognize(
-              `data:image/jpeg;base64,${fileInfo}`,
+              photoUri,
               'por', // Português
               {
                 logger: (m) => {
-                  console.log('OCR Progress:', m.progress);
+                  console.log('OCR Progress:', Math.round(m.progress * 100) + '%');
                 },
               }
             );
 
-            return result.data.text;
+            const text = result.data.text;
+            console.log('Texto extraído:', text.substring(0, 100));
+            return text;
           } catch (ocrErr) {
             console.error('Erro ao processar OCR:', ocrErr);
             return ''; // Retornar vazio em caso de erro
@@ -153,12 +152,22 @@ export default function ReceiptOcrScreen() {
         })
       );
 
+      // Filtrar textos vazios (que falharam)
+      const validOcrTexts = ocrTexts.filter((text) => text.length > 0);
+
+      if (validOcrTexts.length === 0) {
+        setError('Não consegui ler nenhuma imagem. Tente tirar fotos mais claras.');
+        setCurrentStep('choose');
+        setIsLoading(false);
+        return;
+      }
+
       // Enviar para API do backend
       const response = await api.post('/receitas/ocr/process', {
-        photos: ocrTexts.map((text, idx) => ({
+        photos: validOcrTexts.map((text, idx) => ({
           ocrText: text,
           photoNumber: idx + 1,
-          totalPhotos: ocrTexts.length,
+          totalPhotos: validOcrTexts.length,
         })),
         ignoreWarnings: false,
       });
