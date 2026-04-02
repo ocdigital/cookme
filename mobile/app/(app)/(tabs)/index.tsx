@@ -61,6 +61,18 @@ export default function InventarioScreen() {
     router.push('/(app)/receita-ocr');
   };
 
+  const gerarReceitas = () => {
+    const nomes = produtos.map(p => p.nome);
+    if (nomes.length === 0) {
+      Alert.alert('Erro', 'Adicione produtos ao inventário primeiro');
+      return;
+    }
+    router.push({
+      pathname: '/(app)/receitas-geradas',
+      params: { ingredientes_json: JSON.stringify(nomes) }
+    });
+  };
+
   const removerProduto = async (id: string) => {
     try {
       await api.delete(`/inventario/${id}`);
@@ -103,11 +115,20 @@ export default function InventarioScreen() {
         </View>
       </View>
 
-      {/* Botão Scan Cupom */}
-      <TouchableOpacity style={styles.btnScan} onPress={abrirScanCupom}>
-        <MaterialCommunityIcons name="barcode-scan" size={24} color="#fff" />
-        <Text style={styles.btnScanText}>Escanear Cupom</Text>
-      </TouchableOpacity>
+      {/* Botões de ação */}
+      <View style={styles.buttonsContainer}>
+        <TouchableOpacity style={styles.btnScan} onPress={abrirScanCupom}>
+          <MaterialCommunityIcons name="barcode-scan" size={24} color="#fff" />
+          <Text style={styles.btnScanText}>Escanear Cupom</Text>
+        </TouchableOpacity>
+
+        {produtos.length > 0 && (
+          <TouchableOpacity style={styles.btnReceitas} onPress={gerarReceitas}>
+            <MaterialCommunityIcons name="chef-hat" size={24} color="#fff" />
+            <Text style={styles.btnReceitasText}>Gerar Receitas</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Lista de produtos */}
       {loading ? (
@@ -154,21 +175,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
   },
-  btnScan: {
-    backgroundColor: '#FF6B6B',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingVertical: 12,
+  buttonsContainer: {
+    flexDirection: 'row',
     paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  btnScan: {
+    flex: 1,
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
   btnScanText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  btnReceitas: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  btnReceitasText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
   listContent: {
