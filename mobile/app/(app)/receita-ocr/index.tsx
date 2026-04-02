@@ -125,16 +125,17 @@ export default function ReceiptOcrScreen() {
     try {
       // Simular extração de texto OCR das imagens
       // Em produção real: usar Google Vision ou similar
-      const ocrTexts = photosToProcess.map((_, idx) => {
-        // Simula texto OCR variado por imagem
-        const randomItems = [
-          'CAFÉ MORGES 500G 1 UN x 25,90 25,90\nÁGUA MINERAL 1.5L 2 UN x 18,50 37,00',
-          'LEITE INTEGRAL 1L 1 UN x 4,50 4,50\nPÃO FRANCÊS 1 UN x 8,90 8,90\nQUEIJO MEIA CURA 1 UN x 35,00 35,00',
-          'ARROZ INTEGRAL 2KG 1 UN x 18,90 18,90\nFEIJÃO CARIOCA 1KG 2 UN x 6,50 13,00\nÓLEO DE SOJA 900ML 1 UN x 7,20 7,20',
-          'OVOS BRANCOS 12UN 1 UN x 8,80 8,80\nMARGARINA 500G 1 UN x 6,90 6,90\nSAL FINO 1KG 1 UN x 2,50 2,50',
-          'BOLO DE CHOCOLATE 300G 3 UN x 12,80 38,40\nPÃO DE QUEIJO 10UN 2 UN x 8,90 17,80\nAÇÚCAR 1KG 1 UN x 4,80 4,80',
-        ];
-        return randomItems[idx % randomItems.length];
+      const randomItems = [
+        'CAFÉ MORGES 500G 1 UN x 25,90 25,90\nÁGUA MINERAL 1.5L 2 UN x 18,50 37,00',
+        'LEITE INTEGRAL 1L 1 UN x 4,50 4,50\nPÃO FRANCÊS 1 UN x 8,90 8,90\nQUEIJO MEIA CURA 1 UN x 35,00 35,00',
+        'ARROZ INTEGRAL 2KG 1 UN x 18,90 18,90\nFEIJÃO CARIOCA 1KG 2 UN x 6,50 13,00\nÓLEO DE SOJA 900ML 1 UN x 7,20 7,20',
+        'OVOS BRANCOS 12UN 1 UN x 8,80 8,80\nMARGARINA 500G 1 UN x 6,90 6,90\nSAL FINO 1KG 1 UN x 2,50 2,50',
+        'BOLO DE CHOCOLATE 300G 3 UN x 12,80 38,40\nPÃO DE QUEIJO 10UN 2 UN x 8,90 17,80\nAÇÚCAR 1KG 1 UN x 4,80 4,80',
+      ];
+
+      const ocrTexts = photosToProcess.map(() => {
+        // Randomiza item a cada foto
+        return randomItems[Math.floor(Math.random() * randomItems.length)];
       });
 
       // Enviar para API do backend
