@@ -402,6 +402,9 @@ export default function InventarioScreen() {
       >
         <MaterialCommunityIcons name="receipt" size={28} color="#fff" />
       </TouchableOpacity>
+    </SafeAreaView>
+  );
+}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
