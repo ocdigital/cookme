@@ -67,12 +67,8 @@ export class ProdutosService {
           'Produtos não alimentícios não podem ter categoria de alimentos',
         );
       }
-    } else if (tipo === ProductType.ALIMENTO) {
-      // Produtos alimentícios devem ter categoria
-      throw new BadRequestException(
-        'Produtos alimentícios devem ter uma categoria definida',
-      );
     }
+    // Categoria agora é opcional para produtos alimentícios (especialmente para OCR)
 
     const produto = this.produtoRepository.create({
       ...createProdutoDto,
