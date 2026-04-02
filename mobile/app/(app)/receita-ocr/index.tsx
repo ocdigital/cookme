@@ -123,33 +123,42 @@ export default function ReceiptOcrScreen() {
     setError(null);
 
     try {
-      // Mock de processamento OCR
-      // Em produção: enviar fotos para backend
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simular extração de texto OCR das imagens
+      // Em produção real: usar Google Vision ou similar
+      const ocrTexts = photosToProcess.map((_, idx) => {
+        // Simula texto OCR variado por imagem
+        const randomItems = [
+          'CAFÉ MORGES 500G 1 UN x 25,90 25,90\nÁGUA MINERAL 1.5L 2 UN x 18,50 37,00',
+          'LEITE INTEGRAL 1L 1 UN x 4,50 4,50\nPÃO FRANCÊS 1 UN x 8,90 8,90\nQUEIJO MEIA CURA 1 UN x 35,00 35,00',
+          'ARROZ INTEGRAL 2KG 1 UN x 18,90 18,90\nFEIJÃO CARIOCA 1KG 2 UN x 6,50 13,00\nÓLEO DE SOJA 900ML 1 UN x 7,20 7,20',
+          'OVOS BRANCOS 12UN 1 UN x 8,80 8,80\nMARGARINA 500G 1 UN x 6,90 6,90\nSAL FINO 1KG 1 UN x 2,50 2,50',
+          'BOLO DE CHOCOLATE 300G 3 UN x 12,80 38,40\nPÃO DE QUEIJO 10UN 2 UN x 8,90 17,80\nAÇÚCAR 1KG 1 UN x 4,80 4,80',
+        ];
+        return randomItems[idx % randomItems.length];
+      });
 
-      // Resultado fictício para demo
-      const mockResult: OcrResult = {
-        items: [
-          { name: 'CAFÉ MORGES VÁCUO 500G', quantity: 2, price: 25.90 },
-          { name: 'ÁGUA MIN BIOLEVE PRIME', quantity: 2, price: 18.50 },
-          { name: 'BOLO PANCO ABACAXI 300G', quantity: 3, price: 12.80 },
-          { name: 'LEITE INTEGRAL 1L', quantity: 1, price: 4.50 },
-          { name: 'PÃO DE QUEIJO', quantity: 2, price: 8.90 },
-          { name: 'QUEIJO MEIA CURA', quantity: 1, price: 35.00 },
-          { name: 'PRESUNTO SERENATA 200G', quantity: 1, price: 12.50 },
-          { name: 'OVOS BRANCOS 12UN', quantity: 1, price: 8.80 },
-          { name: 'ARROZ INTEGRAL 2KG', quantity: 1, price: 18.90 },
-          { name: 'FEIJÃO CARIOCA 1KG', quantity: 2, price: 6.50 },
-          { name: 'ÓLEO DE SOJA 900ML', quantity: 1, price: 7.20 },
-          { name: 'SAL FINO 1KG', quantity: 1, price: 2.50 },
-          { name: 'AÇÚCAR CRISTAL 1KG', quantity: 1, price: 4.80 },
-          { name: 'MARGARINA 500G', quantity: 1, price: 6.90 },
-        ],
-        duplicates: ['CAFÉ MORGES VÁCUO 500G', 'ÁGUA MIN BIOLEVE PRIME', 'BOLO PANCO ABACAXI 300G'],
-        total: 245.50,
+      // Enviar para API do backend
+      const response = await api.post('/receitas/ocr/process', {
+        photos: ocrTexts.map((text, idx) => ({
+          ocrText: text,
+          photoNumber: idx + 1,
+          totalPhotos: ocrTexts.length,
+        })),
+        ignoreWarnings: false,
+      });
+
+      // Converter resposta do backend para formato da UI
+      const result: OcrResult = {
+        items: response.data.items.map((item: any) => ({
+          name: item.nome,
+          quantity: item.quantidade,
+          price: item.preco_total,
+        })),
+        duplicates: response.data.duplicatesFlagged?.map((d: any) => d.nome) || [],
+        total: response.data.items.reduce((sum: number, item: any) => sum + item.preco_total, 0),
       };
 
-      setOcrResult(mockResult);
+      setOcrResult(result);
       setCurrentStep('review');
     } catch (err: any) {
       setError(err.message || 'Erro ao processar cupom');
