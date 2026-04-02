@@ -66,7 +66,8 @@ export default function ReceitasGeradasScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B6B" />
-          <Text style={styles.loadingText}>Gerando receitas...</Text>
+          <Text style={styles.loadingText}>Gerando receitas com IA...</Text>
+          <Text style={styles.loadingSubtext}>Isso pode levar alguns segundos</Text>
         </View>
       ) : receitas.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -238,6 +239,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 12,
+  },
+  loadingSubtext: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 6,
   },
   emptyContainer: {
     flex: 1,

@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.86.9:300
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000, // 60 segundos para chamadas que usam IA (Gemini pode demorar)
   headers: {
     'Content-Type': 'application/json',
   },
