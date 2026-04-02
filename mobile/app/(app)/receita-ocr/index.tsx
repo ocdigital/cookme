@@ -15,9 +15,11 @@ import {
 } from 'react-native';
 import { Camera, CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
+import Tesseract from 'tesseract.js';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = 100;
@@ -123,20 +125,33 @@ export default function ReceiptOcrScreen() {
     setError(null);
 
     try {
-      // Simular extração de texto OCR das imagens
-      // Em produção real: usar Google Vision ou similar
-      const randomItems = [
-        'CAFÉ MORGES 500G 1 UN x 25,90 25,90\nÁGUA MINERAL 1.5L 2 UN x 18,50 37,00',
-        'LEITE INTEGRAL 1L 1 UN x 4,50 4,50\nPÃO FRANCÊS 1 UN x 8,90 8,90\nQUEIJO MEIA CURA 1 UN x 35,00 35,00',
-        'ARROZ INTEGRAL 2KG 1 UN x 18,90 18,90\nFEIJÃO CARIOCA 1KG 2 UN x 6,50 13,00\nÓLEO DE SOJA 900ML 1 UN x 7,20 7,20',
-        'OVOS BRANCOS 12UN 1 UN x 8,80 8,80\nMARGARINA 500G 1 UN x 6,90 6,90\nSAL FINO 1KG 1 UN x 2,50 2,50',
-        'BOLO DE CHOCOLATE 300G 3 UN x 12,80 38,40\nPÃO DE QUEIJO 10UN 2 UN x 8,90 17,80\nAÇÚCAR 1KG 1 UN x 4,80 4,80',
-      ];
+      // Extrair texto das imagens usando Tesseract.js
+      const ocrTexts = await Promise.all(
+        photosToProcess.map(async (photoUri) => {
+          try {
+            // Converter URI para base64 ou arquivo
+            const fileInfo = await FileSystem.readAsStringAsync(photoUri, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
 
-      const ocrTexts = photosToProcess.map(() => {
-        // Randomiza item a cada foto
-        return randomItems[Math.floor(Math.random() * randomItems.length)];
-      });
+            // Usar Tesseract pra extrair texto
+            const result = await Tesseract.recognize(
+              `data:image/jpeg;base64,${fileInfo}`,
+              'por', // Português
+              {
+                logger: (m) => {
+                  console.log('OCR Progress:', m.progress);
+                },
+              }
+            );
+
+            return result.data.text;
+          } catch (ocrErr) {
+            console.error('Erro ao processar OCR:', ocrErr);
+            return ''; // Retornar vazio em caso de erro
+          }
+        })
+      );
 
       // Enviar para API do backend
       const response = await api.post('/receitas/ocr/process', {
