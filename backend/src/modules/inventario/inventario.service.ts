@@ -19,12 +19,17 @@ export class InventarioService {
    * Adiciona item ao inventário
    */
   async create(usuarioId: string, createInventarioDto: CreateInventarioDto): Promise<Inventario> {
+    // Set default expiry date to 30 days from now if not provided
+    const dataValidade = createInventarioDto.data_validade
+      ? new Date(createInventarioDto.data_validade)
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
     const inventario = this.inventarioRepository.create({
       usuario_id: usuarioId,
       produto_id: createInventarioDto.produto_id,
       quantidade_disponivel: createInventarioDto.quantidade_disponivel,
       unidade: createInventarioDto.unidade,
-      data_validade: new Date(createInventarioDto.data_validade),
+      data_validade: dataValidade,
       localizacao: createInventarioDto.localizacao,
       metodo_atualizacao: createInventarioDto.metodo_atualizacao,
       compra_item_id: createInventarioDto.compra_item_id,

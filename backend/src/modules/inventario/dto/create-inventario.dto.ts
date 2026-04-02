@@ -25,9 +25,10 @@ export class CreateInventarioDto {
   @IsEnum(UnidadeMedida)
   unidade: UnidadeMedida;
 
-  @ApiProperty({ description: 'Data de validade', example: '2025-06-15' })
+  @ApiProperty({ description: 'Data de validade', example: '2025-06-15', required: false })
   @IsDateString()
-  data_validade: string;
+  @IsOptional()
+  data_validade?: string;
 
   @ApiProperty({ description: 'Localização do produto', example: 'Geladeira', required: false })
   @IsString()

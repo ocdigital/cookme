@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useValidacao } from '@/hooks/useValidacao';
+import api from '@/services/api';
 
 interface ProdutoItem {
   nome: string;
@@ -100,7 +101,6 @@ export default function ValidacaoScreen() {
                 // Criar/atualizar produto
                 const produtoRes = await api.post('/produtos', {
                   nome: item.nome,
-                  categoria: item.categoria,
                   ingrediente_receita: item.eh_alimento,
                   confianca_classificacao: Math.round(item.confianca),
                 });
@@ -112,7 +112,7 @@ export default function ValidacaoScreen() {
                   produto_id: produtoId,
                   quantidade_disponivel: 1,
                   unidade: 'un',
-                  metodo_atualizacao: 'OCR_NOTA',
+                  metodo_atualizacao: 'ocr_nota',
                 });
               }
 

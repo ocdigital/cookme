@@ -6,7 +6,9 @@ import {
   IsUUID,
   IsEnum,
   IsInt,
+  IsBoolean,
   Min,
+  Max,
   IsArray,
   IsObject,
 } from 'class-validator';
@@ -63,9 +65,11 @@ export class CreateProdutoDto {
     description: 'Unidade de medida padrão',
     enum: UnidadeMedida,
     example: UnidadeMedida.KG,
+    required: false,
   })
   @IsEnum(UnidadeMedida)
-  unidade_padrao: UnidadeMedida;
+  @IsOptional()
+  unidade_padrao?: UnidadeMedida;
 
   @ApiProperty({
     description: 'Validade média em dias (para estimativa)',
@@ -107,4 +111,24 @@ export class CreateProdutoDto {
   @IsArray()
   @IsOptional()
   alternativas_ids?: string[];
+
+  @ApiProperty({
+    description: 'Confiança da classificação automática (0-100)',
+    example: 95,
+    required: false,
+  })
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  @IsOptional()
+  confianca_classificacao?: number;
+
+  @ApiProperty({
+    description: 'Se é ingrediente de receita',
+    example: true,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  ingrediente_receita?: boolean;
 }
