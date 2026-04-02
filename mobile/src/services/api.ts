@@ -71,7 +71,9 @@ api.interceptors.response.use(
         console.error('Token refresh failed:', refreshError);
         await SecureStore.deleteItemAsync('accessToken');
         await SecureStore.deleteItemAsync('refreshToken');
-        // Redirect to login
+
+        // Return rejection to trigger login screen
+        return Promise.reject(new Error('Session expired. Please login again.'));
       }
     }
 
