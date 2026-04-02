@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Anthropic } from '@anthropic-ai/sdk';
+import axios from 'axios';
 
 export interface Receita {
   titulo: string;
@@ -13,12 +14,29 @@ export interface Receita {
 
 @Injectable()
 export class RecipeGeneratorService {
-  private client: Anthropic;
+  private claudeClient: Anthropic | null;
+  private geminiKey: string;
 
   constructor() {
-    this.client = new Anthropic({
-      apiKey: process.env.CLAUDE_API_KEY,
-    });
+    try {
+      const apiKey = process.env.CLAUDE_API_KEY;
+      console.log('🔍 CLAUDE_API_KEY existe?', !!apiKey);
+
+      if (!apiKey) {
+        throw new Error('CLAUDE_API_KEY não configurada');
+      }
+
+      this.claudeClient = new Anthropic({
+        apiKey,
+      });
+      console.log('✅ Claude API inicializada com sucesso');
+    } catch (error: any) {
+      console.error('❌ Erro ao inicializar Claude:', error.message);
+      this.claudeClient = null;
+    }
+
+    this.geminiKey = process.env.GEMINI_API_KEY || '';
+    console.log('🔍 GEMINI_API_KEY existe?', !!this.geminiKey);
   }
 
   async gerarReceitas(ingredientes: string[]): Promise<Receita[]> {
@@ -43,31 +61,79 @@ Retorne APENAS um JSON array válido, sem markdown ou explicação adicional. Fo
   }
 ]`;
 
-    try {
-      const message = await this.client.messages.create({
-        model: 'claude-opus-4-6',
-        max_tokens: 2048,
-        messages: [
+    // Tenta Claude primeiro
+    if (this.claudeClient) {
+      try {
+        console.log('📍 Tentando Claude API...');
+        const resultado = await this.gerarComClaude(prompt);
+        return resultado;
+      } catch (error: any) {
+        console.error('❌ Claude ERRO:', error.message || error);
+      }
+    } else {
+      console.log('⚠️ Claude client não disponível');
+    }
+
+    // Fallback para Gemini
+    if (this.geminiKey) {
+      try {
+        console.log('📍 Tentando Gemini API...');
+        return await this.gerarComGemini(prompt);
+      } catch (error) {
+        console.warn('⚠️ Gemini falhou:', error);
+      }
+    }
+
+    // Se tudo falhar, retorna mock
+    console.log('📍 Usando receitas mock');
+    return this.getReceitasMock(ingredientes);
+  }
+
+  private async gerarComClaude(prompt: string): Promise<Receita[]> {
+    if (!this.claudeClient) throw new Error('Claude não disponível');
+
+    const message = await this.claudeClient.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 2048,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const content = message.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Resposta não é texto');
+    }
+
+    const receitas = JSON.parse(content.text);
+    console.log('✅ Receitas geradas com Claude');
+    return receitas;
+  }
+
+  private async gerarComGemini(prompt: string): Promise<Receita[]> {
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.geminiKey}`,
+      {
+        contents: [
           {
-            role: 'user',
-            content: prompt,
+            parts: [
+              {
+                text: prompt,
+              },
+            ],
           },
         ],
-      });
-
-      const content = message.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Resposta não é texto');
       }
+    );
 
-      // Parse JSON da resposta
-      const receitas = JSON.parse(content.text);
-      return receitas;
-    } catch (error) {
-      console.error('Erro ao gerar receitas:', error);
-      // Retornar receitas mock em caso de erro
-      return this.getReceitasMock(ingredientes);
-    }
+    const text =
+      response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const receitas = JSON.parse(text);
+    console.log('✅ Receitas geradas com Gemini');
+    return receitas;
   }
 
   private getReceitasMock(ingredientes: string[]): Receita[] {
