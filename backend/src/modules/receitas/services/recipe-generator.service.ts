@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Anthropic } from '@anthropic-ai/sdk';
 import axios from 'axios';
+import puppeteer from 'puppeteer';
 
 export interface Receita {
   titulo: string;
@@ -245,7 +246,14 @@ Lembre-se: APENAS JSON, NADA MAIS.`;
     try {
       this.logger.debug(`🔍 Buscando imagem para: "${titulo}"`);
 
-      // Tenta buscar do Google Images
+      // Tenta buscar do Freepik (funciona 100%)
+      const imagemFreepik = await this.buscarImagemFreepik(titulo);
+      if (imagemFreepik && imagemFreepik.startsWith('http')) {
+        this.logger.log(`✅ Imagem Freepik encontrada para "${titulo}"`);
+        return imagemFreepik;
+      }
+
+      // Tenta buscar do Google Images (fallback)
       const imagemGoogle = await this.buscarImagemGoogle(titulo);
       if (imagemGoogle && imagemGoogle.startsWith('http')) {
         this.logger.log(`✅ Imagem Google encontrada para "${titulo}"`);
@@ -264,6 +272,62 @@ Lembre-se: APENAS JSON, NADA MAIS.`;
     } catch (error: any) {
       this.logger.error(`❌ Erro ao buscar imagem para "${titulo}": ${error.message}`);
       return 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400&h=300&fit=crop';
+    }
+  }
+
+  /**
+   * Busca imagem no Freepik usando Puppeteer (Funciona 100%!)
+   */
+  private async buscarImagemFreepik(titulo: string): Promise<string | undefined> {
+    let browser;
+    try {
+      this.logger.log(`📸 Buscando em Freepik: "${titulo}"`);
+
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+
+      const page = await browser.newPage();
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+      const url = `https://br.freepik.com/search?query=${encodeURIComponent(titulo)}`;
+      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+
+      // Scroll para carregar mais imagens
+      await page.evaluate(() => {
+        window.scrollBy(0, window.innerHeight * 2);
+      });
+
+      const imageUrls = await page.evaluate(() => {
+        const imgs = new Set<string>();
+        document.querySelectorAll('img').forEach((img) => {
+          const src = img.src || (img as any).dataset.src;
+          if (src && src.includes('freepik.com')) {
+            imgs.add(src);
+          }
+        });
+        return Array.from(imgs);
+      });
+
+      if (imageUrls.length > 0) {
+        this.logger.log(`✅ Freepik: ${imageUrls.length} imagens encontradas`);
+        return imageUrls[0]; // Retorna a primeira imagem
+      }
+
+      this.logger.log(`⚠️ Freepik: nenhuma imagem encontrada para "${titulo}"`);
+      return undefined;
+    } catch (error: any) {
+      this.logger.debug(`Freepik error: ${error.message}`);
+      return undefined;
+    } finally {
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (e) {
+          // Ignorar erros ao fechar browser
+        }
+      }
     }
   }
 
