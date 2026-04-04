@@ -11,6 +11,7 @@ export interface Receita {
   ingredientes: string[];
   modo_preparo: string;
   rendimento: string;
+  imagem_url?: string;
 }
 
 @Injectable()
@@ -69,32 +70,50 @@ Formato exato esperado:
 
 Lembre-se: APENAS JSON, NADA MAIS.`;
 
+    let receitas: Receita[] = [];
+
     // Tenta Gemini primeiro (mais confiável e disponível)
     if (this.geminiKey) {
       try {
         this.logger.log('Trying Gemini API...');
-        return await this.gerarComGemini(prompt);
+        receitas = await this.gerarComGemini(prompt);
       } catch (error) {
         this.logger.warn(`Gemini failed: ${error}`);
       }
     }
 
     // Fallback para Claude
-    if (this.claudeClient) {
+    if (receitas.length === 0 && this.claudeClient) {
       try {
         this.logger.log('Trying Claude API...');
-        const resultado = await this.gerarComClaude(prompt);
-        return resultado;
+        receitas = await this.gerarComClaude(prompt);
       } catch (error: any) {
         this.logger.error(`Claude error: ${error.message || error}`);
       }
-    } else {
-      this.logger.warn('Claude client not available');
     }
 
     // Se tudo falhar, retorna mock
-    this.logger.log('Using mock recipes');
-    return this.getReceitasMock(ingredientes);
+    if (receitas.length === 0) {
+      this.logger.log('Using mock recipes');
+      receitas = this.getReceitasMock(ingredientes);
+    }
+
+    // Buscar imagens para cada receita em paralelo
+    this.logger.log(`🖼️ Buscando imagens para ${receitas.length} receitas...`);
+    const receitasComImagens = await Promise.all(
+      receitas.map(async (receita) => {
+        this.logger.log(`📸 Procurando imagem para: "${receita.titulo}"`);
+        const imagem_url = await this.buscarImagemReceita(receita.titulo);
+        this.logger.log(`${imagem_url ? '✅' : '❌'} "${receita.titulo}" → ${imagem_url ? 'OK' : 'SEM IMAGEM'}`);
+        return {
+          ...receita,
+          imagem_url,
+        };
+      })
+    );
+
+    this.logger.log(`✨ Imagens buscadas! ${receitasComImagens.filter(r => r.imagem_url).length}/${receitas.length} com sucesso`);
+    return receitasComImagens;
   }
 
   private async gerarComClaude(prompt: string): Promise<Receita[]> {
@@ -217,5 +236,120 @@ Lembre-se: APENAS JSON, NADA MAIS.`;
         rendimento: '4 porções',
       },
     ];
+  }
+
+  /**
+   * Busca imagem do prato usando múltiplas estratégias
+   */
+  async buscarImagemReceita(titulo: string): Promise<string | undefined> {
+    try {
+      this.logger.debug(`🔍 Buscando imagem para: "${titulo}"`);
+
+      // Tenta buscar do Google Images
+      const imagemGoogle = await this.buscarImagemGoogle(titulo);
+      if (imagemGoogle && imagemGoogle.startsWith('http')) {
+        this.logger.log(`✅ Imagem Google encontrada para "${titulo}"`);
+        return imagemGoogle;
+      }
+
+      // Fallback final: placeholder genérico
+      const placeholders = [
+        'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400&h=300&fit=crop',
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
+        'https://images.unsplash.com/photo-1504674900967-60f4a61f5a6e?w=400&h=300&fit=crop',
+      ];
+      const randomPlaceholder = placeholders[Math.floor(Math.random() * placeholders.length)];
+      this.logger.log(`⚠️ Usando placeholder para "${titulo}"`);
+      return randomPlaceholder;
+    } catch (error: any) {
+      this.logger.error(`❌ Erro ao buscar imagem para "${titulo}": ${error.message}`);
+      return 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400&h=300&fit=crop';
+    }
+  }
+
+  /**
+   * Busca imagem no Google Images usando padrão AF_initDataCallback
+   * Técnica baseada em: https://dev.to/serpapi/web-scraping-google-images-with-nodejs-1c9g
+   */
+  private async buscarImagemGoogle(titulo: string): Promise<string | undefined> {
+    try {
+      const query = encodeURIComponent(titulo);
+      const googleImagesUrl = `https://www.google.com/search?q=${query}&tbm=isch&hl=pt-BR`;
+
+      this.logger.log(`🔍 Buscando em Google Images: ${titulo}`);
+
+      const response = await axios.get(googleImagesUrl, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+        timeout: 10000,
+      });
+
+      // Padrão 1: Buscar por AF_initDataCallback que contém as URLs
+      this.logger.log(`📄 Resposta Google Images: ${response.data.length} chars`);
+
+      const hasCallback = response.data.includes('AF_initDataCallback');
+      this.logger.log(`${hasCallback ? '✓' : '✗'} AF_initDataCallback present`);
+
+      // Tenta encontrar a primeira URL de imagem na resposta
+      const urlMatches = response.data.match(/https?:\/\/[^\s"<>]+\.(?:jpg|jpeg|png|gif|webp)/gi) || [];
+      this.logger.log(`🔍 URLs encontradas: ${urlMatches.length}`);
+
+      if (urlMatches && urlMatches.length > 0) {
+        // Filtra URLs que parecem ser de imagens reais (não cache do Google)
+        const realImageUrl = urlMatches.find(url =>
+          !url.includes('google.com') &&
+          !url.includes('gstatic.com') &&
+          url.length > 50
+        );
+
+        if (realImageUrl) {
+          this.logger.log(`✅ Imagem encontrada: ${realImageUrl.substring(0, 80)}`);
+          return realImageUrl;
+        }
+      }
+
+      // Padrão 2: Buscar por "ou":"URL" (fallback)
+      const imageMatch = response.data.match(/"ou":"([^"]+)"/);
+      if (imageMatch && imageMatch[1] && imageMatch[1].startsWith('http')) {
+        this.logger.log(`✅ Imagem encontrada (padrão ou): ${imageMatch[1].substring(0, 80)}`);
+        return imageMatch[1];
+      }
+
+      this.logger.log(`⚠️ Nenhuma imagem encontrada para "${titulo}"`);
+      return undefined;
+    } catch (error: any) {
+      this.logger.debug(`Google Images error: ${error.message}`);
+      return undefined;
+    }
+  }
+
+  /**
+   * Extrai URLs de imagens da estrutura JSON do Google
+   */
+  private extrairURLsDoJSON(data: any): string[] {
+    const urls: string[] = [];
+
+    const buscar = (obj: any): void => {
+      if (Array.isArray(obj)) {
+        for (const item of obj) {
+          if (typeof item === 'string' && item.startsWith('http')) {
+            if (item.includes('.jpg') || item.includes('.jpeg') || item.includes('.png') || item.includes('.webp') || item.includes('.gif')) {
+              urls.push(item);
+            }
+          } else {
+            buscar(item);
+          }
+        }
+      } else if (obj && typeof obj === 'object') {
+        for (const key in obj) {
+          buscar(obj[key]);
+        }
+      }
+    };
+
+    buscar(data);
+    return urls;
   }
 }

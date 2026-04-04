@@ -4,8 +4,16 @@ import {
   Body,
   BadRequestException,
   Logger,
+  Inject,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { ReceiptOcrService, DedupItem, ItemReceipt } from '../services/receipt-ocr.service';
+import { ProductClassificationService } from '../../product-classification/services/product-classification.service';
 
 interface ReceiptPhotoData {
   ocrText: string;
@@ -43,7 +51,11 @@ interface ValidateResponse {
 export class ReceiptOcrController {
   private readonly logger = new Logger(ReceiptOcrController.name);
 
-  constructor(private readonly receiptOcrService: ReceiptOcrService) {}
+  constructor(
+    private readonly receiptOcrService: ReceiptOcrService,
+    private readonly configService: ConfigService,
+    private readonly productClassificationService: ProductClassificationService,
+  ) {}
 
   /**
    * POST /api/receitas/ocr/process
@@ -150,35 +162,59 @@ export class ReceiptOcrController {
 
   /**
    * POST /api/receitas/ocr/extract-from-image
-   * Extrai texto OCR de uma imagem
+   * Extrai texto OCR de uma imagem usando Gemini Vision API
    */
   @Post('extract-from-image')
-  extractFromImage(
+  async extractFromImage(
     @Body()
     request: {
       image: string; // Base64
       mimeType?: string;
     },
-  ): { ocrText: string } {
+  ): Promise<{ ocrText: string }> {
     try {
       if (!request.image) {
         throw new BadRequestException('Imagem não fornecida');
       }
 
-      // Para agora, retornar mock enquanto não temos Vision API
-      // Em produção: usar Google Cloud Vision ou similar
-      const mockTexts = [
-        'CAFÉ MORGES 500G 1 UN x 25,90 25,90\nÁGUA MINERAL 1.5L 2 UN x 18,50 37,00',
-        'LEITE INTEGRAL 1L 1 UN x 4,50 4,50\nPÃO FRANCÊS 1 UN x 8,90 8,90\nQUEIJO MEIA CURA 1 UN x 35,00 35,00',
-        'ARROZ INTEGRAL 2KG 1 UN x 18,90 18,90\nFEIJÃO CARIOCA 1KG 2 UN x 6,50 13,00\nÓLEO DE SOJA 900ML 1 UN x 7,20 7,20',
-        'OVOS BRANCOS 12UN 1 UN x 8,80 8,80\nMARGARINA 500G 1 UN x 6,90 6,90\nSAL FINO 1KG 1 UN x 2,50 2,50',
-        'BOLO DE CHOCOLATE 300G 3 UN x 12,80 38,40\nPÃO DE QUEIJO 10UN 2 UN x 8,90 17,80\nAÇÚCAR 1KG 1 UN x 4,80 4,80',
-      ];
+      const geminiApiKey = this.configService.get<string>('GEMINI_API_KEY');
+      if (!geminiApiKey) {
+        this.logger.warn('GEMINI_API_KEY não configurada, usando mock');
+        return this.getMockOcrText();
+      }
 
-      const randomText = mockTexts[Math.floor(Math.random() * mockTexts.length)];
+      try {
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const client = new GoogleGenerativeAI(geminiApiKey);
+        const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-      this.logger.log('OCR text extracted from image');
-      return { ocrText: randomText };
+        const mimeType = request.mimeType || 'image/jpeg';
+        const ocrText = await model.generateContent([
+          {
+            inlineData: {
+              mimeType,
+              data: request.image,
+            },
+          },
+          {
+            text: 'Leia o texto desta imagem de cupom/recibo de supermercado. Extraia APENAS os itens, linha por linha, sem nenhuma formatação extra. Formato esperado: "CÓDIGO PRODUTO QUANTIDADE UNIDADE x PREÇO_UNITÁRIO PREÇO_TOTAL". Se houver códigos de barras, inclua-os no início de cada linha. Retorne apenas o texto extraído, sem explicações.',
+          },
+        ]);
+
+        const extractedText = ocrText.response
+          .text()
+          .trim()
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+          .join('\n');
+
+        this.logger.log(`OCR extracted ${extractedText.split('\n').length} lines from image`);
+        return { ocrText: extractedText };
+      } catch (geminiError) {
+        this.logger.error('Erro ao usar Gemini Vision API, usando mock:', geminiError);
+        return this.getMockOcrText();
+      }
     } catch (error) {
       this.logger.error('Erro ao extrair OCR da imagem:', error);
 
@@ -187,6 +223,94 @@ export class ReceiptOcrController {
       }
 
       throw new BadRequestException('Erro ao processar imagem');
+    }
+  }
+
+  private getMockOcrText(): { ocrText: string } {
+    const mockTexts = [
+      'CAFÉ MORGES 500G 1 UN x 25,90 25,90\nÁGUA MINERAL 1.5L 2 UN x 18,50 37,00',
+      'LEITE INTEGRAL 1L 1 UN x 4,50 4,50\nPÃO FRANCÊS 1 UN x 8,90 8,90\nQUEIJO MEIA CURA 1 UN x 35,00 35,00',
+      'ARROZ INTEGRAL 2KG 1 UN x 18,90 18,90\nFEIJÃO CARIOCA 1KG 2 UN x 6,50 13,00\nÓLEO DE SOJA 900ML 1 UN x 7,20 7,20',
+      'OVOS BRANCOS 12UN 1 UN x 8,80 8,80\nMARGARINA 500G 1 UN x 6,90 6,90\nSAL FINO 1KG 1 UN x 2,50 2,50',
+      'BOLO DE CHOCOLATE 300G 3 UN x 12,80 38,40\nPÃO DE QUEIJO 10UN 2 UN x 8,90 17,80\nAÇÚCAR 1KG 1 UN x 4,80 4,80',
+    ];
+
+    const randomText = mockTexts[Math.floor(Math.random() * mockTexts.length)];
+    this.logger.log('Usando mock OCR text (fallback)');
+    return { ocrText: randomText };
+  }
+
+  /**
+   * POST /api/receitas/ocr/classify-items
+   * Classifica itens extraídos do OCR como alimento ou não-alimento
+   * Usa inteligência compartilhada que aprende com validações de usuários
+   */
+  @Post('classify-items')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async classifyItems(
+    @Body()
+    body: {
+      items: Array<{
+        nome: string;
+        preco_total?: number;
+        quantidade?: number;
+      }>;
+    },
+    @Request() req: any,
+  ): Promise<{
+    items: Array<{
+      nome: string;
+      preco_total?: number;
+      quantidade?: number;
+      categoria: string;
+      confianca: number;
+      requer_validacao: boolean;
+      ingrediente_receita?: boolean | null;
+      descricao?: string;
+    }>;
+  }> {
+    try {
+      if (!body.items || body.items.length === 0) {
+        throw new BadRequestException('Nenhum item para classificar');
+      }
+
+      const productNames = body.items.map((i) => i.nome);
+
+      // Classifica todos os produtos em batch
+      const classifications = await this.productClassificationService.classificarEmBatch(
+        productNames,
+        req.user?.sub,
+      );
+
+      // Mapeia resultado para incluir dados originais
+      const classMap = new Map(classifications.map((c) => [c.produto, c]));
+
+      return {
+        items: body.items.map((item) => {
+          const clf = classMap.get(item.nome);
+          const confianca = clf?.confidence ?? 0;
+          const categoria = clf?.categoria ?? 'indefinido';
+          const ingrediente_receita = clf?.ingrediente_receita ?? null;
+
+          return {
+            ...item,
+            categoria,
+            confianca,
+            requer_validacao: confianca < 0.75 || categoria === 'indefinido',
+            ingrediente_receita,
+            descricao: clf?.descricao,
+          };
+        }),
+      };
+    } catch (error) {
+      this.logger.error('Erro ao classificar itens:', error);
+
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new BadRequestException('Erro ao classificar itens do cupom');
     }
   }
 

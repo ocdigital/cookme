@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,50 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRecipeGenerator } from '@/hooks/useRecipeGenerator';
+
+// Componente para renderizar imagem com fallback
+function ReceitaImageComponent({ imageUrl }: { imageUrl?: string }) {
+  const [imageError, setImageError] = useState(false);
+
+  if (!imageUrl) {
+    return (
+      <View style={[styles.receitaImagem, styles.imagemPlaceholder]}>
+        <MaterialCommunityIcons name="image-off" size={48} color="#ddd" />
+        <Text style={styles.imagemPlaceholderText}>Sem imagem</Text>
+      </View>
+    );
+  }
+
+  if (imageError) {
+    return (
+      <View style={[styles.receitaImagem, styles.imagemPlaceholder]}>
+        <MaterialCommunityIcons name="image-broken" size={48} color="#ddd" />
+        <Text style={styles.imagemPlaceholderText}>Erro ao carregar</Text>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <Image
+        source={{ uri: imageUrl }}
+        style={styles.receitaImagem}
+        resizeMode="cover"
+        onLoad={() => console.log('✅ Imagem carregada:', imageUrl.substring(0, 50))}
+        onError={(error) => {
+          console.log('❌ Erro ao carregar imagem:', imageUrl, error);
+          setImageError(true);
+        }}
+      />
+      <Text style={styles.debugUrl}>{imageUrl.substring(0, 60)}...</Text>
+    </>
+  );
+}
 
 export default function ReceitasGeradasScreen() {
   const router = useRouter();
@@ -85,6 +125,10 @@ export default function ReceitasGeradasScreen() {
                 </View>
               </View>
 
+              <View style={styles.imagemContainer}>
+                <ReceitaImageComponent imageUrl={receita.imagem_url} />
+              </View>
+
               <Text style={styles.receitaDescricao}>{receita.descricao}</Text>
 
               <View style={styles.infoRow}>
@@ -153,6 +197,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#eee',
+  },
+  imagemContainer: {
+    width: '100%',
+    marginBottom: 12,
+  },
+  receitaImagem: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+  },
+  imagemPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagemPlaceholderText: {
+    fontSize: 12,
+    color: '#ccc',
+    marginTop: 6,
+  },
+  debugUrl: {
+    fontSize: 10,
+    color: '#999',
+    marginBottom: 8,
+    fontFamily: 'monospace',
   },
   receitaHeader: {
     flexDirection: 'row',

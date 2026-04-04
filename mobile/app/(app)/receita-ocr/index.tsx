@@ -127,7 +127,7 @@ export default function ReceiptOcrScreen() {
       const ocrTexts = await Promise.all(
         photosToProcess.map(async (photoUri) => {
           try {
-            console.log('Processando OCR para:', photoUri);
+            console.log('🟦 Processando OCR para:', photoUri);
 
             // Ler imagem como base64 usando fetch
             const response = await fetch(photoUri);
@@ -153,10 +153,10 @@ export default function ReceiptOcrScreen() {
             });
 
             const text = ocrResponse.data.ocrText || '';
-            console.log('Texto extraído:', text.substring(0, 100));
+            console.log('🟨 Texto extraído:', text.substring(0, 100));
             return text;
           } catch (ocrErr) {
-            console.error('Erro ao processar OCR:', ocrErr);
+            console.error('🔴 Erro ao processar OCR:', ocrErr);
             return ''; // Retornar vazio em caso de erro
           }
         })
@@ -173,6 +173,7 @@ export default function ReceiptOcrScreen() {
       }
 
       // Enviar para API do backend
+      console.log('🟦 Enviando para /receitas/ocr/process...');
       const response = await api.post('/receitas/ocr/process', {
         photos: validOcrTexts.map((text, idx) => ({
           ocrText: text,
@@ -181,6 +182,8 @@ export default function ReceiptOcrScreen() {
         })),
         ignoreWarnings: false,
       });
+
+      console.log('🟩 Resposta do /receitas/ocr/process:', response.data);
 
       // Converter resposta do backend para formato da UI
       const result: OcrResult = {
@@ -193,9 +196,11 @@ export default function ReceiptOcrScreen() {
         total: response.data.items.reduce((sum: number, item: any) => sum + item.preco_total, 0),
       };
 
+      console.log('🟩 OcrResult construído:', result);
       setOcrResult(result);
       setCurrentStep('review');
     } catch (err: any) {
+      console.error('🔴 Erro em processPhotos:', err);
       setError(err.message || 'Erro ao processar cupom');
       setCurrentStep('choose');
     } finally {
@@ -203,22 +208,62 @@ export default function ReceiptOcrScreen() {
     }
   };
 
-  const handleConfirm = () => {
-    // Enviar para validação com os produtos extraídos
-    if (ocrResult) {
-      const produtosJson = JSON.stringify(
-        ocrResult.items.map(item => ({
-          nome: item.name,
-          categoria: 'Alimento',
-          confianca_classificacao: 85,
-          motivo: 'Extraído do cupom fiscal',
-          ingrediente_receita: true,
-        }))
-      );
-      router.push({
-        pathname: '/(app)/validacao',
-        params: { produtos_json: produtosJson }
-      });
+  const handleConfirm = async () => {
+    // Classifica itens automaticamente antes de ir pra validação
+    if (ocrResult && ocrResult.items.length > 0) {
+      try {
+        setIsLoading(true);
+        console.log('🤖 Classificando itens com IA...');
+
+        // Chamar endpoint de classificação
+        const classificationResponse = await api.post('/receitas/ocr/classify-items', {
+          items: ocrResult.items.map(item => ({
+            nome: item.name,
+            preco_total: item.price,
+            quantidade: item.quantity,
+          })),
+        });
+
+        console.log('✅ Classificação concluída:', classificationResponse.data);
+
+        const produtosJson = JSON.stringify(
+          classificationResponse.data.items.map((item: any) => ({
+            nome: item.nome,
+            categoria: item.categoria,
+            confianca_classificacao: Math.round(item.confianca * 100),
+            motivo: item.descricao || 'Classificado automaticamente',
+            ingrediente_receita: item.ingrediente_receita,
+            requer_validacao: item.requer_validacao,
+          }))
+        );
+
+        console.log('📋 Navegando para validação com', classificationResponse.data.items.length, 'itens');
+        router.push({
+          pathname: '/(app)/validacao',
+          params: { produtos_json: produtosJson }
+        });
+      } catch (err: any) {
+        console.error('❌ Erro ao classificar:', err);
+        // Fallback: navegar com confiança baixa pra todos
+        const produtosJson = JSON.stringify(
+          ocrResult.items.map(item => ({
+            nome: item.name,
+            categoria: 'Indefinido',
+            confianca_classificacao: 50,
+            motivo: 'Erro ao classificar - confirme manualmente',
+            ingrediente_receita: null,
+            requer_validacao: true,
+          }))
+        );
+        router.push({
+          pathname: '/(app)/validacao',
+          params: { produtos_json: produtosJson }
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      Alert.alert('Erro', 'Nenhum item para validar');
     }
   };
 

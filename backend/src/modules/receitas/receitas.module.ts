@@ -23,7 +23,9 @@ import { ReceiptImportController } from './controllers/receipt-import.controller
 import { RecipeSuggestionController } from './controllers/recipe-suggestion.controller';
 import { RecipeExecutionController } from './controllers/recipe-execution.controller';
 import { RecipeGeneratorController } from './controllers/recipe-generator.controller';
+import { RecipeTestController } from './controllers/recipe-test.controller';
 import { InventarioService } from '../inventario/inventario.service';
+import { ProductClassificationModule } from '../product-classification/product-classification.module';
 
 @Module({
   imports: [
@@ -37,9 +39,10 @@ import { InventarioService } from '../inventario/inventario.service';
       Preferencia,
       Inventario,
     ]),
+    ProductClassificationModule,
   ],
   providers: [ReceitasService, IAReceitasService, MOIEngineService, ReceiptOcrService, ProductClassifierService, ReceiptImportService, RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService, InventarioService],
-  controllers: [ReceitasController, ReceiptOcrController, ReceiptImportController, RecipeSuggestionController, RecipeExecutionController, RecipeGeneratorController],
-  exports: [TypeOrmModule, ReceitasService, ReceiptOcrService, ProductClassifierService, ReceiptImportService, RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService],
+  controllers: [ReceitasController, ReceiptOcrController, ReceiptImportController, RecipeSuggestionController, RecipeExecutionController, RecipeGeneratorController, RecipeTestController],
+  exports: [TypeOrmModule, ReceitasService, ReceiptOcrService, ProductClassifierService, ReceiptImportService, RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService, ProductClassificationModule],
 })
 export class ReceitasModule {}

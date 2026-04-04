@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Edit2, Trash2, Eye, AlertCircle } from 'lucide-react';
+import { Package, Edit2, Trash2, Eye, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditProductModal } from '../components/EditProductModal';
@@ -32,6 +32,8 @@ type Product = {
   vezes_usada?: number;
   qualidade?: 'completo' | 'incompleto' | 'sem_imagem';
   popularidade?: number;
+  ingrediente_receita?: boolean;
+  confianca_classificacao?: number;
 };
 
 export const ProductsPage: React.FC = () => {
@@ -45,10 +47,12 @@ export const ProductsPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isClassificationModalOpen, setIsClassificationModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [productToEdit, setProductToEdit] = useState<any>(null);
   const [productDetails, setProductDetails] = useState<Product | null>(null);
+  const [productToClassify, setProductToClassify] = useState<Product | null>(null);
   const [totalStats, setTotalStats] = useState({ total: 0, maisUsados: 0, semImagem: 0, incompletos: 0 });
 
   useEffect(() => {
@@ -111,6 +115,42 @@ export const ProductsPage: React.FC = () => {
     setIsDetailsModalOpen(true);
   };
 
+  const handleClassifyProduct = (product: Product) => {
+    setProductToClassify(product);
+    setIsClassificationModalOpen(true);
+  };
+
+  const handleValidateClassification = async (nomeCorrigido: string, ehAlimento: boolean) => {
+    if (!productToClassify) return;
+    try {
+      // Atualizar nome se foi corrigido
+      if (nomeCorrigido !== productToClassify.nome) {
+        await adminService.updateProduct(productToClassify.id, { nome: nomeCorrigido });
+      }
+
+      // Registrar validação no banco de conhecimento
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/product-classification/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          produto: nomeCorrigido || productToClassify.nome,
+          categoria: ehAlimento ? 'alimento' : 'nao_alimento',
+        }),
+      });
+
+      if (response.ok) {
+        setIsClassificationModalOpen(false);
+        setProductToClassify(null);
+        loadProducts(); // Recarregar para mostrar classificação atualizada
+      }
+    } catch (error) {
+      console.error('Erro ao validar classificação:', error);
+    }
+  };
+
   return (
     <div className="space-y-2">
       {/* Header */}
@@ -158,6 +198,7 @@ export const ProductsPage: React.FC = () => {
                     <tr className="border-b border-gray-200 dark:border-gray-700">
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Produto</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Categoria</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Classificação</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Unidade</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Validade Média</th>
@@ -175,6 +216,26 @@ export const ProductsPage: React.FC = () => {
                           <span className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
                             {product.categoria?.nome || 'Sem categoria'}
                           </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            {product.ingrediente_receita !== undefined ? (
+                              <>
+                                <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                                  {product.ingrediente_receita ? '🥗 Alimento' : '🧹 Não-alimento'}
+                                </span>
+                                {product.confianca_classificacao !== undefined && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {product.confianca_classificacao}%
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                Não classificado
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4">
                           <span className="px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
@@ -197,6 +258,12 @@ export const ProductsPage: React.FC = () => {
                               icon={<Eye size={16} />}
                               title="Detalhes"
                               onClick={() => handleViewDetails(product)}
+                            />
+                            <ActionButton
+                              variant="edit"
+                              icon={<CheckCircle2 size={16} />}
+                              title="Validar Classificação"
+                              onClick={() => handleClassifyProduct(product)}
                             />
                             <ActionButton
                               variant="edit"
@@ -342,6 +409,117 @@ export const ProductsPage: React.FC = () => {
           </div>
         )}
       </AnimatedModal>
+
+      {/* Classification Validation Modal */}
+      <AnimatedModal
+        isOpen={isClassificationModalOpen && productToClassify !== null}
+        onClose={() => {
+          setIsClassificationModalOpen(false);
+          setProductToClassify(null);
+        }}
+        title="Validar Classificação"
+        size="md"
+      >
+        {productToClassify && (
+          <ClassificationValidationForm
+            product={productToClassify}
+            onSubmit={handleValidateClassification}
+            onClose={() => {
+              setIsClassificationModalOpen(false);
+              setProductToClassify(null);
+            }}
+          />
+        )}
+      </AnimatedModal>
+    </div>
+  );
+};
+
+// Classification Validation Form Component
+const ClassificationValidationForm: React.FC<{
+  product: Product;
+  onSubmit: (nomeCorrigido: string, ehAlimento: boolean) => void;
+  onClose: () => void;
+}> = ({ product, onSubmit, onClose }) => {
+  const [nomeCorrigido, setNomeCorrigido] = React.useState(product.nome);
+  const [ehAlimento, setEhAlimento] = React.useState(product.ingrediente_receita ?? true);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    try {
+      await onSubmit(nomeCorrigido, ehAlimento);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Nome do Produto
+        </label>
+        <input
+          type="text"
+          value={nomeCorrigido}
+          onChange={(e) => setNomeCorrigido(e.target.value)}
+          placeholder="Ex: Creme de Leite"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+        />
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Corrija o nome se necessário (ex: "Cr" → "Creme de Leite")
+        </p>
+      </div>
+
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Classificação
+        </label>
+        <div className="space-y-2">
+          <label className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition" onClick={() => setEhAlimento(true)}>
+            <input
+              type="radio"
+              checked={ehAlimento}
+              onChange={() => setEhAlimento(true)}
+              className="w-4 h-4 text-green-600"
+            />
+            <span className="ml-3">
+              <span className="block text-sm font-medium text-gray-900 dark:text-white">🥗 Alimento</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">Pode ser usado em receitas</span>
+            </span>
+          </label>
+
+          <label className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition" onClick={() => setEhAlimento(false)}>
+            <input
+              type="radio"
+              checked={!ehAlimento}
+              onChange={() => setEhAlimento(false)}
+              className="w-4 h-4 text-red-600"
+            />
+            <span className="ml-3">
+              <span className="block text-sm font-medium text-gray-900 dark:text-white">🧹 Não-alimento</span>
+              <span className="block text-xs text-gray-500 dark:text-gray-400">Limpeza, higiene, utensílios, etc</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-4">
+        <button
+          onClick={onClose}
+          className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 rounded-lg transition flex items-center justify-center gap-2"
+        >
+          {isLoading ? '📤 Validando...' : '✓ Validar'}
+        </button>
+      </div>
     </div>
   );
 };

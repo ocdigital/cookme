@@ -47,6 +47,15 @@ export class ProductKnowledgeBase {
   @Column({ type: 'integer', default: 0 })
   validacoes_nao_alimento: number;
 
+  @Column({ type: 'boolean', default: true, nullable: true })
+  ingrediente_receita: boolean;
+
+  @Column({ type: 'integer', default: 0 })
+  validacoes_ingrediente_sim: number;
+
+  @Column({ type: 'integer', default: 0 })
+  validacoes_ingrediente_nao: number;
+
   @Column({ type: 'jsonb', nullable: true })
   classification_metadata: {
     keywords?: string[];

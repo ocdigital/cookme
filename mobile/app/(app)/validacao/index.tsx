@@ -23,6 +23,8 @@ interface ProdutoItem {
   motivo: string;
   eh_alimento: boolean;
   validado: boolean;
+  requer_validacao: boolean;
+  ingrediente_receita?: boolean | null;
 }
 
 export default function ValidacaoScreen() {
@@ -43,18 +45,24 @@ export default function ValidacaoScreen() {
   useEffect(() => {
     if (produtos_json) {
       try {
+        console.log('produtos_json recebido:', produtos_json);
         const parsed = JSON.parse(produtos_json);
+        console.log('parsed:', parsed);
         const mapeados = parsed.map((p: any) => ({
           nome: p.nome,
           categoria: p.categoria,
-          confianca: p.confianca_classificacao,
-          motivo: p.motivo,
-          eh_alimento: p.ingrediente_receita,
-          validado: false,
+          confianca: p.confianca_classificacao || 0,
+          motivo: p.motivo || '',
+          eh_alimento: p.ingrediente_receita !== false,
+          validado: !p.requer_validacao, // Auto-classificados já contam como confirmados
+          requer_validacao: p.requer_validacao ?? (p.confianca_classificacao < 75),
+          ingrediente_receita: p.ingrediente_receita,
         }));
+        console.log('mapeados:', mapeados);
         setItems(mapeados);
       } catch (e) {
-        Alert.alert('Erro', 'Falha ao carregar produtos');
+        console.error('Erro ao parsear produtos:', e);
+        Alert.alert('Erro', 'Falha ao carregar produtos: ' + (e as any).message);
       }
     }
   }, [produtos_json]);
@@ -63,7 +71,7 @@ export default function ValidacaoScreen() {
     try {
       const produto = items[indice];
 
-      // Atualizar estado local
+      // Atualizar estado local (otimista)
       const novoItems = [...items];
       novoItems[indice] = {
         ...novoItems[indice],
@@ -72,20 +80,38 @@ export default function ValidacaoScreen() {
       };
       setItems(novoItems);
 
-      // TODO: Chamar API quando backend implementar endpoint de validação
-      // await validarProduto(produto.nome, eh_alimento, produto.motivo);
+      // Enviar feedback para o backend (fire-and-forget)
+      api
+        .post('/product-classification/validate', {
+          produto: produto.nome,
+          categoria: eh_alimento ? 'alimento' : 'nao_alimento',
+        })
+        .catch((err) => {
+          // Silenciosamente falha - a validação local já foi feita
+          console.warn('Feedback de validação não foi enviado:', err);
+        });
     } catch (error) {
       Alert.alert('Erro', 'Falha ao validar produto');
     }
   };
 
   const handleFinalizarValidacao = async () => {
-    const alimentos = items.filter((p) => p.eh_alimento).length;
-    const nao_alimentos = items.filter((p) => !p.eh_alimento).length;
+    // Contar itens marcados como "Não" vs assumidos como "Sim"
+    const marcadosNao = items.filter((p) => p.validado && !p.eh_alimento).length;
+    const assumisSim = items.filter((p) => !p.validado).length; // Não marcados = SIM por padrão
+
+    // Atualizar estado antes de validar
+    const itemsAtualizados = items.map(item => ({
+      ...item,
+      eh_alimento: item.validado ? item.eh_alimento : true, // Se não validado, assume SIM
+    }));
+
+    const alimentos = itemsAtualizados.filter((p) => p.eh_alimento).length;
+    const nao_alimentos = itemsAtualizados.filter((p) => !p.eh_alimento).length;
 
     Alert.alert(
       '✓ Validação Concluída',
-      `${alimentos} alimentos\n${nao_alimentos} não-alimentos`,
+      `${alimentos} ingredientes\n${nao_alimentos} não-ingredientes`,
       [
         {
           text: 'Editar',
@@ -97,7 +123,7 @@ export default function ValidacaoScreen() {
           onPress: async () => {
             // Salvar produtos validados no inventário
             try {
-              for (const item of items) {
+              for (const item of itemsAtualizados) {
                 // Criar/atualizar produto
                 const produtoRes = await api.post('/produtos', {
                   nome: item.nome,
@@ -134,23 +160,92 @@ export default function ValidacaoScreen() {
   };
 
   const renderProdutoItem = ({ item, index }: any) => {
-    const corConfianca =
-      item.confianca >= 85
-        ? '#4CAF50'
-        : item.confianca >= 70
-          ? '#FFA500'
-          : '#FF6B6B';
+    // Se não requer validação (auto-classificado), mostrar versão simplificada
+    if (!item.requer_validacao) {
+      const icon = item.eh_alimento ? 'food-apple' : 'broom';
+      const badge = item.eh_alimento ? '🍎 Alimento' : '🧹 Não-alimento';
+
+      return (
+        <View style={[styles.produtoCard, { backgroundColor: '#F5F5F5', borderLeftColor: '#4CAF50', borderLeftWidth: 5 }]}>
+          <View style={styles.produtoInfo}>
+            <Text style={styles.produtoNome}>{item.nome}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <Text style={{ color: '#4CAF50', fontWeight: '600', marginRight: 8 }}>
+                {badge}
+              </Text>
+              <Text style={{ color: '#999', fontSize: 12 }}>
+                {item.confianca}% confiança
+              </Text>
+            </View>
+          </View>
+          <MaterialCommunityIcons name="check-circle" size={24} color="#4CAF50" />
+        </View>
+      );
+    }
+
+    // Caso contrário, mostrar card com botão "Não"
+    let corFundo = '#fff';
+    let corBorda = '#ddd';
+    let pergunta = '';
+
+    // Se é não-alimento, sempre vermelho
+    if (item.categoria === 'Não-alimento') {
+      corFundo = '#FFEBEE';
+      corBorda = '#FF6B6B';
+      pergunta = 'Marque "Não" se realmente não é ingrediente';
+    }
+    // Se é alimento mas não ingrediente, amarelo
+    else if (item.ingrediente_receita === false) {
+      corFundo = '#FFF9E6';
+      corBorda = '#FFA500';
+      pergunta = 'Não é um ingrediente de receita comum';
+    }
+    // Se é alimento ingrediente
+    else if (item.ingrediente_receita === true) {
+      if (item.confianca >= 85) {
+        corFundo = '#E8F5E9';
+        corBorda = '#4CAF50';
+        pergunta = 'Tem certeza que é ingrediente?';
+      } else if (item.confianca >= 70) {
+        corFundo = '#FFF9E6';
+        corBorda = '#FFA500';
+        pergunta = 'Tem dúvida que é ingrediente?';
+      } else {
+        corFundo = '#FFEBEE';
+        corBorda = '#FF6B6B';
+        pergunta = 'Não é ingrediente?';
+      }
+    }
+    // Indefinido
+    else {
+      if (item.confianca >= 85) {
+        corFundo = '#E8F5E9';
+        corBorda = '#4CAF50';
+        pergunta = 'Tem certeza que é ingrediente?';
+      } else if (item.confianca >= 70) {
+        corFundo = '#FFF9E6';
+        corBorda = '#FFA500';
+        pergunta = 'Tem dúvida que é ingrediente?';
+      } else {
+        corFundo = '#FFEBEE';
+        corBorda = '#FF6B6B';
+        pergunta = 'Não é ingrediente?';
+      }
+    }
 
     return (
-      <View style={styles.produtoCard}>
+      <View style={[styles.produtoCard, { backgroundColor: corFundo, borderLeftColor: corBorda, borderLeftWidth: 5 }]}>
         <View style={styles.produtoInfo}>
           <Text style={styles.produtoNome}>{item.nome}</Text>
           <Text style={styles.produtoCategoria}>{item.categoria}</Text>
           <Text style={styles.produtoMotivo}>{item.motivo}</Text>
 
           <View style={styles.confiancaContainer}>
-            <Text style={{ color: corConfianca, fontWeight: '600' }}>
+            <Text style={{ color: corBorda, fontWeight: '600', marginBottom: 4 }}>
               Confiança: {item.confianca}%
+            </Text>
+            <Text style={{ color: '#666', fontStyle: 'italic', fontSize: 12 }}>
+              {pergunta}
             </Text>
           </View>
         </View>
@@ -163,18 +258,11 @@ export default function ValidacaoScreen() {
               item.validado && !item.eh_alimento && styles.botaoSelecionado,
             ]}
             onPress={() => handleValidar(index, false)}
-            disabled={item.validado && item.eh_alimento}
           >
             <MaterialCommunityIcons
-              name={
-                item.validado && !item.eh_alimento
-                  ? 'check-circle'
-                  : 'close-circle-outline'
-              }
+              name={item.validado && !item.eh_alimento ? 'check-circle' : 'close-circle-outline'}
               size={20}
-              color={
-                item.validado && !item.eh_alimento ? '#fff' : '#999'
-              }
+              color={item.validado && !item.eh_alimento ? '#fff' : '#999'}
             />
             <Text
               style={[
@@ -186,39 +274,6 @@ export default function ValidacaoScreen() {
               ]}
             >
               Não
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.botao,
-              styles.botaoSim,
-              item.validado && item.eh_alimento && styles.botaoSelecionado,
-            ]}
-            onPress={() => handleValidar(index, true)}
-            disabled={item.validado && !item.eh_alimento}
-          >
-            <MaterialCommunityIcons
-              name={
-                item.validado && item.eh_alimento
-                  ? 'check-circle'
-                  : 'check-circle-outline'
-              }
-              size={20}
-              color={
-                item.validado && item.eh_alimento ? '#fff' : '#4CAF50'
-              }
-            />
-            <Text
-              style={[
-                styles.botaoTexto,
-                item.validado && item.eh_alimento && {
-                  color: '#fff',
-                  fontWeight: '700',
-                },
-              ]}
-            >
-              Sim
             </Text>
           </TouchableOpacity>
         </View>
@@ -267,7 +322,23 @@ export default function ValidacaoScreen() {
           color="#FF6B6B"
         />
         <Text style={styles.infoText}>
-          Confira se cada produto pode ser usado em receitas
+          {(() => {
+            const autoClassificados = items.filter((i) => !i.requer_validacao).length;
+            const requerValidacao = items.filter((i) => i.requer_validacao).length;
+            const marcados = items.filter((i) => i.validado).length;
+            const total = items.length;
+
+            if (autoClassificados > 0 && requerValidacao > 0) {
+              return `${autoClassificados} classificado(s) automaticamente. Confirme os ${requerValidacao} abaixo se necessário.`;
+            } else if (autoClassificados > 0) {
+              return `✅ Todos os ${total} itens foram classificados automaticamente!`;
+            }
+
+            if (marcados === 0) {
+              return `${requerValidacao} item(ns) para confirmar. Marque "Não" nos que não são alimentos.`;
+            }
+            return `${marcados} marcado(s) como "Não". ${total - marcados} serão salvos como "Sim"`;
+          })()}
         </Text>
       </View>
 
@@ -296,10 +367,10 @@ export default function ValidacaoScreen() {
       )}
 
       {/* Botão Finalizar */}
-      {validados === total && total > 0 && (
+      {total > 0 && (
         <View style={styles.footerContainer}>
           <TouchableOpacity
-            style={styles.botaoFinalizar}
+            style={[styles.botaoFinalizar, validados < total && { opacity: 0.6 }]}
             onPress={handleFinalizarValidacao}
           >
             <MaterialCommunityIcons
@@ -311,6 +382,11 @@ export default function ValidacaoScreen() {
               Finalizar Validação
             </Text>
           </TouchableOpacity>
+          {validados < total && (
+            <Text style={{ textAlign: 'center', color: '#999', fontSize: 11, marginTop: 8 }}>
+              {total - validados} itens sem validação (serão considerados SIM)
+            </Text>
+          )}
         </View>
       )}
 

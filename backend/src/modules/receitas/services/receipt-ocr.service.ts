@@ -63,16 +63,27 @@ export class ReceiptOcrService {
    * Regex para: NOME QTD UN x PRECO_UNI PRECO_TOTAL
    */
   private parseItemLine(line: string): ItemReceipt | null {
-    // Padrão: "PRODUTO_NAME 1 UN x 9,98 9,98"
+    // Remove código de barras do início se houver
+    let cleanLine = line.replace(/^\d{10,}\s+/, '');
+
+    // Padrão: "PRODUTO_NAME QUANTIDADE UNIDADE x PREÇO_UNITÁRIO PREÇO_TOTAL"
+    // Exemplos:
+    // "CEBOLA NACIONAL 0.670 KG x 11.98 11.98"
+    // "OVOS CAIPIRA NATUREZA 1 UN x 11.98 11.98"
+    // "LEITE ITALAC 1L 1 UN x 4.98 4.98"
+    // Nota: O produto pode ter "1KG" no nome, mas a linha sempre termina com "QUANT UNIT x PREÇO PREÇO"
+
     const regex =
-      /^(.+?)\s+(\d+)\s+UN\s+x\s+([\d,]+)\s+([\d,]+)\s*$/i;
-    const match = line.match(regex);
+      /^(.+?)\s+([\d.,]+)\s+(KG|UN|L|ML|G)\s+x\s+([\d,]+)\s+([\d,]+)\s*$/i;
+
+    const match = cleanLine.match(regex);
 
     if (match) {
       const nome = match[1].trim();
-      const quantidade = parseInt(match[2], 10);
-      const preco_unitario = this.parsePrice(match[3]);
-      const preco_total = this.parsePrice(match[4]);
+      const quantidade = parseFloat(match[2].replace(',', '.'));
+      const unidade = match[3].toUpperCase();
+      const preco_unitario = this.parsePrice(match[4]);
+      const preco_total = this.parsePrice(match[5]);
 
       if (
         nome.length > 0 &&
@@ -82,7 +93,7 @@ export class ReceiptOcrService {
       ) {
         return {
           nome,
-          quantidade,
+          quantidade: Math.round(quantidade), // Arredondar para inteiro
           preco_unitario,
           preco_total,
         };

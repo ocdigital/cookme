@@ -18,7 +18,9 @@ import { AIClassificationLog, APIStatus } from '../entities/ai-classification-lo
 export class ProductClassificationService {
   private readonly logger = new Logger(ProductClassificationService.name);
   private claudeApiKey: string;
+  private geminiApiKey: string;
   private readonly CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+  private readonly GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
   private readonly MODEL = 'claude-3-5-sonnet-20241022';
   private readonly CONFIDENCE_THRESHOLD = 0.75;
 
@@ -32,6 +34,7 @@ export class ProductClassificationService {
     private configService: ConfigService,
   ) {
     this.claudeApiKey = this.configService.get<string>('CLAUDE_API_KEY') || '';
+    this.geminiApiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
   }
 
   /**
@@ -45,6 +48,7 @@ export class ProductClassificationService {
     categoria: FoodCategory;
     confidence: number;
     fromCache: boolean;
+    ingrediente_receita?: boolean | null;
     descricao: string;
   }> {
     if (!productName || productName.trim().length === 0) {
@@ -82,6 +86,7 @@ export class ProductClassificationService {
         categoria: cached.categoria,
         confidence: cached.confidence_score,
         fromCache: true,
+        ingrediente_receita: cached.ingrediente_receita,
         descricao: cached.descricao_classificacao || '',
       };
     }
@@ -103,6 +108,7 @@ export class ProductClassificationService {
       categoria: FoodCategory;
       confidence: number;
       fromCache: boolean;
+      ingrediente_receita?: boolean | null;
       descricao?: string;
     }>
   > {
@@ -112,6 +118,7 @@ export class ProductClassificationService {
       categoria: FoodCategory;
       confidence: number;
       fromCache: boolean;
+      ingrediente_receita?: boolean | null;
       descricao?: string;
     }> = [];
 
@@ -135,6 +142,7 @@ export class ProductClassificationService {
           categoria: cached.categoria,
           confidence: cached.confidence_score,
           fromCache: true,
+          ingrediente_receita: cached.ingrediente_receita,
           descricao: cached.descricao_classificacao,
         });
       } else {
@@ -168,6 +176,7 @@ export class ProductClassificationService {
       categoria: FoodCategory;
       confidence: number;
       fromCache: boolean;
+      ingrediente_receita?: boolean | null;
       descricao?: string;
     }>
   > {
@@ -179,72 +188,96 @@ export class ProductClassificationService {
         .map((name, i) => `${i + 1}. ${name}`)
         .join('\n');
 
-      const prompt = `Classifique os seguintes produtos como "alimento" ou "não-alimento".
-Responda em JSON com um array, onde cada item tem o nome exato do produto e a classificação:
+      const prompt = `Você é um classificador especializado em produtos de supermercado brasileiro.
+Classifique os produtos abaixo em duas dimensões:
+1. CATEGORIA: "alimento" ou "nao_alimento"
+2. INGREDIENTE_RECEITA: se é um alimento SIM, classifique se é adequado para RECEITAS
 
-Produtos:
+ALIMENTO: tudo que pode ser ingerido (alimentos, bebidas, temperos, sucos, leite, água)
+NAO_ALIMENTO: produtos de limpeza, higiene pessoal, utensílios, papelaria, etc.
+
+INGREDIENTE_RECEITA (apenas para alimentos):
+- true: produtos brutos/semi-processados que servem como INGREDIENTES de receita (leite, arroz, carne, cebola, azeite, sal, açúcar, óleo, ovos)
+- false: alimentos PROCESSADOS/PRÉ-PRONTOS que NÃO são ingredientes (cápsulas de café, bolinhos prontos, biscoitos de marca, chás prontos, chocolate de marca, sucos prontos, refeições prontas)
+
+Produtos para classificar:
 ${productsListFormatted}
 
-Responda APENAS com um JSON válido no formato:
+Responda APENAS com JSON válido no formato de array:
 [
-  {"nome": "nome do produto", "categoria": "alimento" ou "nao_alimento", "confidence": 0.0-1.0, "descricao": "motivo breve"},
+  {"nome": "nome exato do produto", "categoria": "alimento" ou "nao_alimento", "confidence": 0.95, "ingrediente_receita": true ou false ou null, "descricao": "motivo em 5 palavras"},
   ...
-]`;
+]
 
-      // MODO MOCK ATIVADO: Desativado temporariamente a chamada real à API
-      // Quando pronto, mude USE_MOCK_CLASSIFICATION para false
-      const USE_MOCK_CLASSIFICATION = true;
+IMPORTANTE:
+- confidence entre 0.0 e 1.0
+- ingrediente_receita é obrigatório apenas se categoria="alimento", senão deixe null
+- Para alimentos ambíguos (álcool culinário, fermento), classifique como ingrediente_receita: true
+- Ignore marcas; foque no tipo do produto
+- Retorne um item para CADA produto listado, na mesma ordem`;
 
-      let data: any;
+      const USE_MOCK_CLASSIFICATION = !this.geminiApiKey;
+
+      let responseText: string;
       if (USE_MOCK_CLASSIFICATION) {
-        this.logger.log('🎭 MODO MOCK: Validando produtos com simulação de Claude API');
-        data = this.mockClassificacaoBatch(productNames);
+        this.logger.log('🎭 MODO MOCK: Validando produtos com simulação');
+        const mockResult = this.mockClassificacaoBatch(productNames);
+        // mockClassificacaoBatch retorna um objeto, não precisa de parse
+        responseText = JSON.stringify(mockResult);
       } else {
-        const response = await fetch(this.CLAUDE_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': this.claudeApiKey,
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: this.MODEL,
-            max_tokens: 512,
-            system: `Você é um classificador de produtos especializado em identificar se produtos são alimentos ou não.
-IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
-            messages: [
-              {
-                role: 'user',
-                content: prompt,
-              },
-            ],
-          }),
-        });
+        try {
+          const response = await fetch(`${this.GEMINI_API_URL}?key=${this.geminiApiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: prompt,
+                    },
+                  ],
+                },
+              ],
+            }),
+          });
 
-        const requestTime = Date.now() - startTime;
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(
-            `Claude API Error: ${error.error?.message || 'Unknown error'}`,
-          );
+          if (!response.ok) {
+            const error = await response.json();
+            this.logger.error('Gemini API Error:', error);
+            this.logger.log('🎭 Fallback para MODO MOCK: Validando produtos com simulação');
+            const mockResult = this.mockClassificacaoBatch(productNames);
+            responseText = JSON.stringify(mockResult);
+          } else {
+            const data = await response.json();
+            responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            if (!responseText) {
+              this.logger.error('Gemini response empty, fallback to mock');
+              const mockResult = this.mockClassificacaoBatch(productNames);
+              responseText = JSON.stringify(mockResult);
+            }
+          }
+        } catch (err) {
+          this.logger.error('Gemini API call failed, fallback to mock:', err);
+          const mockResult = this.mockClassificacaoBatch(productNames);
+          responseText = JSON.stringify(mockResult);
         }
-
-        data = await response.json();
       }
 
       const requestTime = Date.now() - startTime;
 
-      // Parse resposta do Claude
+      // Parse resposta (Gemini ou Mock)
       let classificacoes: Array<any>;
       try {
-        const content = data.content[0].text;
-        // Trata caso do Claude envolver em markdown
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        const jsonStr = jsonMatch ? jsonMatch[0] : content;
+        // Trata caso de markdown wrapper
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
         classificacoes = JSON.parse(jsonStr);
-      } catch {
-        throw new Error('Failed to parse Claude batch response');
+      } catch (err) {
+        this.logger.error('Failed to parse batch response:', err);
+        throw new Error('Failed to parse batch response');
       }
 
       // Processa e salva cada produto no cache
@@ -253,6 +286,7 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
         categoria: FoodCategory;
         confidence: number;
         fromCache: boolean;
+        ingrediente_receita?: boolean | null;
         descricao?: string;
       }> = [];
 
@@ -264,6 +298,7 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
 
         const confidence = clf.confidence || 0.5;
         const normalizedName = this.normalizarNome(clf.nome);
+        const ingrediente_receita = clf.ingrediente_receita ?? null;
 
         // Salva no cache
         let knowledgeBase = await this.productKnowledgeRepository.findOne({
@@ -276,19 +311,23 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
             normalized_name: normalizedName,
             categoria,
             confidence_score: confidence,
+            ingrediente_receita,
             descricao_classificacao: clf.descricao,
             classification_metadata: {
-              source: 'claude_batch',
-              last_classified_by: 'claude',
+              source: USE_MOCK_CLASSIFICATION ? 'mock' : 'gemini_batch',
+              last_classified_by: USE_MOCK_CLASSIFICATION ? 'mock' : 'gemini',
             },
             total_validacoes: 1,
             validacoes_alimento: categoria === FoodCategory.ALIMENTO ? 1 : 0,
             validacoes_nao_alimento:
               categoria === FoodCategory.NAO_ALIMENTO ? 1 : 0,
+            validacoes_ingrediente_sim: ingrediente_receita === true ? 1 : 0,
+            validacoes_ingrediente_nao: ingrediente_receita === false ? 1 : 0,
           } as unknown as ProductKnowledgeBase);
         } else {
           knowledgeBase.categoria = categoria;
           knowledgeBase.confidence_score = confidence;
+          knowledgeBase.ingrediente_receita = ingrediente_receita;
           knowledgeBase.descricao_classificacao = clf.descricao;
           knowledgeBase.ultima_classificacao = new Date();
         }
@@ -300,6 +339,7 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
           categoria,
           confidence,
           fromCache: false,
+          ingrediente_receita,
           descricao: clf.descricao,
         });
       }
@@ -307,26 +347,19 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
       // Log da chamada em batch
       await this.aiClassificationLogRepository.save({
         product_name: `Batch de ${productNames.length} produtos`,
-        model_used: this.MODEL,
+        model_used: USE_MOCK_CLASSIFICATION ? 'mock' : 'gemini-2.5-flash',
         api_status: APIStatus.SUCESSO,
         tempo_requisicao_ms: requestTime,
-        tokens_utilizados:
-          (data.usage?.input_tokens || 0) +
-          (data.usage?.output_tokens || 0),
-        custo_estimado_usd: this.estimarCustoEntropico(data.usage),
-        request_metadata: {
-          prompt_tokens: data.usage?.input_tokens,
-          completion_tokens: data.usage?.output_tokens,
-          total_tokens:
-            (data.usage?.input_tokens || 0) +
-            (data.usage?.output_tokens || 0),
-          batch_size: productNames.length,
+        tokens_utilizados: 0,
+        custo_estimado_usd: 0,
+        response_metadata: {
+          processing_time: requestTime,
         },
         from_cache: false,
       });
 
       this.logger.log(
-        `Batch de ${productNames.length} produtos classificados via Claude em ${requestTime}ms`,
+        `Batch de ${productNames.length} produtos classificados em ${requestTime}ms`,
       );
 
       return results;
@@ -360,43 +393,55 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
    */
   private mockClassificacaoBatch(productNames: string[]): any {
     const mockClassifications = {
-      // Alimentos
-      'maçã': { nome: 'maçã', categoria: 'alimento', confidence: 0.99, descricao: 'Fruta vermelha, alimento' },
-      'banana': { nome: 'banana', categoria: 'alimento', confidence: 0.99, descricao: 'Fruta amarela, alimento' },
-      'pão': { nome: 'pão', categoria: 'alimento', confidence: 0.98, descricao: 'Produto de panificação, alimento' },
-      'leite': { nome: 'leite', categoria: 'alimento', confidence: 0.99, descricao: 'Bebida láctea, alimento' },
-      'queijo': { nome: 'queijo', categoria: 'alimento', confidence: 0.98, descricao: 'Derivado de leite, alimento' },
-      'arroz': { nome: 'arroz', categoria: 'alimento', confidence: 0.99, descricao: 'Cereal, alimento' },
-      'feijão': { nome: 'feijão', categoria: 'alimento', confidence: 0.99, descricao: 'Legume, alimento' },
-      'frango': { nome: 'frango', categoria: 'alimento', confidence: 0.99, descricao: 'Carne branca, alimento' },
-      'carne': { nome: 'carne', categoria: 'alimento', confidence: 0.99, descricao: 'Proteína animal, alimento' },
-      'tomate': { nome: 'tomate', categoria: 'alimento', confidence: 0.99, descricao: 'Fruta/vegetal, alimento' },
-      'cebola': { nome: 'cebola', categoria: 'alimento', confidence: 0.99, descricao: 'Vegetal, alimento' },
-      'alho': { nome: 'alho', categoria: 'alimento', confidence: 0.99, descricao: 'Tempero, alimento' },
-      'azeite': { nome: 'azeite', categoria: 'alimento', confidence: 0.98, descricao: 'Óleo alimentar, alimento' },
-      'sal': { nome: 'sal', categoria: 'alimento', confidence: 0.97, descricao: 'Tempero, alimento' },
-      'açúcar': { nome: 'açúcar', categoria: 'alimento', confidence: 0.99, descricao: 'Adoçante, alimento' },
-      'chocolate': { nome: 'chocolate', categoria: 'alimento', confidence: 0.99, descricao: 'Doce, alimento' },
-      'café': { nome: 'café', categoria: 'alimento', confidence: 0.99, descricao: 'Bebida, alimento' },
-      'chá': { nome: 'chá', categoria: 'alimento', confidence: 0.99, descricao: 'Bebida, alimento' },
-      'suco': { nome: 'suco', categoria: 'alimento', confidence: 0.99, descricao: 'Bebida, alimento' },
-      'água': { nome: 'água', categoria: 'alimento', confidence: 0.95, descricao: 'Bebida, alimento' },
+      // Alimentos - Ingredientes para receita
+      'maçã': { nome: 'maçã', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Fruta natural, ingrediente' },
+      'banana': { nome: 'banana', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Fruta natural, ingrediente' },
+      'pão': { nome: 'pão', categoria: 'alimento', confidence: 0.98, ingrediente_receita: false, descricao: 'Produto pronto, não ingrediente' },
+      'leite': { nome: 'leite', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Ingrediente lácteo essencial' },
+      'queijo': { nome: 'queijo', categoria: 'alimento', confidence: 0.98, ingrediente_receita: true, descricao: 'Ingrediente lácteo, receita' },
+      'arroz': { nome: 'arroz', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Cereal bruto, ingrediente' },
+      'feijão': { nome: 'feijão', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Legume bruto, ingrediente' },
+      'frango': { nome: 'frango', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Proteína bruta, ingrediente' },
+      'carne': { nome: 'carne', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Proteína bruta, ingrediente' },
+      'tomate': { nome: 'tomate', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Vegetal bruto, ingrediente' },
+      'cebola': { nome: 'cebola', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Vegetal bruto, ingrediente' },
+      'alho': { nome: 'alho', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Tempero bruto, ingrediente' },
+      'azeite': { nome: 'azeite', categoria: 'alimento', confidence: 0.98, ingrediente_receita: true, descricao: 'Óleo ingrediente, receita' },
+      'sal': { nome: 'sal', categoria: 'alimento', confidence: 0.97, ingrediente_receita: true, descricao: 'Tempero ingrediente, receita' },
+      'açúcar': { nome: 'açúcar', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Ingrediente doce, receita' },
+      'chocolate': { nome: 'chocolate', categoria: 'alimento', confidence: 0.99, ingrediente_receita: false, descricao: 'Produto pronto, marca' },
+      'café': { nome: 'café', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Bebida ingrediente, receita' },
+      'chá': { nome: 'chá', categoria: 'alimento', confidence: 0.99, ingrediente_receita: false, descricao: 'Bebida processada, pronto' },
+      'suco': { nome: 'suco', categoria: 'alimento', confidence: 0.99, ingrediente_receita: false, descricao: 'Bebida pronta, processada' },
+      'água': { nome: 'água', categoria: 'alimento', confidence: 0.95, ingrediente_receita: true, descricao: 'Bebida essencial, ingrediente' },
 
-      // Não-alimentos
-      'detergente': { nome: 'detergente', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Produto de limpeza, não-alimento' },
-      'sabonete': { nome: 'sabonete', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Higiene pessoal, não-alimento' },
-      'shampoo': { nome: 'shampoo', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Higiene pessoal, não-alimento' },
-      'papel higiênico': { nome: 'papel higiênico', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Artigo de higiene, não-alimento' },
-      'desinfetante': { nome: 'desinfetante', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Produto de limpeza, não-alimento' },
-      'esponja': { nome: 'esponja', categoria: 'nao_alimento', confidence: 0.98, descricao: 'Artigo de limpeza, não-alimento' },
-      'pano': { nome: 'pano', categoria: 'nao_alimento', confidence: 0.95, descricao: 'Artigo de limpeza, não-alimento' },
-      'toalha': { nome: 'toalha', categoria: 'nao_alimento', confidence: 0.95, descricao: 'Artigo têxtil, não-alimento' },
-      'vela': { nome: 'vela', categoria: 'nao_alimento', confidence: 0.98, descricao: 'Artigo decorativo/iluminação, não-alimento' },
-      'vaso': { nome: 'vaso', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Utensílio de decoração, não-alimento' },
-      'prato': { nome: 'prato', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Utensílio de cozinha, não-alimento' },
-      'copo': { nome: 'copo', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Utensílio de cozinha, não-alimento' },
-      'colher': { nome: 'colher', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Utensílio de cozinha, não-alimento' },
-      'faca': { nome: 'faca', categoria: 'nao_alimento', confidence: 0.99, descricao: 'Utensílio de cozinha, não-alimento' },
+      // Não-alimentos (ingrediente_receita = null)
+      'detergente': { nome: 'detergente', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Produto de limpeza, não-alimento' },
+      'sabonete': { nome: 'sabonete', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Higiene pessoal, não-alimento' },
+      'shampoo': { nome: 'shampoo', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Higiene pessoal, não-alimento' },
+      'papel higiênico': { nome: 'papel higiênico', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Artigo de higiene, não-alimento' },
+      'desinfetante': { nome: 'desinfetante', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Produto de limpeza, não-alimento' },
+      'esponja': { nome: 'esponja', categoria: 'nao_alimento', confidence: 0.98, ingrediente_receita: null, descricao: 'Artigo de limpeza, não-alimento' },
+      'pano': { nome: 'pano', categoria: 'nao_alimento', confidence: 0.95, ingrediente_receita: null, descricao: 'Artigo de limpeza, não-alimento' },
+      'toalha': { nome: 'toalha', categoria: 'nao_alimento', confidence: 0.95, ingrediente_receita: null, descricao: 'Artigo têxtil, não-alimento' },
+      'vela': { nome: 'vela', categoria: 'nao_alimento', confidence: 0.98, ingrediente_receita: null, descricao: 'Artigo decorativo/iluminação, não-alimento' },
+      'vaso': { nome: 'vaso', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Utensílio de decoração, não-alimento' },
+      'prato': { nome: 'prato', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Utensílio de cozinha, não-alimento' },
+      'copo': { nome: 'copo', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Utensílio de cozinha, não-alimento' },
+      'colher': { nome: 'colher', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Utensílio de cozinha, não-alimento' },
+      'faca': { nome: 'faca', categoria: 'nao_alimento', confidence: 0.99, ingrediente_receita: null, descricao: 'Utensílio de cozinha, não-alimento' },
+      'capsula de café': { nome: 'capsula de café', categoria: 'alimento', confidence: 0.95, ingrediente_receita: false, descricao: 'Café pronto, processado' },
+      'capsula d gusto': { nome: 'capsula d gusto', categoria: 'alimento', confidence: 0.95, ingrediente_receita: false, descricao: 'Café pronto, processado' },
+      'nescafé': { nome: 'nescafé', categoria: 'alimento', confidence: 0.95, ingrediente_receita: false, descricao: 'Café pronto, processado' },
+      'biscoito': { nome: 'biscoito', categoria: 'alimento', confidence: 0.98, ingrediente_receita: false, descricao: 'Bolinho pronto, processado' },
+      'bisc piraque': { nome: 'bisc piraque', categoria: 'alimento', confidence: 0.95, ingrediente_receita: false, descricao: 'Biscoito pronto, marca' },
+      'cha': { nome: 'cha', categoria: 'alimento', confidence: 0.99, ingrediente_receita: false, descricao: 'Chá pronto, processado' },
+      'choc trento': { nome: 'choc trento', categoria: 'alimento', confidence: 0.95, ingrediente_receita: false, descricao: 'Chocolate pronto, marca' },
+      'bolacha': { nome: 'bolacha', categoria: 'alimento', confidence: 0.98, ingrediente_receita: false, descricao: 'Bolacha pronta, processada' },
+      'ovos': { nome: 'ovos', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Proteína bruta, ingrediente' },
+      'óleo': { nome: 'óleo', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Óleo ingrediente, receita' },
+      'manteiga': { nome: 'manteiga', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Ingrediente lácteo, receita' },
+      'macarrão': { nome: 'macarrão', categoria: 'alimento', confidence: 0.99, ingrediente_receita: true, descricao: 'Cereal bruto, ingrediente' },
     };
 
     const clasificacoes = productNames.map((name) => {
@@ -418,17 +463,23 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
       const isNaoAlimento = keywords.nao_alimentos.some(kw => normalized.includes(kw));
 
       if (isAlimento && !isNaoAlimento) {
+        // Alimentos processados/prontos: detecção heurística
+        const processedKeywords = ['biscoito', 'bolacha', 'suco', 'chá', 'café', 'chocolate', 'capsula', 'nescafé', 'azeite', 'preparado', 'pronto'];
+        const isProcessed = processedKeywords.some(kw => normalized.includes(kw));
+
         return {
           nome: name,
           categoria: 'alimento',
           confidence: 0.75,
-          descricao: 'Classificado como alimento por heurística',
+          ingrediente_receita: !isProcessed, // false se processado, true se natural/bruto
+          descricao: isProcessed ? 'Alimento processado heurística' : 'Alimento bruto heurística',
         };
       } else if (isNaoAlimento) {
         return {
           nome: name,
           categoria: 'nao_alimento',
           confidence: 0.75,
+          ingrediente_receita: null,
           descricao: 'Classificado como não-alimento por heurística',
         };
       }
@@ -438,6 +489,7 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
         nome: name,
         categoria: 'indefinido',
         confidence: 0.5,
+        ingrediente_receita: null,
         descricao: 'Classificação incerta - requer validação manual',
       };
     });
@@ -561,9 +613,7 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
     const startTime = Date.now();
 
     try {
-      // MODO MOCK ATIVADO: Desativado temporariamente a chamada real à API
-      // Quando pronto, mude USE_MOCK_CLASSIFICATION para false
-      const USE_MOCK_CLASSIFICATION = true;
+      const USE_MOCK_CLASSIFICATION = !this.geminiApiKey;
 
       let classificationResult;
 
@@ -571,55 +621,58 @@ IMPORTANTE: Responda SEMPRE com um JSON válido em formato de array.`,
         this.logger.log(`🎭 MODO MOCK: Validando produto "${productName}"`);
         classificationResult = this.mockClassificacaoIndividual(productName);
       } else {
-        const prompt = this.construirPromptClassificacao(productName);
-
-        const response = await fetch(this.CLAUDE_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': this.claudeApiKey,
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: this.MODEL,
-            max_tokens: 256,
-            system: `Você é um classificador de produtos especializado em identificar se um produto é um alimento ou não.
-Responda sempre em JSON válido com a seguinte estrutura:
+        const prompt = `Classifique o produto "${productName}" como "alimento" ou "nao_alimento".
+Responda em JSON com a estrutura exata:
 {
   "categoria": "alimento" ou "nao_alimento",
   "confidence": número entre 0 e 1,
-  "descricao": "breve descrição do por quê",
+  "descricao": "motivo breve em 5 palavras",
   "keywords": ["palavra-chave1", "palavra-chave2"]
-}`,
-            messages: [
-              {
-                role: 'user',
-                content: prompt,
-              },
-            ],
-          }),
-        });
+}`;
 
-        const requestTime = Date.now() - startTime;
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(
-            `Claude API Error: ${error.error?.message || 'Unknown error'}`,
-          );
-        }
-
-        const data: any = await response.json();
-
-        // Extract response content from Claude
         try {
-          const content = data.content[0].text;
-          // Claude pode envolver JSON em markdown, então vamos tratar isso
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          const jsonStr = jsonMatch ? jsonMatch[0] : content;
-          classificationResult = JSON.parse(jsonStr);
-        } catch {
-          throw new Error('Failed to parse Claude response');
+          const response = await fetch(`${this.GEMINI_API_URL}?key=${this.geminiApiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    {
+                      text: prompt,
+                    },
+                  ],
+                },
+              ],
+            }),
+          });
+
+          if (!response.ok) {
+            this.logger.warn('Gemini API error, falling back to mock');
+            classificationResult = this.mockClassificacaoIndividual(productName);
+          } else {
+            const data = await response.json();
+            const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+            if (!responseText) {
+              classificationResult = this.mockClassificacaoIndividual(productName);
+            } else {
+              try {
+                // Try to parse JSON from response (may be wrapped in markdown)
+                const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+                const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
+                classificationResult = JSON.parse(jsonStr);
+              } catch {
+                this.logger.warn('Failed to parse Gemini response, falling back to mock');
+                classificationResult = this.mockClassificacaoIndividual(productName);
+              }
+            }
+          }
+        } catch (err) {
+          this.logger.warn('Gemini API call failed, falling back to mock:', err);
+          classificationResult = this.mockClassificacaoIndividual(productName);
         }
       }
 
