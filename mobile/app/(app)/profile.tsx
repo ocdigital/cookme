@@ -1,157 +1,99 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
-// import { useAuth } from '@/hooks/useAuth';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '@/contexts/AuthContext';
+import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
+
+const MENU_ITEMS = [
+  { icon: 'bell-outline', label: 'Notificações' },
+  { icon: 'heart-outline', label: 'Favoritos' },
+  { icon: 'history', label: 'Histórico de Compras' },
+  { icon: 'lock-outline', label: 'Privacidade' },
+];
 
 export default function ProfileScreen() {
-  // const { user, logout } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Meu Perfil</Text>
-      </View>
-
-      {/* Profile Info */}
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      {/* Avatar card */}
       <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <MaterialCommunityIcons name="account" size={60} color="#FF6B6B" />
+        <View style={styles.avatarWrap}>
+          <Text style={styles.avatarInitial}>
+            {(user?.name || user?.email || 'U')[0].toUpperCase()}
+          </Text>
         </View>
-        <Text style={styles.name}>{'Usuário'}</Text>
-        <Text style={styles.email}>{'user@email.com'}</Text>
+        <Text style={styles.name}>{user?.name || 'Usuário'}</Text>
+        <Text style={styles.email}>{user?.email || 'user@email.com'}</Text>
       </View>
 
-      {/* Menu Items */}
+      {/* Menu */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="bell-outline" size={24} color="#333" />
-          <Text style={styles.menuText}>Notificações</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#ddd" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="heart-outline" size={24} color="#333" />
-          <Text style={styles.menuText}>Meus Favoritos</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#ddd" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="history" size={24} color="#333" />
-          <Text style={styles.menuText}>Histórico de Compras</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#ddd" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <MaterialCommunityIcons name="lock-outline" size={24} color="#333" />
-          <Text style={styles.menuText}>Privacidade</Text>
-          <MaterialCommunityIcons name="chevron-right" size={24} color="#ddd" />
-        </TouchableOpacity>
+        {MENU_ITEMS.map((item, i) => (
+          <TouchableOpacity
+            key={item.label}
+            style={[styles.menuItem, i < MENU_ITEMS.length - 1 && styles.menuItemBorder]}
+          >
+            <View style={styles.menuIconWrap}>
+              <MaterialCommunityIcons name={item.icon as any} size={20} color={C.green[600]} />
+            </View>
+            <Text style={styles.menuText}>{item.label}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={C.ink[300]} />
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Logout Button */}
-      <TouchableOpacity 
-        style={styles.logoutButton}
-        onPress={() => console.log("logout")}
-      >
-        <MaterialCommunityIcons name="logout" size={20} color="#FF6B6B" />
+      {/* Logout */}
+      <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+        <MaterialCommunityIcons name="logout" size={18} color={C.red[500]} />
         <Text style={styles.logoutText}>Sair da Conta</Text>
       </TouchableOpacity>
-
-      <View style={styles.spacing} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#333',
-  },
+  container: { flex: 1, backgroundColor: C.ink[50] },
+  content: { padding: 20, paddingBottom: 40, gap: 16 },
   profileCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    backgroundColor: C.ink[0],
+    borderRadius: radius.xl,
+    paddingVertical: 28, paddingHorizontal: 20,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#eee',
+    borderWidth: 1, borderColor: C.ink[150],
+    ...shadows.sm,
+    gap: 6,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#fff3f1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+  avatarWrap: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: C.green[500],
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 8,
   },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: '#999',
-  },
+  avatarInitial: { fontSize: 32, fontWeight: '700', color: C.ink[0] },
+  name: { ...T.h2, color: C.ink[900] },
+  email: { ...T.body, color: C.ink[500] },
   section: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
+    backgroundColor: C.ink[0],
+    borderRadius: radius.lg,
+    borderWidth: 1, borderColor: C.ink[150],
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#eee',
+    ...shadows.sm,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 16, gap: 12,
   },
-  menuText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: C.ink[150] },
+  menuIconWrap: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: C.green[50], alignItems: 'center', justifyContent: 'center',
   },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff3f1',
-    marginHorizontal: 16,
-    marginTop: 24,
-    borderRadius: 12,
-    paddingVertical: 14,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#FF6B6B',
+  menuText: { flex: 1, ...T.body, color: C.ink[800], fontWeight: '600' },
+  logoutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.red[50],
+    borderRadius: radius.md, paddingVertical: 15, gap: 8,
+    borderWidth: 1, borderColor: C.red[500],
   },
-  logoutText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FF6B6B',
-  },
-  spacing: {
-    height: 20,
-  },
+  logoutText: { ...T.body, color: C.red[500], fontWeight: '700' },
 });

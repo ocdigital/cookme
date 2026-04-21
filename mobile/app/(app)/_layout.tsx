@@ -1,12 +1,13 @@
 import { Drawer } from 'expo-router/drawer';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { colors as C } from '@/constants/theme';
 
 export default function AppLayout() {
   return (
     <Drawer
       screenOptions={{
         drawerStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: C.ink[50],
           width: 280,
         },
         drawerLabelStyle: {
@@ -14,34 +15,26 @@ export default function AppLayout() {
           fontSize: 14,
           fontWeight: '600',
         },
-        drawerActiveTintColor: '#FF6B6B',
-        drawerInactiveTintColor: '#666',
+        drawerActiveTintColor: C.green[600],
+        drawerInactiveTintColor: C.ink[500],
+        drawerActiveBackgroundColor: C.green[50],
         headerShown: true,
-        headerStyle: {
-          backgroundColor: '#fff',
-          borderBottomWidth: 1,
-          borderBottomColor: '#eee',
-        },
-        headerTintColor: '#333',
-        headerTitleStyle: {
-          fontWeight: '700',
-          fontSize: 18,
-        },
+        headerStyle: { backgroundColor: C.ink[0] },
+        headerTintColor: C.ink[800],
+        headerTitleStyle: { fontWeight: '700', fontSize: 18, color: C.ink[900] },
+        headerShadowVisible: false,
       }}
     >
-      {/* Início (Home with Tabs) */}
       <Drawer.Screen
         name="(tabs)"
         options={{
           drawerLabel: 'Início',
           headerShown: false,
           drawerIcon: ({ size, color }) => (
-            <MaterialCommunityIcons name="home" size={size} color={color} />
+            <MaterialCommunityIcons name="home-outline" size={size} color={color} />
           ),
         }}
       />
-
-      {/* Profile */}
       <Drawer.Screen
         name="profile"
         options={{
@@ -52,8 +45,6 @@ export default function AppLayout() {
           ),
         }}
       />
-
-      {/* Settings */}
       <Drawer.Screen
         name="settings"
         options={{
@@ -64,7 +55,6 @@ export default function AppLayout() {
           ),
         }}
       />
-
     </Drawer>
   );
 }

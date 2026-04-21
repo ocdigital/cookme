@@ -1,140 +1,77 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  SafeAreaView,
-  ActivityIndicator,
-  Alert,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  Modal, TextInput, SafeAreaView, ActivityIndicator, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useListas } from '@/hooks/useListas';
+import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 
 export default function ListasScreen() {
   const router = useRouter();
-  const {
-    listas,
-    loading,
-    erro,
-    criarLista,
-    carregarListas,
-    carregarLista,
-    deletarLista,
-    duplicarLista,
-  } = useListas();
-
+  const { listas, loading, erro, criarLista, carregarListas, carregarLista, deletarLista, duplicarLista } = useListas();
   const [modalVisible, setModalVisible] = useState(false);
-  const [novaListaTitulo, setNovaListaTitulo] = useState('');
-  const [novaListaDescricao, setNovaListaDescricao] = useState('');
+  const [titulo, setTitulo] = useState('');
+  const [descricao, setDescricao] = useState('');
 
-  useFocusEffect(
-    useCallback(() => {
-      carregarListas();
-    }, [carregarListas]),
-  );
+  useFocusEffect(useCallback(() => { carregarListas(); }, [carregarListas]));
 
-  const handleCriarLista = async () => {
-    if (!novaListaTitulo.trim()) {
-      Alert.alert('Erro', 'Nome da lista é obrigatório');
-      return;
-    }
-
+  const handleCriar = async () => {
+    if (!titulo.trim()) { Alert.alert('Erro', 'Nome da lista é obrigatório'); return; }
     try {
-      await criarLista(novaListaTitulo, novaListaDescricao);
-      setNovaListaTitulo('');
-      setNovaListaDescricao('');
-      setModalVisible(false);
-    } catch {
-      Alert.alert('Erro', 'Falha ao criar lista');
-    }
+      await criarLista(titulo, descricao);
+      setTitulo(''); setDescricao(''); setModalVisible(false);
+    } catch { Alert.alert('Erro', 'Falha ao criar lista'); }
   };
 
-  const handleDeletarLista = (id: string, titulo: string) => {
-    Alert.alert(
-      'Deletar Lista',
-      `Deseja deletar "${titulo}"?`,
-      [
-        { text: 'Cancelar', onPress: () => {} },
-        {
-          text: 'Deletar',
-          onPress: () => deletarLista(id),
-          style: 'destructive',
-        },
-      ],
-    );
+  const handleDeletar = (id: string, nome: string) => {
+    Alert.alert('Deletar Lista', `Deseja deletar "${nome}"?`, [
+      { text: 'Cancelar' },
+      { text: 'Deletar', style: 'destructive', onPress: () => deletarLista(id) },
+    ]);
   };
 
-  const handleSelecionarLista = (lista: any) => {
-    carregarLista(lista.id);
-    router.push({
-      pathname: '/(app)/listas/[id]',
-      params: { id: lista.id, titulo: lista.titulo },
-    });
-  };
-
-  const renderListaItem = ({ item }: any) => {
-    const progresso = (item.itens?.filter((i: any) => i.comprado).length || 0) / (item.itens?.length || 1);
-    const percentual = Math.round(progresso * 100);
+  const renderItem = ({ item }: any) => {
+    const total = item.itens?.length || 0;
+    const comprados = item.itens?.filter((i: any) => i.comprado).length || 0;
+    const pct = total > 0 ? Math.round((comprados / total) * 100) : 0;
 
     return (
       <TouchableOpacity
-        style={styles.listaCard}
-        onPress={() => handleSelecionarLista(item)}
+        style={styles.card}
+        onPress={() => { carregarLista(item.id); router.push({ pathname: '/(app)/listas/[id]', params: { id: item.id, titulo: item.titulo } }); }}
       >
-        <View style={styles.listaHeader}>
-          <View style={styles.listaInfo}>
-            <Text style={styles.listaTitulo}>{item.titulo}</Text>
-            <Text style={styles.listaSubtitulo}>
-              {item.itens?.length || 0} itens • {percentual}% completo
-            </Text>
+        <View style={styles.cardTop}>
+          <View style={styles.cardIconWrap}>
+            <MaterialCommunityIcons name="cart-outline" size={20} color={C.green[600]} />
           </View>
-          <View style={styles.listaMenu}>
-            <TouchableOpacity
-              style={styles.menuIcon}
-              onPress={() => duplicarLista(item.id)}
-            >
-              <MaterialCommunityIcons name="content-copy" size={18} color="#666" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuIcon}
-              onPress={() => handleDeletarLista(item.id, item.titulo)}
-            >
-              <MaterialCommunityIcons name="trash-can" size={18} color="#FF6B6B" />
-            </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitulo}>{item.titulo}</Text>
+            <Text style={styles.cardSub}>{total} itens · {pct}% completo</Text>
           </View>
+          <TouchableOpacity onPress={() => duplicarLista(item.id)} style={styles.iconBtn}>
+            <MaterialCommunityIcons name="content-copy" size={17} color={C.ink[400]} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDeletar(item.id, item.titulo)} style={styles.iconBtn}>
+            <MaterialCommunityIcons name="trash-can-outline" size={17} color={C.red[500]} />
+          </TouchableOpacity>
         </View>
 
-        {/* Progress Bar */}
         <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${percentual}%`, backgroundColor: '#FF6B6B' },
-            ]}
-          />
+          <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
         </View>
 
-        {/* Stats */}
-        <View style={styles.listaStats}>
+        <View style={styles.cardBottom}>
           <View style={styles.stat}>
-            <MaterialCommunityIcons name="shopping-outline" size={16} color="#666" />
-            <Text style={styles.statText}>
-              {item.itens?.filter((i: any) => !i.comprado).length || 0} restando
-            </Text>
+            <MaterialCommunityIcons name="shopping-outline" size={14} color={C.ink[500]} />
+            <Text style={styles.statText}>{total - comprados} restando</Text>
           </View>
-
           {item.total_estimado > 0 && (
             <View style={styles.stat}>
-              <MaterialCommunityIcons name="cash" size={16} color="#666" />
-              <Text style={styles.statText}>
-                R$ {item.total_estimado?.toFixed(2) || '0.00'}
-              </Text>
+              <MaterialCommunityIcons name="cash" size={14} color={C.ink[500]} />
+              <Text style={styles.statText}>R$ {item.total_estimado?.toFixed(2)}</Text>
             </View>
           )}
         </View>
@@ -142,116 +79,79 @@ export default function ListasScreen() {
     );
   };
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <MaterialCommunityIcons name="clipboard-list" size={64} color="#ddd" />
-      <Text style={styles.emptyTitle}>Nenhuma lista de compras</Text>
-      <Text style={styles.emptyText}>Crie sua primeira lista para começar</Text>
-      <TouchableOpacity
-        style={styles.emptyButton}
-        onPress={() => setModalVisible(true)}
-      >
-        <MaterialCommunityIcons name="plus" size={20} color="#fff" />
-        <Text style={styles.emptyButtonText}>Criar Lista</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Minhas Listas</Text>
-          <Text style={styles.headerSubtitle}>
-            {listas.length} {listas.length === 1 ? 'lista' : 'listas'}
-          </Text>
+          <Text style={styles.headerSub}>Minhas listas</Text>
+          <Text style={styles.headerTitle}>{listas.length} {listas.length === 1 ? 'lista' : 'listas'}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.criarButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+        <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+          <MaterialCommunityIcons name="plus" size={22} color={C.ink[0]} />
         </TouchableOpacity>
       </View>
 
-      {/* Error */}
-      {erro && (
-        <View style={styles.errorBanner}>
-          <MaterialCommunityIcons name="alert-circle" size={18} color="#FF6B6B" />
-          <Text style={styles.errorText}>{erro}</Text>
-        </View>
-      )}
-
-      {/* List */}
       {loading && listas.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B6B" />
-        </View>
+        <View style={styles.centered}><ActivityIndicator size="large" color={C.green[500]} /></View>
       ) : (
         <FlatList
-          data={listas.filter((l) => l.status === 'ativa')}
-          renderItem={renderListaItem}
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={renderEmptyState}
-          contentContainerStyle={styles.listContent}
+          data={listas.filter(l => l.status === 'ativa')}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.list}
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           onRefresh={carregarListas}
           refreshing={loading}
-          scrollEnabled={true}
+          ListEmptyComponent={() => (
+            <View style={styles.empty}>
+              <View style={styles.emptyIcon}>
+                <MaterialCommunityIcons name="clipboard-list-outline" size={48} color={C.green[500]} />
+              </View>
+              <Text style={styles.emptyTitle}>Nenhuma lista de compras</Text>
+              <Text style={styles.emptySub}>Crie sua primeira lista para começar</Text>
+              <TouchableOpacity style={styles.emptyBtn} onPress={() => setModalVisible(true)}>
+                <MaterialCommunityIcons name="plus" size={18} color={C.ink[0]} />
+                <Text style={styles.emptyBtnText}>Criar Lista</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         />
       )}
 
-      {/* Modal Criar Lista */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      {/* Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nova Lista de Compras</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <MaterialCommunityIcons name="close" size={24} color="#333" />
+              <Text style={styles.modalTitle}>Nova Lista</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+                <MaterialCommunityIcons name="close" size={20} color={C.ink[700]} />
               </TouchableOpacity>
             </View>
 
             <TextInput
               style={styles.input}
-              placeholder="Nome da lista (obrigatório)"
-              placeholderTextColor="#ccc"
-              value={novaListaTitulo}
-              onChangeText={setNovaListaTitulo}
+              placeholder="Nome da lista"
+              placeholderTextColor={C.ink[400]}
+              value={titulo}
+              onChangeText={setTitulo}
             />
-
             <TextInput
-              style={[styles.input, styles.inputMultiline]}
+              style={[styles.input, { minHeight: 72, textAlignVertical: 'top' }]}
               placeholder="Descrição (opcional)"
-              placeholderTextColor="#ccc"
-              value={novaListaDescricao}
-              onChangeText={setNovaListaDescricao}
+              placeholderTextColor={C.ink[400]}
+              value={descricao}
+              onChangeText={setDescricao}
               multiline
-              numberOfLines={3}
             />
 
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              <TouchableOpacity style={styles.btnCancel} onPress={() => setModalVisible(false)}>
+                <Text style={styles.btnCancelText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.createButton}
-                onPress={handleCriarLista}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.createButtonText}>Criar Lista</Text>
-                )}
+              <TouchableOpacity style={styles.btnCreate} onPress={handleCriar} disabled={loading}>
+                {loading ? <ActivityIndicator size="small" color={C.ink[0]} /> : <Text style={styles.btnCreateText}>Criar</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -262,215 +162,80 @@ export default function ListasScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: C.ink[50] },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14,
+    backgroundColor: C.ink[0], borderBottomWidth: 1, borderBottomColor: C.ink[150],
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
+  headerSub: { ...T.micro, color: C.green[600], textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 2 },
+  headerTitle: { ...T.h1, color: C.ink[900] },
+  addBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: C.green[500], alignItems: 'center', justifyContent: 'center',
+    ...shadows.md,
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 24 },
+  card: {
+    backgroundColor: C.ink[0], borderRadius: radius.lg,
+    padding: 14, borderWidth: 1, borderColor: C.ink[150],
+    ...shadows.sm,
   },
-  criarButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  cardIconWrap: {
+    width: 40, height: 40, borderRadius: radius.sm,
+    backgroundColor: C.green[50], alignItems: 'center', justifyContent: 'center',
   },
-  errorBanner: {
-    backgroundColor: '#FFE0E0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+  cardTitulo: { ...T.h3, color: C.ink[900], marginBottom: 2 },
+  cardSub: { ...T.small, color: C.ink[500] },
+  iconBtn: { padding: 6 },
+  progressBar: { height: 5, backgroundColor: C.ink[150], borderRadius: 3, overflow: 'hidden', marginBottom: 10 },
+  progressFill: { height: '100%', backgroundColor: C.green[500], borderRadius: 3 },
+  cardBottom: { flexDirection: 'row', gap: 14 },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  statText: { ...T.small, color: C.ink[500] },
+  empty: { alignItems: 'center', justifyContent: 'center', paddingTop: 60, gap: 10 },
+  emptyIcon: {
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: C.green[50], borderWidth: 1, borderColor: C.green[200], borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
   },
-  errorText: {
-    color: '#FF6B6B',
-    fontSize: 12,
-    flex: 1,
+  emptyTitle: { ...T.h3, color: C.ink[800] },
+  emptySub: { ...T.body, color: C.ink[500] },
+  emptyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: C.green[500], borderRadius: radius.md,
+    paddingVertical: 12, paddingHorizontal: 24, marginTop: 8,
+    ...shadows.sm,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  emptyBtnText: { ...T.body, color: C.ink[0], fontWeight: '700' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modal: {
+    backgroundColor: C.ink[0], borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 36,
   },
-  listContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  listaCard: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  listaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  listaInfo: {
-    flex: 1,
-  },
-  listaTitulo: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-  },
-  listaSubtitulo: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
-  },
-  listaMenu: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  menuIcon: {
-    padding: 8,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 2,
-    marginBottom: 8,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  listaStats: {
-    flexDirection: 'row',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontSize: 11,
-    color: '#666',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  emptyButton: {
-    flexDirection: 'row',
-    backgroundColor: '#FF6B6B',
-    borderRadius: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    marginTop: 24,
-    gap: 8,
-  },
-  emptyButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    paddingBottom: 32,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { ...T.h2, color: C.ink[900] },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: C.ink[100], alignItems: 'center', justifyContent: 'center',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 12,
+    backgroundColor: C.ink[50], borderWidth: 1, borderColor: C.ink[200],
+    borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, color: C.ink[900], marginBottom: 12,
   },
-  inputMultiline: {
-    textAlignVertical: 'top',
-    minHeight: 80,
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  btnCancel: {
+    flex: 1, paddingVertical: 14, borderRadius: radius.md,
+    backgroundColor: C.ink[0], borderWidth: 1, borderColor: C.ink[200], alignItems: 'center',
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
+  btnCancelText: { ...T.body, color: C.ink[700], fontWeight: '600' },
+  btnCreate: {
+    flex: 1, paddingVertical: 14, borderRadius: radius.md,
+    backgroundColor: C.green[500], alignItems: 'center',
+    ...shadows.sm,
   },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  createButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#FF6B6B',
-    alignItems: 'center',
-  },
-  createButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  btnCreateText: { ...T.body, color: C.ink[0], fontWeight: '700' },
 });

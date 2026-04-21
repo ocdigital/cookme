@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   ScrollView,
   FlatList,
-  Modal,
   SafeAreaView,
   Dimensions,
 } from 'react-native';
@@ -18,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
+import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = 100;
@@ -37,7 +37,6 @@ export default function ReceiptOcrScreen() {
   const [currentStep, setCurrentStep] = useState<Step>('choose');
   const [photos, setPhotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
@@ -51,63 +50,31 @@ export default function ReceiptOcrScreen() {
   const takePhoto = async () => {
     try {
       if (!cameraRef.current) return;
-
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-      });
-
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
       if (photo?.uri) {
         setPhotos([...photos, photo.uri]);
-        Alert.alert('✓ Foto Capturada', `${photos.length + 1}/${MAX_PHOTOS} fotos`, [
-          {
-            text: 'Capturar Mais',
-            onPress: () => {},
-          },
-          {
-            text: 'Processar',
-            onPress: () => {
-              setCurrentStep('processing');
-              processPhotos([...photos, photo.uri]);
-            },
-          },
+        Alert.alert('Foto Capturada', `${photos.length + 1}/${MAX_PHOTOS} fotos`, [
+          { text: 'Capturar Mais' },
+          { text: 'Processar', onPress: () => { setCurrentStep('processing'); processPhotos([...photos, photo.uri]); } },
         ]);
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Erro', 'Falha ao capturar foto');
     }
   };
 
   const pickFromGallery = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-      });
-
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
       if (!result.canceled) {
-        const newPhotos = result.assets.map(asset => asset.uri);
-        const allPhotos = [...photos, ...newPhotos].slice(0, MAX_PHOTOS);
+        const allPhotos = [...photos, ...result.assets.map(a => a.uri)].slice(0, MAX_PHOTOS);
         setPhotos(allPhotos);
-
-        Alert.alert(
-          '✓ Imagens Selecionadas',
-          `Total: ${allPhotos.length}/${MAX_PHOTOS} fotos`,
-          [
-            {
-              text: 'Adicionar Mais',
-              onPress: () => {},
-            },
-            {
-              text: 'Processar',
-              onPress: () => {
-                setCurrentStep('processing');
-                processPhotos(allPhotos);
-              },
-            },
-          ]
-        );
+        Alert.alert('Imagens Selecionadas', `Total: ${allPhotos.length}/${MAX_PHOTOS} fotos`, [
+          { text: 'Adicionar Mais' },
+          { text: 'Processar', onPress: () => { setCurrentStep('processing'); processPhotos(allPhotos); } },
+        ]);
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Erro', 'Falha ao selecionar imagens');
     }
   };
@@ -118,90 +85,44 @@ export default function ReceiptOcrScreen() {
       setCurrentStep('choose');
       return;
     }
-
     setIsLoading(true);
-    setError(null);
-
     try {
-      // Extrair texto das imagens usando backend
       const ocrTexts = await Promise.all(
         photosToProcess.map(async (photoUri) => {
           try {
-            console.log('🟦 Processando OCR para:', photoUri);
-
-            // Ler imagem como base64 usando fetch
             const response = await fetch(photoUri);
             const blob = await response.blob();
-
-            // Converter blob pra base64
             const reader = new FileReader();
             const base64Promise = new Promise<string>((resolve, reject) => {
-              reader.onload = () => {
-                const result = reader.result as string;
-                const base64 = result.split(',')[1]; // Remove "data:image/jpeg;base64,"
-                resolve(base64);
-              };
+              reader.onload = () => resolve((reader.result as string).split(',')[1]);
               reader.onerror = reject;
             });
             reader.readAsDataURL(blob);
             const base64 = await base64Promise;
-
-            // Enviar pro backend processar
-            const ocrResponse = await api.post('/receitas/ocr/extract-from-image', {
-              image: base64,
-              mimeType: 'image/jpeg',
-            });
-
-            const text = ocrResponse.data.ocrText || '';
-            console.log('🟨 Texto extraído:', text.substring(0, 100));
-            return text;
-          } catch (ocrErr) {
-            console.error('🔴 Erro ao processar OCR:', ocrErr);
-            return ''; // Retornar vazio em caso de erro
-          }
+            const ocrResponse = await api.post('/receitas/ocr/extract-from-image', { image: base64, mimeType: 'image/jpeg' });
+            return ocrResponse.data.ocrText || '';
+          } catch { return ''; }
         })
       );
-
-      // Filtrar textos vazios (que falharam)
-      const validOcrTexts = ocrTexts.filter((text) => text.length > 0);
-
+      const validOcrTexts = ocrTexts.filter(t => t.length > 0);
       if (validOcrTexts.length === 0) {
-        setError('Não consegui ler nenhuma imagem. Tente tirar fotos mais claras.');
+        Alert.alert('Erro', 'Não consegui ler nenhuma imagem. Tente fotos mais claras.');
         setCurrentStep('choose');
         setIsLoading(false);
         return;
       }
-
-      // Enviar para API do backend
-      console.log('🟦 Enviando para /receitas/ocr/process...');
       const response = await api.post('/receitas/ocr/process', {
-        photos: validOcrTexts.map((text, idx) => ({
-          ocrText: text,
-          photoNumber: idx + 1,
-          totalPhotos: validOcrTexts.length,
-        })),
+        photos: validOcrTexts.map((text, idx) => ({ ocrText: text, photoNumber: idx + 1, totalPhotos: validOcrTexts.length })),
         ignoreWarnings: false,
       });
-
-      console.log('🟩 Resposta do /receitas/ocr/process:', response.data);
-
-      // Converter resposta do backend para formato da UI
-      const result: OcrResult = {
-        items: response.data.items.map((item: any) => ({
-          name: item.nome,
-          quantity: item.quantidade,
-          price: item.preco_total,
-        })),
+      setOcrResult({
+        items: response.data.items.map((item: any) => ({ name: item.nome, quantity: item.quantidade, price: item.preco_total })),
         duplicates: response.data.duplicatesFlagged?.map((d: any) => d.nome) || [],
         total: response.data.items.reduce((sum: number, item: any) => sum + item.preco_total, 0),
-      };
-
-      console.log('🟩 OcrResult construído:', result);
-      setOcrResult(result);
+      });
       setCurrentStep('review');
     } catch (err: any) {
-      console.error('🔴 Erro em processPhotos:', err);
-      setError(err.message || 'Erro ao processar cupom');
+      Alert.alert('Erro', err.message || 'Erro ao processar cupom');
       setCurrentStep('choose');
     } finally {
       setIsLoading(false);
@@ -209,274 +130,269 @@ export default function ReceiptOcrScreen() {
   };
 
   const handleConfirm = async () => {
-    // Classifica itens automaticamente antes de ir pra validação
-    if (ocrResult && ocrResult.items.length > 0) {
-      try {
-        setIsLoading(true);
-        console.log('🤖 Classificando itens com IA...');
-
-        // Chamar endpoint de classificação
-        const classificationResponse = await api.post('/receitas/ocr/classify-items', {
-          items: ocrResult.items.map(item => ({
-            nome: item.name,
-            preco_total: item.price,
-            quantidade: item.quantity,
-          })),
-        });
-
-        console.log('✅ Classificação concluída:', classificationResponse.data);
-
-        const produtosJson = JSON.stringify(
-          classificationResponse.data.items.map((item: any) => ({
-            nome: item.nome,
-            categoria: item.categoria,
-            confianca_classificacao: Math.round(item.confianca * 100),
-            motivo: item.descricao || 'Classificado automaticamente',
-            ingrediente_receita: item.ingrediente_receita,
-            requer_validacao: item.requer_validacao,
-          }))
-        );
-
-        console.log('📋 Navegando para validação com', classificationResponse.data.items.length, 'itens');
-        router.push({
-          pathname: '/(app)/validacao',
-          params: { produtos_json: produtosJson }
-        });
-      } catch (err: any) {
-        console.error('❌ Erro ao classificar:', err);
-        // Fallback: navegar com confiança baixa pra todos
-        const produtosJson = JSON.stringify(
-          ocrResult.items.map(item => ({
-            nome: item.name,
-            categoria: 'Indefinido',
-            confianca_classificacao: 50,
-            motivo: 'Erro ao classificar - confirme manualmente',
-            ingrediente_receita: null,
-            requer_validacao: true,
-          }))
-        );
-        router.push({
-          pathname: '/(app)/validacao',
-          params: { produtos_json: produtosJson }
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      Alert.alert('Erro', 'Nenhum item para validar');
+    if (!ocrResult || ocrResult.items.length === 0) { Alert.alert('Erro', 'Nenhum item para validar'); return; }
+    try {
+      setIsLoading(true);
+      const classificationResponse = await api.post('/receitas/ocr/classify-items', {
+        items: ocrResult.items.map(item => ({ nome: item.name, preco_total: item.price, quantidade: item.quantity })),
+      });
+      const produtosJson = JSON.stringify(
+        classificationResponse.data.items.map((item: any) => ({
+          nome: item.nome,
+          categoria: item.categoria,
+          confianca_classificacao: Math.round(item.confianca * 100),
+          motivo: item.descricao || 'Classificado automaticamente',
+          ingrediente_receita: item.ingrediente_receita,
+          requer_validacao: item.requer_validacao,
+        }))
+      );
+      router.push({ pathname: '/(app)/validacao', params: { produtos_json: produtosJson } });
+    } catch {
+      const produtosJson = JSON.stringify(
+        ocrResult.items.map(item => ({ nome: item.name, categoria: 'Indefinido', confianca_classificacao: 50, motivo: 'Erro ao classificar - confirme manualmente', ingrediente_receita: null, requer_validacao: true }))
+      );
+      router.push({ pathname: '/(app)/validacao', params: { produtos_json: produtosJson } });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDone = () => {
-    setPhotos([]);
-    setOcrResult(null);
-    setCurrentStep('choose');
-    router.back();
+    setPhotos([]); setOcrResult(null); setCurrentStep('choose'); router.back();
   };
 
-  // Permissão não foi concedida
+  // --- PERMISSION ---
+  if (hasPermission === null) {
+    return (
+      <View style={styles.permissionContainer}>
+        <ActivityIndicator size="large" color={C.green[500]} />
+        <Text style={styles.permissionText}>Solicitando permissão...</Text>
+      </View>
+    );
+  }
   if (hasPermission === false) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.centeredContent}>
-          <MaterialCommunityIcons name="camera-off" size={64} color="#FF6B6B" />
-          <Text style={styles.errorTitle}>Câmera não autorizada</Text>
-          <Text style={styles.errorText}>Permita o acesso à câmera nas configurações</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>Voltar</Text>
-          </TouchableOpacity>
+      <SafeAreaView style={styles.permissionContainer}>
+        <View style={styles.permissionIconWrap}>
+          <MaterialCommunityIcons name="camera-off" size={32} color={C.red[500]} />
         </View>
+        <Text style={styles.permissionTitle}>Câmera não autorizada</Text>
+        <Text style={styles.permissionSub}>Permita o acesso à câmera nas configurações</Text>
+        <TouchableOpacity style={styles.permissionBtn} onPress={() => router.back()}>
+          <Text style={styles.permissionBtnText}>Voltar</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  // Solicitando permissão
-  if (hasPermission === null) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={styles.loadingText}>Solicitando permissão...</Text>
-      </View>
-    );
-  }
-
-  // ===== PASSO 1: ESCOLHER MÉTODO =====
+  // ===== CHOOSE =====
   if (currentStep === 'choose') {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
+          <TouchableOpacity style={styles.headerBack} onPress={() => router.back()}>
+            <MaterialCommunityIcons name="arrow-left" size={20} color={C.ink[700]} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Digitalizar Cupom</Text>
-          <View style={{ width: 24 }} />
+          <View style={{ width: 36 }} />
         </View>
 
-        <View style={styles.centeredContent}>
-          <MaterialCommunityIcons name="receipt" size={80} color="#FF6B6B" />
-          <Text style={styles.mainTitle}>Capturar Cupom Fiscal</Text>
-          <Text style={styles.subtitle}>Até {MAX_PHOTOS} fotos para melhor resultado</Text>
+        <ScrollView contentContainerStyle={styles.chooseContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.chooseHero}>
+            <View style={styles.chooseIconWrap}>
+              <MaterialCommunityIcons name="receipt" size={40} color={C.green[600]} />
+            </View>
+            <Text style={styles.chooseTitle}>Capturar Cupom Fiscal</Text>
+            <Text style={styles.chooseSub}>Fotografe o cupom para extrair os itens automaticamente</Text>
+          </View>
 
-          <TouchableOpacity
-            style={styles.largeButton}
-            onPress={() => setCurrentStep('camera')}
-          >
-            <MaterialCommunityIcons name="camera" size={32} color="#fff" />
-            <Text style={styles.largeButtonText}>Usar Câmera</Text>
-          </TouchableOpacity>
+          <View style={styles.chooseOptions}>
+            <TouchableOpacity style={styles.optionCard} onPress={() => setCurrentStep('camera')} activeOpacity={0.7}>
+              <View style={[styles.optionIcon, { backgroundColor: C.green[50] }]}>
+                <MaterialCommunityIcons name="camera" size={28} color={C.green[600]} />
+              </View>
+              <View style={styles.optionText}>
+                <Text style={styles.optionTitle}>Usar Câmera</Text>
+                <Text style={styles.optionSub}>Fotografe o cupom agora</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[300]} />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.largeButton, styles.secondaryButton]}
-            onPress={pickFromGallery}
-          >
-            <MaterialCommunityIcons name="image-multiple" size={32} color="#FF6B6B" />
-            <Text style={styles.secondaryButtonText}>Galeria</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.optionCard} onPress={pickFromGallery} activeOpacity={0.7}>
+              <View style={[styles.optionIcon, { backgroundColor: C.amber[50] }]}>
+                <MaterialCommunityIcons name="image-multiple" size={28} color={C.amber[600]} />
+              </View>
+              <View style={styles.optionText}>
+                <Text style={styles.optionTitle}>Galeria</Text>
+                <Text style={styles.optionSub}>Escolha fotos existentes</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[300]} />
+            </TouchableOpacity>
 
-          {/* Test Mode */}
-          <TouchableOpacity
-            style={[styles.largeButton, styles.testButton]}
-            onPress={() => {
-              setCurrentStep('processing');
-              processPhotos(['test']);
-            }}
-          >
-            <MaterialCommunityIcons name="beaker" size={32} color="#999" />
-            <Text style={styles.testButtonText}>🧪 Teste com 3 Cupons</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={[styles.optionCard, styles.optionCardTest]}
+              onPress={() => { setCurrentStep('processing'); processPhotos(['test']); }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.optionIcon, { backgroundColor: C.ink[100] }]}>
+                <MaterialCommunityIcons name="beaker-outline" size={28} color={C.ink[500]} />
+              </View>
+              <View style={styles.optionText}>
+                <Text style={[styles.optionTitle, { color: C.ink[500] }]}>Modo de Teste</Text>
+                <Text style={styles.optionSub}>3 cupons de exemplo</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[300]} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tipCard}>
+            <MaterialCommunityIcons name="lightbulb-outline" size={16} color={C.amber[600]} />
+            <Text style={styles.tipText}>Dica: Até {MAX_PHOTOS} fotos para melhor resultado. Garanta boa iluminação.</Text>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // ===== PASSO 2: CÂMERA =====
+  // ===== CAMERA =====
   if (currentStep === 'camera') {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentStep('choose')}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Câmera</Text>
-          <Text style={styles.photoCounter}>{photos.length}/{MAX_PHOTOS}</Text>
-        </View>
-
-        <CameraView style={styles.camera} ref={cameraRef} facing="back">
-          <View style={styles.cameraOverlay}>
-            <View style={styles.receiptFrame} />
-            <Text style={styles.frameHint}>Alinhe o cupom aqui</Text>
-          </View>
-        </CameraView>
-
-        <View style={styles.photoPreview}>
-          <FlatList
-            data={photos}
-            horizontal
-            keyExtractor={(_, i) => i.toString()}
-            renderItem={({ item, index }) => (
-              <View style={styles.photoThumbnail}>
-                <Image source={{ uri: item }} style={styles.photoImage} />
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => setPhotos(photos.filter((_, i) => i !== index))}
-                >
-                  <MaterialCommunityIcons name="close" size={16} color="#fff" />
-                </TouchableOpacity>
+      <View style={styles.cameraContainer}>
+        <CameraView style={StyleSheet.absoluteFill} ref={cameraRef} facing="back">
+          {/* Overlay escuro */}
+          <SafeAreaView style={styles.cameraUI}>
+            {/* Top bar */}
+            <View style={styles.cameraTopBar}>
+              <TouchableOpacity style={styles.camBtn} onPress={() => setCurrentStep('choose')}>
+                <MaterialCommunityIcons name="close" size={20} color={C.ink[0]} />
+              </TouchableOpacity>
+              <View style={styles.camCounterWrap}>
+                <View style={styles.camDot} />
+                <Text style={styles.camCounter}>{photos.length}/{MAX_PHOTOS} fotos</Text>
               </View>
+              <View style={{ width: 40 }} />
+            </View>
+
+            {/* Frame */}
+            <View style={styles.frameArea}>
+              <View style={styles.frameBracketTL} />
+              <View style={styles.frameBracketTR} />
+              <View style={styles.frameBracketBL} />
+              <View style={styles.frameBracketBR} />
+              <Text style={styles.frameHint}>Alinhe o cupom dentro da área</Text>
+            </View>
+
+            {/* Photo strip */}
+            {photos.length > 0 && (
+              <FlatList
+                data={photos}
+                horizontal
+                keyExtractor={(_, i) => i.toString()}
+                style={styles.photoStrip}
+                contentContainerStyle={{ paddingHorizontal: 12, gap: 8 }}
+                renderItem={({ item, index }) => (
+                  <View>
+                    <Image source={{ uri: item }} style={styles.photoThumb} />
+                    <TouchableOpacity style={styles.removeThumb} onPress={() => setPhotos(photos.filter((_, i) => i !== index))}>
+                      <MaterialCommunityIcons name="close" size={12} color={C.ink[0]} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
             )}
-            contentContainerStyle={styles.photoList}
-          />
-        </View>
 
-        <View style={styles.cameraControls}>
-          <TouchableOpacity
-            style={styles.cameraButton}
-            onPress={() => setCurrentStep('choose')}
-          >
-            <Text style={styles.cameraButtonText}>Cancelar</Text>
-          </TouchableOpacity>
+            {/* Bottom controls */}
+            <View style={styles.cameraBottomBar}>
+              <TouchableOpacity
+                style={[styles.processBtn, photos.length === 0 && { opacity: 0.4 }]}
+                disabled={photos.length === 0}
+                onPress={() => { setCurrentStep('processing'); processPhotos(photos); }}
+              >
+                <Text style={styles.processBtnText}>Processar</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.cameraButton, styles.captureButton]}
-            onPress={takePhoto}
-          >
-            <MaterialCommunityIcons name="camera-iris" size={32} color="#fff" />
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.shutterBtn} onPress={takePhoto}>
+                <View style={styles.shutterInner} />
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.cameraButton,
-              photos.length === 0 && styles.disabledButton,
-            ]}
-            disabled={photos.length === 0}
-            onPress={() => {
-              setCurrentStep('processing');
-              processPhotos(photos);
-            }}
-          >
-            <Text style={styles.cameraButtonText}>Processar</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // ===== PASSO 3: PROCESSANDO =====
-  if (currentStep === 'processing') {
-    return (
-      <View style={[styles.container, styles.centeredContent]}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={styles.processingText}>Processando cupom...</Text>
-        <Text style={styles.processingSubtext}>Aguarde alguns segundos</Text>
+              <View style={{ width: 80 }} />
+            </View>
+          </SafeAreaView>
+        </CameraView>
       </View>
     );
   }
 
-  // ===== PASSO 4: REVIEW =====
+  // ===== PROCESSING =====
+  if (currentStep === 'processing') {
+    return (
+      <View style={styles.processingContainer}>
+        <View style={styles.processingCard}>
+          <View style={styles.processingIconWrap}>
+            <ActivityIndicator size="large" color={C.green[500]} />
+          </View>
+          <Text style={styles.processingTitle}>Processando cupom</Text>
+          <Text style={styles.processingSub}>Extraindo itens com IA...</Text>
+          <View style={styles.processingDots}>
+            {[0, 1, 2].map(i => <View key={i} style={[styles.dot, { opacity: 0.3 + i * 0.3 }]} />)}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ===== REVIEW =====
   if (currentStep === 'review' && ocrResult) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => setCurrentStep('choose')}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
+          <TouchableOpacity style={styles.headerBack} onPress={() => setCurrentStep('choose')}>
+            <MaterialCommunityIcons name="arrow-left" size={20} color={C.ink[700]} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Revisar Itens</Text>
-          <View style={{ width: 24 }} />
+          <View style={{ width: 36 }} />
         </View>
 
-        <ScrollView style={styles.reviewContent}>
-          <View style={styles.reviewStats}>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{ocrResult.items.length}</Text>
-              <Text style={styles.statLabel}>Itens</Text>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.reviewContent}>
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{ocrResult.items.length}</Text>
+              <Text style={styles.statLbl}>Itens</Text>
             </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{ocrResult.duplicates.length}</Text>
-              <Text style={styles.statLabel}>Duplicatas</Text>
+            <View style={[styles.statCard, styles.statCardMid]}>
+              <Text style={[styles.statValue, { color: ocrResult.duplicates.length > 0 ? C.amber[600] : C.green[600] }]}>
+                {ocrResult.duplicates.length}
+              </Text>
+              <Text style={styles.statLbl}>Duplicatas</Text>
             </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>R$ {ocrResult.total.toFixed(2)}</Text>
-              <Text style={styles.statLabel}>Total</Text>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>R$ {ocrResult.total.toFixed(2)}</Text>
+              <Text style={styles.statLbl}>Total</Text>
             </View>
           </View>
 
           {ocrResult.duplicates.length > 0 && (
-            <View style={styles.duplicateSection}>
-              <Text style={styles.sectionTitle}>⚠️ Duplicatas Detectadas</Text>
+            <View style={styles.duplicateCard}>
+              <View style={styles.duplicateHeader}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={16} color={C.amber[600]} />
+                <Text style={styles.duplicateTitle}>Duplicatas detectadas</Text>
+              </View>
               {ocrResult.duplicates.map((dup, i) => (
-                <Text key={i} style={styles.duplicateItem}>
-                  {dup}
-                </Text>
+                <Text key={i} style={styles.duplicateItem}>{dup}</Text>
               ))}
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>📋 Itens Extraídos</Text>
+          <Text style={styles.reviewSectionTitle}>Itens extraídos</Text>
           {ocrResult.items.map((item, i) => (
-            <View key={i} style={styles.itemRow}>
-              <View style={styles.itemInfo}>
+            <View key={i} style={[styles.itemRow, i === ocrResult.items.length - 1 && styles.itemRowLast]}>
+              <View style={styles.itemIconWrap}>
+                <MaterialCommunityIcons name="package-variant-closed" size={16} color={C.ink[400]} />
+              </View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemQty}>Qty: {item.quantity}</Text>
+                <Text style={styles.itemQty}>Qtd: {item.quantity}</Text>
               </View>
               <Text style={styles.itemPrice}>R$ {item.price.toFixed(2)}</Text>
             </View>
@@ -484,47 +400,46 @@ export default function ReceiptOcrScreen() {
         </ScrollView>
 
         <View style={styles.reviewActions}>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => setCurrentStep('choose')}
-          >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
+          <TouchableOpacity style={styles.cancelBtn} onPress={() => setCurrentStep('choose')}>
+            <Text style={styles.cancelBtnText}>Cancelar</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.confirmButton}
-            onPress={handleConfirm}
-          >
-            <Text style={styles.confirmButtonText}>Confirmar</Text>
+          <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={isLoading}>
+            {isLoading
+              ? <ActivityIndicator size="small" color={C.ink[0]} />
+              : <>
+                  <MaterialCommunityIcons name="check" size={18} color={C.ink[0]} />
+                  <Text style={styles.confirmBtnText}>Confirmar</Text>
+                </>
+            }
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  // ===== PASSO 5: SUCESSO =====
+  // ===== SUCCESS =====
   if (currentStep === 'success') {
     return (
-      <SafeAreaView style={[styles.container, styles.centeredContent]}>
-        <MaterialCommunityIcons name="check-circle" size={80} color="#4CAF50" />
-        <Text style={styles.successTitle}>Cupom Digitalizado!</Text>
-        <Text style={styles.successText}>
-          {ocrResult?.items.length} itens extraídos com sucesso
-        </Text>
-
-        <View style={styles.successStats}>
-          <Text style={styles.statsText}>
-            Total: R$ {ocrResult?.total.toFixed(2)}
-          </Text>
-          <Text style={styles.statsText}>
-            Duplicatas removidas: {ocrResult?.duplicates.length}
-          </Text>
+      <SafeAreaView style={styles.successContainer}>
+        <View style={styles.successIconWrap}>
+          <MaterialCommunityIcons name="check-circle" size={48} color={C.green[600]} />
         </View>
-
-        <TouchableOpacity
-          style={styles.successButton}
-          onPress={handleDone}
-        >
-          <Text style={styles.successButtonText}>Concluído</Text>
+        <Text style={styles.successTitle}>Cupom Digitalizado!</Text>
+        <Text style={styles.successSub}>{ocrResult?.items.length} itens extraídos com sucesso</Text>
+        <View style={styles.successStats}>
+          <View style={styles.successStat}>
+            <Text style={styles.successStatLabel}>Total</Text>
+            <Text style={styles.successStatValue}>R$ {ocrResult?.total.toFixed(2)}</Text>
+          </View>
+          {(ocrResult?.duplicates.length ?? 0) > 0 && (
+            <View style={[styles.successStat, { borderLeftWidth: 1, borderLeftColor: C.ink[150] }]}>
+              <Text style={styles.successStatLabel}>Duplicatas</Text>
+              <Text style={styles.successStatValue}>{ocrResult?.duplicates.length}</Text>
+            </View>
+          )}
+        </View>
+        <TouchableOpacity style={styles.doneBtn} onPress={handleDone}>
+          <Text style={styles.doneBtnText}>Concluído</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -533,330 +448,182 @@ export default function ReceiptOcrScreen() {
   return null;
 }
 
+const FRAME_W = width - 48;
+const FRAME_H = 220;
+const BRACKET = 24;
+const BRACKET_T = 3;
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  container: { flex: 1, backgroundColor: C.ink[50] },
+
+  // Header
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14,
+    backgroundColor: C.ink[0], borderBottomWidth: 1, borderBottomColor: C.ink[150],
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
+  headerBack: {
+    width: 36, height: 36, borderRadius: radius.sm,
+    backgroundColor: C.ink[100], alignItems: 'center', justifyContent: 'center',
   },
-  photoCounter: {
-    fontSize: 12,
-    color: '#999',
+  headerTitle: { ...T.h3, color: C.ink[900] },
+
+  // Permission
+  permissionContainer: { flex: 1, backgroundColor: C.ink[50], alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 12 },
+  permissionIconWrap: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red[50], alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  permissionTitle: { ...T.h3, color: C.ink[900] },
+  permissionSub: { ...T.body, color: C.ink[500], textAlign: 'center' },
+  permissionBtn: { backgroundColor: C.green[500], paddingVertical: 12, paddingHorizontal: 32, borderRadius: radius.md, marginTop: 8, ...shadows.sm },
+  permissionText: { ...T.body, color: C.ink[500], marginTop: 12 },
+  permissionBtnText: { ...T.body, color: C.ink[0], fontWeight: '700' },
+
+  // Choose
+  chooseContent: { padding: 20, paddingBottom: 40, gap: 20 },
+  chooseHero: { alignItems: 'center', gap: 8, paddingVertical: 12 },
+  chooseIconWrap: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: C.green[50], borderWidth: 1, borderColor: C.green[200], borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 4,
   },
-  centeredContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+  chooseTitle: { ...T.h2, color: C.ink[900] },
+  chooseSub: { ...T.body, color: C.ink[500], textAlign: 'center' },
+  chooseOptions: { gap: 10 },
+  optionCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: C.ink[0], borderRadius: radius.lg,
+    borderWidth: 1, borderColor: C.ink[150],
+    padding: 16, ...shadows.sm,
   },
-  mainTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
+  optionCardTest: { borderStyle: 'dashed', borderColor: C.ink[200] },
+  optionIcon: { width: 48, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  optionText: { flex: 1 },
+  optionTitle: { ...T.h3, color: C.ink[900] },
+  optionSub: { ...T.small, color: C.ink[500], marginTop: 2 },
+  tipCard: {
+    flexDirection: 'row', gap: 8, alignItems: 'flex-start',
+    backgroundColor: C.amber[50], borderRadius: radius.md,
+    borderWidth: 1, borderColor: C.amber[200], padding: 12,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 32,
-    textAlign: 'center',
+  tipText: { ...T.small, color: C.amber[700], flex: 1 },
+
+  // Camera
+  cameraContainer: { flex: 1, backgroundColor: C.ink[900] },
+  cameraUI: { flex: 1, justifyContent: 'space-between' },
+  cameraTopBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12,
   },
-  largeButton: {
-    width: '100%',
-    backgroundColor: '#FF6B6B',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'center',
+  camBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center',
   },
-  largeButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  camCounterWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: radius.pill,
+    paddingVertical: 6, paddingHorizontal: 12,
   },
-  secondaryButton: {
-    backgroundColor: '#f5f5f5',
+  camDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.amber[400] },
+  camCounter: { ...T.small, color: C.ink[0] },
+
+  // Frame brackets
+  frameArea: {
+    width: FRAME_W, height: FRAME_H,
+    alignSelf: 'center',
+    justifyContent: 'flex-end', alignItems: 'center',
+    paddingBottom: 12,
   },
-  secondaryButtonText: {
-    color: '#FF6B6B',
-    fontSize: 16,
-    fontWeight: '600',
+  frameBracketTL: { position: 'absolute', top: 0, left: 0, width: BRACKET, height: BRACKET, borderTopWidth: BRACKET_T, borderLeftWidth: BRACKET_T, borderColor: C.amber[400], borderTopLeftRadius: 4 },
+  frameBracketTR: { position: 'absolute', top: 0, right: 0, width: BRACKET, height: BRACKET, borderTopWidth: BRACKET_T, borderRightWidth: BRACKET_T, borderColor: C.amber[400], borderTopRightRadius: 4 },
+  frameBracketBL: { position: 'absolute', bottom: 0, left: 0, width: BRACKET, height: BRACKET, borderBottomWidth: BRACKET_T, borderLeftWidth: BRACKET_T, borderColor: C.amber[400], borderBottomLeftRadius: 4 },
+  frameBracketBR: { position: 'absolute', bottom: 0, right: 0, width: BRACKET, height: BRACKET, borderBottomWidth: BRACKET_T, borderRightWidth: BRACKET_T, borderColor: C.amber[400], borderBottomRightRadius: 4 },
+  frameHint: { ...T.small, color: 'rgba(255,255,255,0.7)' },
+
+  photoStrip: { maxHeight: 116, marginBottom: 8 },
+  photoThumb: { width: PHOTO_SIZE, height: PHOTO_SIZE, borderRadius: radius.sm, borderWidth: 2, borderColor: C.green[500] },
+  removeThumb: { position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: C.ink[800], alignItems: 'center', justifyContent: 'center' },
+
+  cameraBottomBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 24, paddingBottom: 24, paddingTop: 12,
   },
-  testButton: {
-    backgroundColor: '#f9f9f9',
-    borderWidth: 1,
-    borderColor: '#ddd',
+  shutterBtn: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 3, borderColor: C.ink[0],
+    alignItems: 'center', justifyContent: 'center',
   },
-  testButtonText: {
-    color: '#666',
-    fontSize: 14,
-    fontWeight: '600',
+  shutterInner: { width: 52, height: 52, borderRadius: 26, backgroundColor: C.ink[0] },
+  processBtn: {
+    width: 80, paddingVertical: 10, borderRadius: radius.md,
+    backgroundColor: C.green[500], alignItems: 'center',
   },
-  camera: {
-    flex: 1,
+  processBtnText: { ...T.small, color: C.ink[0], fontWeight: '700' },
+
+  // Processing
+  processingContainer: { flex: 1, backgroundColor: C.ink[900], alignItems: 'center', justifyContent: 'center' },
+  processingCard: {
+    backgroundColor: C.ink[800], borderRadius: radius.xl, padding: 32,
+    alignItems: 'center', gap: 12, width: width - 80,
+    borderWidth: 1, borderColor: C.ink[700],
   },
-  cameraOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  processingIconWrap: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.ink[700], alignItems: 'center', justifyContent: 'center' },
+  processingTitle: { ...T.h3, color: C.ink[0] },
+  processingSub: { ...T.body, color: C.ink[400] },
+  processingDots: { flexDirection: 'row', gap: 6, marginTop: 4 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.green[400] },
+
+  // Review
+  reviewContent: { padding: 20, paddingBottom: 24 },
+  statsRow: {
+    flexDirection: 'row', backgroundColor: C.ink[0],
+    borderRadius: radius.lg, borderWidth: 1, borderColor: C.ink[150],
+    overflow: 'hidden', marginBottom: 16, ...shadows.sm,
   },
-  receiptFrame: {
-    width: width - 40,
-    height: 200,
-    borderWidth: 2,
-    borderColor: '#FF6B6B',
-    borderRadius: 8,
+  statCard: { flex: 1, alignItems: 'center', paddingVertical: 16 },
+  statCardMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.ink[150] },
+  statValue: { ...T.h3, color: C.ink[900] },
+  statLbl: { ...T.micro, color: C.ink[400], marginTop: 2 },
+  duplicateCard: {
+    backgroundColor: C.amber[50], borderRadius: radius.md,
+    borderWidth: 1, borderColor: C.amber[200], padding: 12, marginBottom: 16,
   },
-  frameHint: {
-    color: '#FF6B6B',
-    fontSize: 12,
-    marginTop: 16,
-  },
-  photoPreview: {
-    height: 140,
-    backgroundColor: '#f9f9f9',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingVertical: 8,
-  },
-  photoList: {
-    paddingHorizontal: 12,
-  },
-  photoThumbnail: {
-    marginRight: 8,
-  },
-  photoImage: {
-    width: PHOTO_SIZE,
-    height: PHOTO_SIZE,
-    borderRadius: 8,
-  },
-  removeButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FF6B6B',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cameraControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  cameraButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-  },
-  captureButton: {
-    flex: 1.2,
-    backgroundColor: '#FF6B6B',
-  },
-  cameraButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  reviewContent: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  reviewStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 24,
-  },
-  statBox: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FF6B6B',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  duplicateSection: {
-    backgroundColor: '#fff3cd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
-  },
-  duplicateItem: {
-    fontSize: 12,
-    color: '#666',
-    paddingVertical: 4,
-  },
+  duplicateHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  duplicateTitle: { ...T.small, color: C.amber[700], fontWeight: '700' },
+  duplicateItem: { ...T.small, color: C.amber[700], paddingLeft: 22, paddingVertical: 2 },
+  reviewSectionTitle: { ...T.micro, color: C.ink[400], textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.ink[0], paddingHorizontal: 12, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: C.ink[150],
+    borderTopWidth: 1, borderTopColor: C.ink[150], marginTop: -1,
+    borderRadius: 0,
   },
-  itemInfo: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#333',
-  },
-  itemQty: {
-    fontSize: 11,
-    color: '#999',
-    marginTop: 2,
-  },
-  itemPrice: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-  },
+  itemRowLast: { borderBottomLeftRadius: radius.md, borderBottomRightRadius: radius.md },
+  itemIconWrap: { width: 32, height: 32, borderRadius: radius.xs, backgroundColor: C.ink[100], alignItems: 'center', justifyContent: 'center' },
+  itemName: { ...T.body, color: C.ink[800], fontWeight: '600' },
+  itemQty: { ...T.small, color: C.ink[400], marginTop: 1 },
+  itemPrice: { ...T.body, color: C.ink[700], fontWeight: '600' },
   reviewActions: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingVertical: 16,
+    backgroundColor: C.ink[0], borderTopWidth: 1, borderTopColor: C.ink[150],
   },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  confirmButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#FF6B6B',
-    alignItems: 'center',
-  },
-  confirmButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  successButton: {
-    backgroundColor: '#FF6B6B',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 8,
-    marginTop: 24,
-  },
-  successButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  successTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 16,
-  },
-  successText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
-  },
+  cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: radius.md, backgroundColor: C.ink[0], borderWidth: 1, borderColor: C.ink[200], alignItems: 'center' },
+  cancelBtnText: { ...T.body, color: C.ink[700], fontWeight: '600' },
+  confirmBtn: { flex: 2, paddingVertical: 14, borderRadius: radius.md, backgroundColor: C.green[500], flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, ...shadows.sm },
+  confirmBtnText: { ...T.body, color: C.ink[0], fontWeight: '700' },
+
+  // Success
+  successContainer: { flex: 1, backgroundColor: C.ink[50], alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 12 },
+  successIconWrap: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.green[50], borderWidth: 1, borderColor: C.green[200], alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  successTitle: { ...T.h1, color: C.ink[900] },
+  successSub: { ...T.body, color: C.ink[500] },
   successStats: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginTop: 24,
+    flexDirection: 'row', backgroundColor: C.ink[0],
+    borderRadius: radius.lg, borderWidth: 1, borderColor: C.ink[150],
+    overflow: 'hidden', marginTop: 8, ...shadows.sm, alignSelf: 'stretch',
   },
-  statsText: {
-    fontSize: 13,
-    color: '#333',
-    marginVertical: 4,
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 16,
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  errorMessage: {
-    fontSize: 14,
-    color: '#FF6B6B',
-    marginTop: 16,
-  },
-  backButton: {
-    backgroundColor: '#FF6B6B',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    marginTop: 24,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 14,
-    color: '#666',
-  },
-  processingText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-  },
-  processingSubtext: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 8,
-  },
+  successStat: { flex: 1, alignItems: 'center', paddingVertical: 16 },
+  successStatLabel: { ...T.small, color: C.ink[400] },
+  successStatValue: { ...T.h3, color: C.ink[900], marginTop: 2 },
+  doneBtn: { backgroundColor: C.green[500], paddingVertical: 14, paddingHorizontal: 40, borderRadius: radius.md, marginTop: 8, ...shadows.md },
+  doneBtnText: { ...T.body, color: C.ink[0], fontWeight: '700' },
 });
