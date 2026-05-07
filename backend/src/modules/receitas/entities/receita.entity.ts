@@ -68,6 +68,11 @@ export class Receita {
         gorduras?: number;
     };
 
+    // Lista normalizada de ingredientes para busca rápida (lowercase, sem acento)
+    @Column('simple-array', { nullable: true })
+    @Index()
+    ingredientes_chave: string[];
+
     // Origem (catalogo, ia_gerada, usuario)
     @Column({ default: 'catalogo' })
     origem: string;

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Anthropic } from '@anthropic-ai/sdk';
 import axios from 'axios';
 import puppeteer from 'puppeteer';
+import { ReceitaBancoService } from './receita-banco.service';
 
 export interface Receita {
   titulo: string;
@@ -21,7 +22,10 @@ export class RecipeGeneratorService {
   private claudeClient: Anthropic | null;
   private geminiKey: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly receitaBancoService: ReceitaBancoService,
+  ) {
     try {
       const apiKey = this.configService.get<string>('CLAUDE_API_KEY');
       this.logger.log(`CLAUDE_API_KEY exists: ${!!apiKey}`);
@@ -44,15 +48,78 @@ export class RecipeGeneratorService {
   }
 
   async gerarReceitas(ingredientes: string[]): Promise<Receita[]> {
-    if (ingredientes.length === 0) {
-      return [];
+    if (ingredientes.length === 0) return [];
+
+    // 1. Busca no banco compartilhado primeiro
+    this.logger.log(`🔍 Buscando receitas no banco para ${ingredientes.length} ingredientes...`);
+    const receitasDoBanco = await this.receitaBancoService.buscarPorIngredientes(ingredientes, 0.7, 5);
+
+    if (receitasDoBanco.length >= 3) {
+      this.logger.log(`✅ Banco retornou ${receitasDoBanco.length} receitas — IA não necessária!`);
+      return receitasDoBanco.map((r) => this.receitaBancoService.entidadeParaFormato(r));
     }
 
-    const prompt = `Você é um chef experiente de culinária brasileira.
+    this.logger.log(`⚡ Banco retornou ${receitasDoBanco.length} receita(s). Gerando ${3 - receitasDoBanco.length} com IA...`);
+
+    // 2. Gera com IA apenas o que falta
+    const quantidadeGerar = 3 - receitasDoBanco.length;
+    const prompt = this.montarPrompt(ingredientes, quantidadeGerar);
+    let receitasIA: Receita[] = [];
+
+    if (this.geminiKey) {
+      try {
+        this.logger.log('Trying Gemini API...');
+        receitasIA = await this.gerarComGemini(prompt);
+      } catch (error) {
+        this.logger.warn(`Gemini failed: ${error}`);
+      }
+    }
+
+    if (receitasIA.length === 0 && this.claudeClient) {
+      try {
+        this.logger.log('Trying Claude API...');
+        receitasIA = await this.gerarComClaude(prompt);
+      } catch (error: any) {
+        this.logger.error(`Claude error: ${error.message || error}`);
+      }
+    }
+
+    if (receitasIA.length === 0) {
+      this.logger.log('Using mock recipes');
+      receitasIA = this.getReceitasMock(ingredientes).slice(0, quantidadeGerar);
+    }
+
+    // 3. Busca imagens para receitas novas
+    this.logger.log(`🖼️ Buscando imagens para ${receitasIA.length} receitas novas...`);
+    const receitasIAComImagens = await Promise.all(
+      receitasIA.map(async (receita) => {
+        const imagem_url = await this.buscarImagemReceita(receita.titulo);
+        return { ...receita, imagem_url };
+      }),
+    );
+
+    // 4. Salva cada receita nova no banco para os próximos usuários
+    this.logger.log(`💾 Salvando ${receitasIAComImagens.length} receitas novas no banco compartilhado...`);
+    await Promise.allSettled(
+      receitasIAComImagens.map((r) => this.receitaBancoService.salvarReceitaGerada(r)),
+    );
+
+    // 5. Combina banco + IA e retorna
+    const receitasBancoFormatadas = receitasDoBanco.map((r) =>
+      this.receitaBancoService.entidadeParaFormato(r),
+    );
+    const resultado = [...receitasBancoFormatadas, ...receitasIAComImagens].slice(0, 5);
+
+    this.logger.log(`✨ Total: ${resultado.length} receitas (${receitasDoBanco.length} do banco + ${receitasIAComImagens.length} da IA)`);
+    return resultado;
+  }
+
+  private montarPrompt(ingredientes: string[], quantidade: number): string {
+    return `Você é um chef experiente de culinária brasileira.
 
 Dados estes ingredientes disponíveis: ${ingredientes.join(', ')}
 
-Gere 3 receitas criativas e práticas que usem ALGUNS destes ingredientes (não precisa usar todos, mas use pelo menos 2 de cada receita).
+Gere ${quantidade} receita${quantidade > 1 ? 's' : ''} criativa${quantidade > 1 ? 's' : ''} e prática${quantidade > 1 ? 's' : ''} que use${quantidade > 1 ? 'm' : ''} ALGUNS destes ingredientes (não precisa usar todos, mas use pelo menos 2 de cada receita).
 
 IMPORTANTE: Retorne APENAS um JSON array válido, sem markdown, sem explicações adicionais, sem blocos de código.
 
@@ -70,51 +137,6 @@ Formato exato esperado:
 ]
 
 Lembre-se: APENAS JSON, NADA MAIS.`;
-
-    let receitas: Receita[] = [];
-
-    // Tenta Gemini primeiro (mais confiável e disponível)
-    if (this.geminiKey) {
-      try {
-        this.logger.log('Trying Gemini API...');
-        receitas = await this.gerarComGemini(prompt);
-      } catch (error) {
-        this.logger.warn(`Gemini failed: ${error}`);
-      }
-    }
-
-    // Fallback para Claude
-    if (receitas.length === 0 && this.claudeClient) {
-      try {
-        this.logger.log('Trying Claude API...');
-        receitas = await this.gerarComClaude(prompt);
-      } catch (error: any) {
-        this.logger.error(`Claude error: ${error.message || error}`);
-      }
-    }
-
-    // Se tudo falhar, retorna mock
-    if (receitas.length === 0) {
-      this.logger.log('Using mock recipes');
-      receitas = this.getReceitasMock(ingredientes);
-    }
-
-    // Buscar imagens para cada receita em paralelo
-    this.logger.log(`🖼️ Buscando imagens para ${receitas.length} receitas...`);
-    const receitasComImagens = await Promise.all(
-      receitas.map(async (receita) => {
-        this.logger.log(`📸 Procurando imagem para: "${receita.titulo}"`);
-        const imagem_url = await this.buscarImagemReceita(receita.titulo);
-        this.logger.log(`${imagem_url ? '✅' : '❌'} "${receita.titulo}" → ${imagem_url ? 'OK' : 'SEM IMAGEM'}`);
-        return {
-          ...receita,
-          imagem_url,
-        };
-      })
-    );
-
-    this.logger.log(`✨ Imagens buscadas! ${receitasComImagens.filter(r => r.imagem_url).length}/${receitas.length} com sucesso`);
-    return receitasComImagens;
   }
 
   private async gerarComClaude(prompt: string): Promise<Receita[]> {

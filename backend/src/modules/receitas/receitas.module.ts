@@ -17,6 +17,7 @@ import { ReceiptImportService } from './services/receipt-import.service';
 import { RecipeSuggestionService } from './services/recipe-suggestion.service';
 import { RecipeExecutionService } from './services/recipe-execution.service';
 import { RecipeGeneratorService } from './services/recipe-generator.service';
+import { ReceitaBancoService } from './services/receita-banco.service';
 import { ReceitasController } from './receitas.controller';
 import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
 import { ReceiptImportController } from './controllers/receipt-import.controller';
@@ -41,8 +42,8 @@ import { ProductClassificationModule } from '../product-classification/product-c
     ]),
     ProductClassificationModule,
   ],
-  providers: [ReceitasService, IAReceitasService, MOIEngineService, ReceiptOcrService, ProductClassifierService, ReceiptImportService, RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService, InventarioService],
+  providers: [ReceitasService, IAReceitasService, MOIEngineService, ReceiptOcrService, ProductClassifierService, ReceiptImportService, RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService, ReceitaBancoService, InventarioService],
   controllers: [ReceitasController, ReceiptOcrController, ReceiptImportController, RecipeSuggestionController, RecipeExecutionController, RecipeGeneratorController, RecipeTestController],
-  exports: [TypeOrmModule, ReceitasService, ReceiptOcrService, ProductClassifierService, ReceiptImportService, RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService, ProductClassificationModule],
+  exports: [TypeOrmModule, ReceitasService, ReceiptOcrService, ProductClassifierService, ReceiptImportService, RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService, ReceitaBancoService, ProductClassificationModule],
 })
 export class ReceitasModule {}
