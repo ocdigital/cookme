@@ -5,13 +5,14 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '@/services/api';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
+import ScreenWrapper from '@/components/ScreenWrapper';
 
 interface ProdutoItem {
   nome: string;
@@ -93,6 +94,7 @@ function OCRItem({ item, onToggle }: { item: ProdutoItem; onToggle: () => void }
 }
 
 export default function ValidacaoScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { produtos_json } = useLocalSearchParams<{ produtos_json: string }>();
   const [items, setItems] = useState<ProdutoItem[]>([]);
@@ -134,7 +136,10 @@ export default function ValidacaoScreen() {
   const handleConfirmar = async () => {
     const itemsFinais = items.map(item => ({
       ...item,
-      eh_alimento: item.validado ? item.eh_alimento : true,
+      // High-confidence: keep AI classification. Low-confidence not validated: default to food.
+      eh_alimento: item.validado
+        ? item.eh_alimento
+        : item.confianca >= 75 ? item.eh_alimento : true,
     }));
 
     const alimentos = itemsFinais.filter(p => p.eh_alimento).length;
@@ -150,21 +155,15 @@ export default function ValidacaoScreen() {
           onPress: async () => {
             try {
               for (const item of itemsFinais) {
-                const produtoRes = await api.post('/produtos', {
+                if (!item.eh_alimento) continue;
+                await api.post('/inventario/adicionar-manual', {
                   nome: item.nome,
-                  ingrediente_receita: item.eh_alimento,
-                  confianca_classificacao: Math.round(item.confianca),
-                  unidade_padrao: 'un',
-                });
-                await api.post('/inventario', {
-                  produto_id: produtoRes.data.id,
-                  quantidade_disponivel: 1,
+                  quantidade: 1,
                   unidade: 'un',
-                  metodo_atualizacao: 'ocr_nota',
                 });
               }
               Alert.alert('Sucesso', 'Produtos salvos no inventário!', [
-                { text: 'Ver Inventário', onPress: () => router.push('/(app)/(tabs)') },
+                { text: 'Ver Inventário', onPress: () => router.push('/(app)/(tabs)/despensa') },
               ]);
             } catch {
               Alert.alert('Erro', 'Falha ao salvar produtos');
@@ -182,9 +181,9 @@ export default function ValidacaoScreen() {
   const pct = total > 0 ? Math.round((autoClassificados / total) * 100) : 0;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={20} color={C.ink[800]} />
         </TouchableOpacity>
@@ -264,7 +263,7 @@ export default function ValidacaoScreen() {
           <Text style={styles.btnConfirmarText}>Confirmar tudo</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 

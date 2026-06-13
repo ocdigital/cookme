@@ -45,6 +45,26 @@ export class Preferencia {
     @Column({ type: 'int', default: 1 })
     numero_pessoas: number;
 
+    // Estado do usuário (para inteligência regional)
+    @Column({ nullable: true })
+    estado: string; // ex: "SP", "BA", "RS"
+
+    // Região culinária derivada do estado
+    @Column({ nullable: true })
+    regiao_culinaria: string; // norte, nordeste, centro_oeste, sudeste, sul
+
+    // Modo alimentar — define filtro/ordenação de receitas
+    @Column({ nullable: true, default: 'normal' })
+    modo_alimentar: 'normal' | 'fitness' | 'vegetariano' | 'vegano';
+
+    // Refeições que deseja planejar
+    @Column({
+      type: 'enum',
+      enum: ['almoco_jantar', 'almoco', 'jantar'],
+      default: 'almoco_jantar',
+    })
+    refeicoes_planejamento: 'almoco_jantar' | 'almoco' | 'jantar';
+
     @CreateDateColumn()
     criado_em: Date;
 

@@ -27,7 +27,7 @@ export class ItemLista {
   @Column({ nullable: true, type: 'text' })
   descricao: string;
 
-  @Column({ type: 'int', default: 1 })
+  @Column({ type: 'decimal', precision: 10, scale: 3, default: 1 })
   quantidade: number;
 
   @Column({ nullable: true })

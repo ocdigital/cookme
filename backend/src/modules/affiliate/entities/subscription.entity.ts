@@ -75,6 +75,15 @@ export class Subscription {
   })
   status: SubscriptionStatus;
 
+  @Column({ type: 'int', default: 0 })
+  ocr_usos_mes: number;
+
+  @Column({ type: 'int', default: 0 })
+  ia_usos_mes: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  usos_resetados_em: Date | null;
+
   @Column({ type: 'jsonb', nullable: true })
   metadata: {
     cancel_reason?: string;

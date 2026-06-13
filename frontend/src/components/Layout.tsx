@@ -10,7 +10,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:w-64 flex-col flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm">
+      <div className="hidden lg:flex lg:w-48 flex-col flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm">
         <Sidebar />
       </div>
 
@@ -28,7 +28,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Page Content */}
         <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 py-4 sm:px-5 lg:px-6">
             {children}
           </div>
         </main>

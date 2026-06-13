@@ -13,6 +13,8 @@ import {
 } from '../entities/product-knowledge-base.entity';
 import { ProductValidation } from '../entities/product-validation.entity';
 import { AIClassificationLog, APIStatus } from '../entities/ai-classification-log.entity';
+import { NotificacaoTriggersService } from '../../notificacoes/services/notificacao-triggers.service';
+import { retryWithBackoff } from '../../../common/utils/retry.util';
 
 @Injectable()
 export class ProductClassificationService {
@@ -32,6 +34,7 @@ export class ProductClassificationService {
     @InjectRepository(AIClassificationLog)
     private aiClassificationLogRepository: Repository<AIClassificationLog>,
     private configService: ConfigService,
+    private notificacaoTriggers: NotificacaoTriggersService,
   ) {
     this.claudeApiKey = this.configService.get<string>('CLAUDE_API_KEY') || '';
     this.geminiApiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
@@ -110,6 +113,7 @@ export class ProductClassificationService {
       fromCache: boolean;
       ingrediente_receita?: boolean | null;
       descricao?: string;
+      canonical_name?: string | null;
     }>
   > {
     const startTime = Date.now();
@@ -120,6 +124,7 @@ export class ProductClassificationService {
       fromCache: boolean;
       ingrediente_receita?: boolean | null;
       descricao?: string;
+      canonical_name?: string | null;
     }> = [];
 
     // Verifica quais produtos estão em cache
@@ -135,7 +140,8 @@ export class ProductClassificationService {
       if (
         cached &&
         cached.confidence_score >= this.CONFIDENCE_THRESHOLD &&
-        cached.categoria !== FoodCategory.INDEFINIDO
+        cached.categoria !== FoodCategory.INDEFINIDO &&
+        cached.canonical_ingredient  // sem canonical → re-classifica para obter nome canônico
       ) {
         cachedResults.push({
           produto: productName,
@@ -144,6 +150,7 @@ export class ProductClassificationService {
           fromCache: true,
           ingrediente_receita: cached.ingrediente_receita,
           descricao: cached.descricao_classificacao,
+          canonical_name: cached.canonical_ingredient,
         });
       } else {
         productsToClassify.push(productName);
@@ -178,6 +185,7 @@ export class ProductClassificationService {
       fromCache: boolean;
       ingrediente_receita?: boolean | null;
       descricao?: string;
+      canonical_name?: string | null;
     }>
   > {
     const startTime = Date.now();
@@ -188,33 +196,97 @@ export class ProductClassificationService {
         .map((name, i) => `${i + 1}. ${name}`)
         .join('\n');
 
-      const prompt = `Você é um classificador especializado em produtos de supermercado brasileiro.
-Classifique os produtos abaixo em duas dimensões:
-1. CATEGORIA: "alimento" ou "nao_alimento"
-2. INGREDIENTE_RECEITA: se é um alimento SIM, classifique se é adequado para RECEITAS
+      const prompt = `Você é o cérebro de classificação de um app de gestão de cozinha brasileiro.
+Para cada produto de supermercado abaixo, retorne 5 informações:
 
-ALIMENTO: tudo que pode ser ingerido (alimentos, bebidas, temperos, sucos, leite, água)
-NAO_ALIMENTO: produtos de limpeza, higiene pessoal, utensílios, papelaria, etc.
+1. CATEGORIA: "alimento" (pode ser ingerido) ou "nao_alimento" (limpeza, higiene, utensílios, papelaria)
+2. INGREDIENTE_RECEITA: true se é ingrediente culinário bruto/semi-processado, false se não é
+3. CANONICAL_NAME: nome culinário padronizado — veja regras abaixo
+4. CONFIDENCE: 0.0 a 1.0
+5. DESCRICAO: motivo em 5 palavras
 
-INGREDIENTE_RECEITA (apenas para alimentos):
-- true: produtos brutos/semi-processados que servem como INGREDIENTES de receita (leite, arroz, carne, cebola, azeite, sal, açúcar, óleo, ovos)
-- false: alimentos PROCESSADOS/PRÉ-PRONTOS que NÃO são ingredientes (cápsulas de café, bolinhos prontos, biscoitos de marca, chás prontos, chocolate de marca, sucos prontos, refeições prontas)
+REGRAS INGREDIENTE_RECEITA:
+✅ true (são ingredientes): carnes, frango, peixes, ovos, leite, queijo, manteiga, iogurte, arroz, feijão, macarrão, farinha, açúcar, sal, óleo, azeite, vinagre, temperos, frutas, legumes, verduras, molhos (base), café em pó, leite de coco, creme de leite, fermento
+❌ false (NÃO são ingredientes): cápsulas de café (Nespresso/Dolce Gusto/D Gusto/Três Corações cápsula), biscoitos de marca (Oreo/Passatempo/Bauducco), chocolates de marca (Bis/Lacta/Nestlé barra), salgadinhos (Cheetos/Pringles/Elma Chips), bebidas prontas (refrigerante/suco pronto/energético), chás prontos/sachê, panetone, bolachas, refeições prontas, pizza pronta, macarrão instantâneo Nissin/Miojo
+
+REGRAS DO CANONICAL_NAME — inteligência culinária brasileira:
+
+REMOVER sempre (não são parte do ingrediente):
+- Marca: Perdigão, Sadia, Seara, Tirolez, Alto Alegre, Italac, Broto Legal, Cisne, Liza, Yoki, etc.
+- Quantidade e unidade: 800G, 1Kg, 500Ml, C/10, etc.
+- Qualificadores de origem não culinários: "Nacional", "A Granel", "Premium", "Plus", "Extra", "Granel", "Import"
+- Estado de conservação: "Resfriado", "Congelado", "Fresco" (quando não muda o uso)
+- Código/tipo interno: "T1", "N8", "Int" (de integral só manter se relevante)
+
+MANTER quando faz diferença culinária:
+- Cortes de carne: "peito", "coxa", "bisteca", "filé", "lombo", "costela", "alcatra", "fraldinha"
+- Variedades de feijão: "carioca", "preto", "branco", "fradinho", "verde"
+- Variedades culinariamente distintas: "siciliano" (limão), "cravo" (alho), "portuguesa" (linguiça)
+- Tipo de leite: "integral", "desnatado", "semidesnatado" (são diferentes na receita)
+- Tipo de farinha: "de trigo", "de mandioca", "de milho", "de rosca"
+
+PADRÕES CULINÁRIOS BRASILEIROS — variety defaults:
+- "Cebola" sem cor → "cebola" (amarela é o padrão, não especificar)
+  "Cebola Roxa" → "cebola roxa" (culinariamente diferente)
+  "Cebola Branca" → "cebola branca" (culinariamente diferente)
+- "Alho" sem cor → "alho" (branco é o padrão)
+  "Alho Poró" → "alho-poró" (ingrediente diferente)
+- "Limão" → "limão" (tahiti é o padrão no Brasil)
+  "Limão Siciliano" → "limão siciliano" (diferente)
+- "Pimentão" → "pimentão" (sem cor = qualquer, não especificar)
+  "Pimentão Vermelho/Amarelo/Verde" → manter cor se especificada
+- "Tomate" → "tomate" (salada/débora são variedades de mesa, não culinariamente distintas)
+  "Tomate Cereja" → "tomate cereja"
+  "Tomate Seco" → "tomate seco"
+- "Batata" → "batata" (inglesa é o padrão)
+  "Batata Doce" → "batata-doce" (diferente)
+  "Batata Baroa" → "batata-baroa" (diferente)
+- "Arroz" → "arroz" (branco tipo 1 é o padrão)
+  "Arroz Integral" → "arroz integral"
+  "Arroz Parboilizado" → "arroz parboilizado"
+- "Frango" → manter corte se especificado: "frango peito", "coxa de frango", "frango inteiro"
+  Sem corte → "frango"
+- "Feijão" → sempre especificar variedade: "feijão carioca", "feijão preto", "feijão branco"
+  Sem variedade → "feijão" (carioca é o padrão)
+- "Café" em pó/grão → "café" (ingrediente_receita: true)
+  "Café" em cápsula → "cápsula de café" (ingrediente_receita: false)
+
+EXEMPLOS COMPLETOS:
+"Cafe Moraes Vacuo 500g" → "café"
+"Arroz Prato Fino T1 5Kg" → "arroz"
+"Peito Frango Perdigao 800G" → "frango peito"
+"Bisteca Suina Frimesa Kg" → "bisteca suína"
+"Cebola Nacional Kg" → "cebola"
+"Cebola Kg" → "cebola"
+"Cebola Roxa Kg" → "cebola roxa"
+"Alho A Granel Kg" → "alho"
+"Tomate Salada Kg" → "tomate"
+"Oleo Liza Soja 900Ml" → "óleo de soja"
+"Leite Italac Int C/Tampa 1L" → "leite integral"
+"Ovos Caipira Naturegg Verm C/10" → "ovos"
+"Mac D Benta Ovos Espaguet N 8 500G" → "macarrão espaguete"
+"Feijao Broto Legal Carioca 1Kg" → "feijão carioca"
+"Cr Leite Italac 200G" → "creme de leite"
+"Batata Inglesa Kg" → "batata"
+"Batata Doce Kg" → "batata-doce"
+"Limao Tahiti Kg" → "limão"
+"Limao Siciliano Kg" → "limão siciliano"
+"Pimentao Verde Kg" → "pimentão verde"
+"Capsula D Gusto Cafe Caseiro 80G" → "cápsula de café" (ingrediente_receita: false)
+"Mac Inst Nissin Lamen Carne 85G" → "macarrão instantâneo" (ingrediente_receita: false)
+"Sal Cisne Refinado 1Kg" → "sal"
+"Afiador De Facas Premium" → nao_alimento, ingrediente_receita: null
 
 Produtos para classificar:
 ${productsListFormatted}
 
-Responda APENAS com JSON válido no formato de array:
+Responda APENAS com JSON array válido:
 [
-  {"nome": "nome exato do produto", "categoria": "alimento" ou "nao_alimento", "confidence": 0.95, "ingrediente_receita": true ou false ou null, "descricao": "motivo em 5 palavras"},
+  {"nome": "nome exato do produto", "categoria": "alimento", "confidence": 0.95, "ingrediente_receita": true, "canonical_name": "café", "descricao": "café em pó, ingrediente"},
   ...
 ]
 
-IMPORTANTE:
-- confidence entre 0.0 e 1.0
-- ingrediente_receita é obrigatório apenas se categoria="alimento", senão deixe null
-- Para alimentos ambíguos (álcool culinário, fermento), classifique como ingrediente_receita: true
-- Ignore marcas; foque no tipo do produto
-- Retorne um item para CADA produto listado, na mesma ordem`;
+IMPORTANTE: retorne exatamente ${productNames.length} itens, na mesma ordem. canonical_name sempre em minúsculo.`;
 
       const USE_MOCK_CLASSIFICATION = !this.geminiApiKey;
 
@@ -226,27 +298,21 @@ IMPORTANTE:
         responseText = JSON.stringify(mockResult);
       } else {
         try {
-          const response = await fetch(`${this.GEMINI_API_URL}?key=${this.geminiApiKey}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: prompt,
-                    },
-                  ],
-                },
-              ],
+          const response = await retryWithBackoff(
+            () => fetch(`${this.GEMINI_API_URL}?key=${this.geminiApiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
             }),
-          });
+            { maxAttempts: 3, initialDelayMs: 500, shouldRetry: (err) => !!err },
+          );
 
           if (!response.ok) {
             const error = await response.json();
             this.logger.error('Gemini API Error:', error);
+            if (response.status === 429 || error?.error?.status === 'RESOURCE_EXHAUSTED') {
+              this.notificacaoTriggers.limiteIAAtingido('Gemini', 'Cota de requisições esgotada').catch(() => {});
+            }
             this.logger.log('🎭 Fallback para MODO MOCK: Validando produtos com simulação');
             const mockResult = this.mockClassificacaoBatch(productNames);
             responseText = JSON.stringify(mockResult);
@@ -288,30 +354,45 @@ IMPORTANTE:
         fromCache: boolean;
         ingrediente_receita?: boolean | null;
         descricao?: string;
+        canonical_name?: string | null;
       }> = [];
 
-      for (const clf of classificacoes) {
+      for (let i = 0; i < classificacoes.length; i++) {
+        const clf = classificacoes[i];
+        // Usa nome ORIGINAL enviado (por índice) — Gemini pode devolver nome com casing diferente
+        // o que quebraria o lookup no nomeProdutoMap do chamador
+        const originalName = productNames[i] ?? clf.nome;
+
         const categoria =
           clf.categoria === 'alimento'
             ? FoodCategory.ALIMENTO
             : FoodCategory.NAO_ALIMENTO;
 
         const confidence = clf.confidence || 0.5;
-        const normalizedName = this.normalizarNome(clf.nome);
+        const normalizedName = this.normalizarNome(originalName);
         const ingrediente_receita = clf.ingrediente_receita ?? null;
+        const canonical_name = clf.canonical_name || null;
 
-        // Salva no cache
+        // Salva no cache — tenta por normalized_name primeiro, depois por product_name
+        // (fallback necessário quando normalizarNome() muda e gera normalized diferente do que está no banco)
         let knowledgeBase = await this.productKnowledgeRepository.findOne({
           where: { normalized_name: normalizedName },
         });
 
         if (!knowledgeBase) {
+          knowledgeBase = await this.productKnowledgeRepository.findOne({
+            where: { product_name: originalName },
+          });
+        }
+
+        if (!knowledgeBase) {
           knowledgeBase = this.productKnowledgeRepository.create({
-            product_name: clf.nome,
+            product_name: originalName,
             normalized_name: normalizedName,
             categoria,
             confidence_score: confidence,
             ingrediente_receita,
+            canonical_ingredient: canonical_name,
             descricao_classificacao: clf.descricao,
             classification_metadata: {
               source: USE_MOCK_CLASSIFICATION ? 'mock' : 'gemini_batch',
@@ -325,9 +406,12 @@ IMPORTANTE:
             validacoes_ingrediente_nao: ingrediente_receita === false ? 1 : 0,
           } as unknown as ProductKnowledgeBase);
         } else {
+          // Atualiza normalized_name para refletir nova normalização se necessário
+          knowledgeBase.normalized_name = normalizedName;
           knowledgeBase.categoria = categoria;
           knowledgeBase.confidence_score = confidence;
           knowledgeBase.ingrediente_receita = ingrediente_receita;
+          knowledgeBase.canonical_ingredient = canonical_name;
           knowledgeBase.descricao_classificacao = clf.descricao;
           knowledgeBase.ultima_classificacao = new Date();
         }
@@ -335,12 +419,13 @@ IMPORTANTE:
         await this.productKnowledgeRepository.save(knowledgeBase);
 
         results.push({
-          produto: clf.nome,
+          produto: originalName,  // nome original — garante lookup correto no chamador
           categoria,
           confidence,
           fromCache: false,
           ingrediente_receita,
           descricao: clf.descricao,
+          canonical_name,
         });
       }
 
@@ -383,6 +468,7 @@ IMPORTANTE:
         categoria: FoodCategory.INDEFINIDO,
         confidence: 0,
         fromCache: false,
+        canonical_name: null,
       }));
     }
   }
@@ -651,6 +737,9 @@ Responda em JSON com a estrutura exata:
 
           if (!response.ok) {
             this.logger.warn('Gemini API error, falling back to mock');
+            if (response.status === 429) {
+              this.notificacaoTriggers.limiteIAAtingido('Gemini', 'Cota de requisições esgotada').catch(() => {});
+            }
             classificationResult = this.mockClassificacaoIndividual(productName);
           } else {
             const data = await response.json();
@@ -685,10 +774,16 @@ Responda em JSON com a estrutura exata:
 
       const confidence = classificationResult.confidence || 0.5;
 
-      // Salva resultado no banco (cache)
+      // Salva resultado no banco (cache) — tenta por normalized_name, fallback por product_name
       let knowledgeBase = await this.productKnowledgeRepository.findOne({
         where: { normalized_name: normalizedName },
       });
+
+      if (!knowledgeBase) {
+        knowledgeBase = await this.productKnowledgeRepository.findOne({
+          where: { product_name: productName },
+        });
+      }
 
       if (!knowledgeBase) {
         knowledgeBase = this.productKnowledgeRepository.create({
@@ -708,11 +803,11 @@ Responda em JSON com a estrutura exata:
             categoria === FoodCategory.NAO_ALIMENTO ? 1 : 0,
         } as unknown as ProductKnowledgeBase);
       } else {
-        // Atualiza com nova classificação
+        // Atualiza com nova classificação (e sincroniza normalized_name se mudou)
+        knowledgeBase.normalized_name = normalizedName;
         knowledgeBase.categoria = categoria;
         knowledgeBase.confidence_score = confidence;
-        knowledgeBase.descricao_classificacao =
-          classificationResult.descricao;
+        knowledgeBase.descricao_classificacao = classificationResult.descricao;
         knowledgeBase.ultima_classificacao = new Date();
       }
 
@@ -954,8 +1049,13 @@ Responda em JSON com a estrutura exata:
     return name
       .toLowerCase()
       .trim()
+      // Remove quantidade+unidade: "800g", "5kg", "900ml", "1,5l"
+      .replace(/\s*\d+[\.,]?\d*\s*(g|ml|kg|l|lt|un|cx|pct|gramas?|litros?|unid\.?)\b/gi, '')
+      // Remove unidades isoladas sem dígito precedente: "Laranja Kg" → "laranja"
+      .replace(/(^|\s)(kg|ml|lt|gramas?|litros?|unid\.?|un|cx|pct)(\s|$)/gi, ' ')
       .replace(/\s+/g, ' ')
-      .replace(/[^\w\s]/g, '');
+      .trim()
+      .replace(/[^\w\sáàâãéèêíìîóòôõúùûç]/gi, '');
   }
 
   /**

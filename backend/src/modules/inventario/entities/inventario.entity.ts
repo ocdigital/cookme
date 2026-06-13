@@ -57,6 +57,12 @@ export class Inventario {
     @Column({ nullable: true })
     localizacao: string;
 
+    @Column({ default: false })
+    esgotado: boolean;
+
+    @Column({ type: 'timestamp', nullable: true })
+    esgotado_em: Date;
+
     @CreateDateColumn()
     criado_em: Date;
 

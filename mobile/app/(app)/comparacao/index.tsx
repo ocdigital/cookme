@@ -5,11 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ScreenWrapper from '@/components/ScreenWrapper';
 
 interface Compra {
   id: string;
@@ -49,6 +50,7 @@ const mockCompras: Record<string, Compra> = {
 };
 
 export default function ComparacaoScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
@@ -113,17 +115,17 @@ export default function ComparacaoScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <ScreenWrapper>
         <View style={styles.centeredContent}>
           <ActivityIndicator size="large" color="#FF6B6B" />
         </View>
-      </SafeAreaView>
+      </ScreenWrapper>
     );
   }
 
   if (!currentCompra || !previousCompra || !comparison) {
     return (
-      <SafeAreaView style={styles.container}>
+      <ScreenWrapper>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
@@ -134,15 +136,15 @@ export default function ComparacaoScreen() {
         <View style={styles.centeredContent}>
           <Text style={styles.errorText}>Dados não encontrados</Text>
         </View>
-      </SafeAreaView>
+      </ScreenWrapper>
     );
   }
 
   const isDifferencePositive = comparison.diferenca < 0;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <ScreenWrapper>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
         </TouchableOpacity>
@@ -290,7 +292,7 @@ export default function ComparacaoScreen() {
           <Text style={styles.closeButtonText}>Fechar</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 

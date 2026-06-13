@@ -17,23 +17,29 @@ export class ReceitaIngrediente {
     @Column('uuid')
     receita_id: string;
 
-    @Column('uuid')
+    @Column('uuid', { nullable: true })
     produto_id: string;
 
-    @Column({ type: 'decimal', precision: 10, scale: 3 })
+    // Quantidade null quando a_gosto = true
+    @Column({ type: 'decimal', precision: 10, scale: 3, nullable: true })
     quantidade: number;
 
     @Column({
         type: 'enum',
         enum: UnidadeMedida,
+        nullable: true,
     })
     unidade: UnidadeMedida;
 
-    // Se é opcional
+    // Usado "a gosto" — sem quantidade exata (sal, pimenta, azeite de finalização)
+    @Column({ default: false })
+    a_gosto: boolean;
+
+    // Se é opcional (cheiro-verde, coentro — pode omitir sem quebrar a receita)
     @Column({ default: false })
     opcional: boolean;
 
-    // Observação (ex: "picado", "ralado", "em cubos")
+    // Texto original da IA: "2 ovos", "500g de farinha", "sal a gosto"
     @Column({ nullable: true })
     observacao: string;
 

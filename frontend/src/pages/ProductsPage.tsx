@@ -4,6 +4,7 @@ import { Card, CardTitle, CardContent } from '../components/Card';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditProductModal } from '../components/EditProductModal';
 import { SearchInput } from '../components/SearchInput';
+import { FilterSelect } from '../components/FilterSelect';
 import { ActionButton } from '../components/ActionButton';
 import { StatsBar } from '../components/StatsBar';
 import { AnimatedModal } from '../components/AnimatedModal';
@@ -41,6 +42,12 @@ export const ProductsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoriaFilter, setCategoriaFilter] = useState('');
+  const [verificadoFilter, setVerificadoFilter] = useState('');
+  const [origemFilter, setOrigemFilter] = useState('');
+  const [sortFilter, setSortFilter] = useState('criado_em');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+  const [categorias, setCategorias] = useState<{ id: string; nome: string }[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -57,13 +64,22 @@ export const ProductsPage: React.FC = () => {
 
   useEffect(() => {
     loadProducts();
-  }, [searchTerm, currentPage]);
+  }, [searchTerm, categoriaFilter, verificadoFilter, origemFilter, sortFilter, sortOrder, currentPage]);
+
+  useEffect(() => {
+    adminService.listCategorias().then(setCategorias).catch(() => {});
+  }, []);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       const filters = {
         search: searchTerm || undefined,
+        categoriaId: categoriaFilter || undefined,
+        verificado: verificadoFilter || undefined,
+        origem: origemFilter || undefined,
+        sort: sortFilter,
+        order: sortOrder,
       };
       const response = await adminService.listProducts(currentPage, 20, filters);
       setProducts(response.data || []);
@@ -155,7 +171,7 @@ export const ProductsPage: React.FC = () => {
     <div className="space-y-2">
       {/* Header */}
       <header className="-mt-1">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Produtos</h1>
+        <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Produtos</h1>
       </header>
 
       {/* Stats Bar */}
@@ -173,14 +189,54 @@ export const ProductsPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-3 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700 flex-wrap">
+        <div className="flex gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700 flex-wrap">
           <SearchInput
             placeholder="Buscar por nome ou código de barras..."
             value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+          />
+          <FilterSelect
+            value={categoriaFilter}
+            onChange={(e) => { setCategoriaFilter(e.target.value); setCurrentPage(1); }}
+            options={[
+              { value: '', label: 'Categoria: Todas' },
+              ...categorias.map(c => ({ value: c.id, label: c.nome })),
+            ]}
+          />
+          <FilterSelect
+            value={verificadoFilter}
+            onChange={(e) => { setVerificadoFilter(e.target.value); setCurrentPage(1); }}
+            options={[
+              { value: '', label: 'Status: Todos' },
+              { value: 'true', label: 'Verificado' },
+              { value: 'false', label: 'Não Verificado' },
+            ]}
+          />
+          <FilterSelect
+            value={origemFilter}
+            onChange={(e) => { setOrigemFilter(e.target.value); setCurrentPage(1); }}
+            options={[
+              { value: '', label: 'Origem: Todas' },
+              { value: 'manual', label: 'Manual' },
+              { value: 'api_externa', label: 'API Externa' },
+              { value: 'usuario', label: 'Usuário' },
+              { value: 'marca', label: 'Marca' },
+            ]}
+          />
+          <FilterSelect
+            value={`${sortFilter}_${sortOrder}`}
             onChange={(e) => {
-              setSearchTerm(e.target.value);
+              const [field, order] = e.target.value.split('_');
+              setSortFilter(field);
+              setSortOrder(order as 'ASC' | 'DESC');
               setCurrentPage(1);
             }}
+            options={[
+              { value: 'criado_em_DESC', label: 'Mais Recente' },
+              { value: 'criado_em_ASC', label: 'Mais Antigo' },
+              { value: 'nome_ASC', label: 'Nome A-Z' },
+              { value: 'nome_DESC', label: 'Nome Z-A' },
+            ]}
           />
         </div>
 
@@ -193,16 +249,16 @@ export const ProductsPage: React.FC = () => {
           ) : products.length > 0 ? (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Produto</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Categoria</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Classificação</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Unidade</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Validade Média</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Ações</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Produto</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Categoria</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Classificação</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Unidade</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Validade Média</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -211,13 +267,13 @@ export const ProductsPage: React.FC = () => {
                         key={product.id}
                         className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                       >
-                        <td className="py-3 px-4 text-gray-800 dark:text-gray-200 font-medium">{product.nome}</td>
-                        <td className="py-3 px-4">
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+                        <td className="py-2 px-3 text-gray-800 dark:text-gray-200 font-medium">{product.nome}</td>
+                        <td className="py-2 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
                             {product.categoria?.nome || 'Sem categoria'}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-2 px-3">
                           <div className="flex items-center gap-2">
                             {product.ingrediente_receita !== undefined ? (
                               <>
@@ -237,43 +293,43 @@ export const ProductsPage: React.FC = () => {
                             )}
                           </div>
                         </td>
-                        <td className="py-3 px-4">
-                          <span className="px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                        <td className="py-2 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                             <span>{product.verificado ? '✅' : '⚠️'}</span>
                             <span>{product.verificado ? 'Verificado' : 'Não verificado'}</span>
                           </span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-2 px-3">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{product.unidade_padrao}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-sm">
+                        <td className="py-2 px-3 text-gray-600 dark:text-gray-400 text-sm">
                           {product.validade_media_dias ? `${product.validade_media_dias}d` : '-'}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-2 px-3">
                           <div className="flex gap-2">
                             <ActionButton
                               variant="view"
-                              icon={<Eye size={16} />}
+                              icon={<Eye size={13} />}
                               title="Detalhes"
                               onClick={() => handleViewDetails(product)}
                             />
                             <ActionButton
                               variant="edit"
-                              icon={<CheckCircle2 size={16} />}
+                              icon={<CheckCircle2 size={13} />}
                               title="Validar Classificação"
                               onClick={() => handleClassifyProduct(product)}
                             />
                             <ActionButton
                               variant="edit"
-                              icon={<Edit2 size={16} />}
+                              icon={<Edit2 size={13} />}
                               title="Editar"
                               onClick={() => handleEditProduct(product)}
                             />
                             <ActionButton
                               variant="delete"
-                              icon={<Trash2 size={16} />}
+                              icon={<Trash2 size={13} />}
                               title="Deletar"
                               onClick={() => handleDeleteProduct(product)}
                             />
@@ -508,14 +564,14 @@ const ClassificationValidationForm: React.FC<{
       <div className="flex gap-2 pt-4">
         <button
           onClick={onClose}
-          className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition"
+          className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition"
         >
           Cancelar
         </button>
         <button
           onClick={handleSubmit}
           disabled={isLoading}
-          className="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 rounded-lg transition flex items-center justify-center gap-2"
+          className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 rounded-lg transition flex items-center justify-center gap-2"
         >
           {isLoading ? '📤 Validando...' : '✓ Validar'}
         </button>

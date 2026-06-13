@@ -1,0 +1,3931 @@
+
+
+
+
+
+
+
+	Consulta Resumida NFC-e - Secretaria da Fazenda - Governo do Estado de São Paulo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DOCUMENTO AUXILIAR DA NOTA FISCAL DE CONSUMIDOR ELETRÔNICA
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+HIGA PRODUTOS ALIMENTICIOS LTDA
+
+
+
+								CNPJ:
+								46.029.724/0007-54
+
+
+AV. OSWALDO VEIGA
+							,
+							628
+							,
+							
+							,
+							RESIDENCIAL BELA ALIANCA
+							,
+							CAMPINAS
+							,
+							SP
+
+
+
+
+
+
+
+
+
+
+PAPEL HIG FAMILIAR 16X30M FD
+
+
+
+										(Código:
+										362585
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										23,98
+
+
+
+
+
+									Vl. Total
+									
+23,98
+
+
+
+
+
+
+
+
+PAPEL HIG FAMILIAR 12X30M FD
+
+
+
+										(Código:
+										362584
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										17,98
+
+
+
+
+
+									Vl. Total
+									
+17,98
+
+
+
+
+
+
+
+
+SACOLA RETORNAVEL CAPROLA SORT
+
+
+
+										(Código:
+										355165
+										)
+									
+
+
+
+
+
+
+Qtde.:
+2
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										8,98
+
+
+
+
+
+									Vl. Total
+									
+17,96
+
+
+
+
+
+
+
+
+LING TOSCANA AURORA 700G
+
+
+
+										(Código:
+										363881
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										19,9
+
+
+
+
+
+									Vl. Total
+									
+19,90
+
+
+
+
+
+
+
+
+CEBOLA NACIONAL KG
+
+
+
+										(Código:
+										342390
+										)
+									
+
+
+
+
+
+
+Qtde.:
+0,717
+
+
+
+
+UN: 
+KG
+
+
+
+
+Vl. Unit.:
+
+										 
+										1,98
+
+
+
+
+
+									Vl. Total
+									
+1,42
+
+
+
+
+
+
+
+
+MANT ITALAC C/SAL 200G
+
+
+
+										(Código:
+										362803
+										)
+									
+
+
+
+
+
+
+Qtde.:
+2
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										9,69
+
+
+
+
+
+									Vl. Total
+									
+19,38
+
+
+
+
+
+
+
+
+BISTECA SUINA FRIMESA KG
+
+
+
+										(Código:
+										2183
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1,084
+
+
+
+
+UN: 
+KG
+
+
+
+
+Vl. Unit.:
+
+										 
+										23,69
+
+
+
+
+
+									Vl. Total
+									
+25,68
+
+
+
+
+
+
+
+
+OVOS CLARA DA ROCA GD BCO C/20
+
+
+
+										(Código:
+										366394
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										9,98
+
+
+
+
+
+									Vl. Total
+									
+9,98
+
+
+
+
+
+
+
+
+ALHO A GRANEL KG
+
+
+
+										(Código:
+										350373
+										)
+									
+
+
+
+
+
+
+Qtde.:
+0,148
+
+
+
+
+UN: 
+KG
+
+
+
+
+Vl. Unit.:
+
+										 
+										25,9
+
+
+
+
+
+									Vl. Total
+									
+3,83
+
+
+
+
+
+
+
+
+CENOURA KG
+
+
+
+										(Código:
+										342391
+										)
+									
+
+
+
+
+
+
+Qtde.:
+0,918
+
+
+
+
+UN: 
+KG
+
+
+
+
+Vl. Unit.:
+
+										 
+										4,98
+
+
+
+
+
+									Vl. Total
+									
+4,57
+
+
+
+
+
+
+
+
+OVOS CAIPIRA NATUREGG VERM C/10
+
+
+
+										(Código:
+										360891
+										)
+									
+
+
+
+
+
+
+Qtde.:
+2
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										9,98
+
+
+
+
+
+									Vl. Total
+									
+19,96
+
+
+
+
+
+
+
+
+BATATA KG
+
+
+
+										(Código:
+										342389
+										)
+									
+
+
+
+
+
+
+Qtde.:
+2,303
+
+
+
+
+UN: 
+KG
+
+
+
+
+Vl. Unit.:
+
+										 
+										4,98
+
+
+
+
+
+									Vl. Total
+									
+11,47
+
+
+
+
+
+
+
+
+CHUCHU KG
+
+
+
+										(Código:
+										342392
+										)
+									
+
+
+
+
+
+
+Qtde.:
+0,772
+
+
+
+
+UN: 
+KG
+
+
+
+
+Vl. Unit.:
+
+										 
+										12,98
+
+
+
+
+
+									Vl. Total
+									
+10,02
+
+
+
+
+
+
+
+
+LIMAO TAITI KG
+
+
+
+										(Código:
+										342395
+										)
+									
+
+
+
+
+
+
+Qtde.:
+0,605
+
+
+
+
+UN: 
+KG
+
+
+
+
+Vl. Unit.:
+
+										 
+										3,49
+
+
+
+
+
+									Vl. Total
+									
+2,11
+
+
+
+
+
+
+
+
+LEITE COND ITALAC INT 395G
+
+
+
+										(Código:
+										359623
+										)
+									
+
+
+
+
+
+
+Qtde.:
+2
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										6,98
+
+
+
+
+
+									Vl. Total
+									
+13,96
+
+
+
+
+
+
+
+
+CR LEITE ITALAC 200G
+
+
+
+										(Código:
+										302252
+										)
+									
+
+
+
+
+
+
+Qtde.:
+6
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										2,69
+
+
+
+
+
+									Vl. Total
+									
+16,14
+
+
+
+
+
+
+
+
+LEITE ITALAC INT C/TAMPA 1L
+
+
+
+										(Código:
+										344213
+										)
+									
+
+
+
+
+
+
+Qtde.:
+4
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										3,69
+
+
+
+
+
+									Vl. Total
+									
+14,76
+
+
+
+
+
+
+
+
+BISC CASSINI POLVILHO 200G
+
+
+
+										(Código:
+										99104
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										7,29
+
+
+
+
+
+									Vl. Total
+									
+7,29
+
+
+
+
+
+
+
+
+CHA OETKER MIST DOCE SONHO C/10
+
+
+
+										(Código:
+										183369
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										8,69
+
+
+
+
+
+									Vl. Total
+									
+8,69
+
+
+
+
+
+
+
+
+FILTRO PAPEL 3 CORACOES 102 C/30
+
+
+
+										(Código:
+										255823
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										3,79
+
+
+
+
+
+									Vl. Total
+									
+3,79
+
+
+
+
+
+
+
+
+CAFE CANECAO TRAD VAC 500G
+
+
+
+										(Código:
+										286320
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										29,9
+
+
+
+
+
+									Vl. Total
+									
+29,90
+
+
+
+
+
+
+
+
+BISC CASSINI POLVILHO 200G
+
+
+
+										(Código:
+										99104
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										7,29
+
+
+
+
+
+									Vl. Total
+									
+7,29
+
+
+
+
+
+
+
+
+BATATA P ELMA CHIPS 425G
+
+
+
+										(Código:
+										355977
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										26,9
+
+
+
+
+
+									Vl. Total
+									
+26,90
+
+
+
+
+
+
+
+
+PAO PANCO FORMA 500G
+
+
+
+										(Código:
+										50040
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										7,89
+
+
+
+
+
+									Vl. Total
+									
+7,89
+
+
+
+
+
+
+
+
+SALG CHEETOS ONDA REQ 250G
+
+
+
+										(Código:
+										364681
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										15,9
+
+
+
+
+
+									Vl. Total
+									
+15,90
+
+
+
+
+
+
+
+
+CHOC EM PO D BENTA 200G SOLUVEL 50%
+
+
+
+										(Código:
+										363805
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										18,9
+
+
+
+
+
+									Vl. Total
+									
+18,90
+
+
+
+
+
+
+
+
+CHOC BIS AO LEITE 302,4G
+
+
+
+										(Código:
+										361029
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										17,9
+
+
+
+
+
+									Vl. Total
+									
+17,90
+
+
+
+
+
+
+
+
+REF TANG UVA 18G
+
+
+
+										(Código:
+										358605
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										1,19
+
+
+
+
+
+									Vl. Total
+									
+1,19
+
+
+
+
+
+
+
+
+REF TANG LAR/MAMAO 18G
+
+
+
+										(Código:
+										358598
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										1,19
+
+
+
+
+
+									Vl. Total
+									
+1,19
+
+
+
+
+
+
+
+
+REF TANG MAR 18G
+
+
+
+										(Código:
+										358595
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										1,19
+
+
+
+
+
+									Vl. Total
+									
+1,19
+
+
+
+
+
+
+
+
+CHOC TALENTO M AMARGO 85G
+
+
+
+										(Código:
+										357460
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										7,98
+
+
+
+
+
+									Vl. Total
+									
+7,98
+
+
+
+
+
+
+
+
+CHOC TABL CLASSIC AMEND 150G
+
+
+
+										(Código:
+										358783
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										13,98
+
+
+
+
+
+									Vl. Total
+									
+13,98
+
+
+
+
+
+
+
+
+CHOC NEUGE 1891 70% CACAU 90G
+
+
+
+										(Código:
+										354431
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										13,9
+
+
+
+
+
+									Vl. Total
+									
+13,90
+
+
+
+
+
+
+
+
+BISC MARILAN MARIA 300G
+
+
+
+										(Código:
+										365803
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										5,39
+
+
+
+
+
+									Vl. Total
+									
+5,39
+
+
+
+
+
+
+
+
+BB ESPECIALIDADES 251G
+
+
+
+										(Código:
+										353461
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										13,9
+
+
+
+
+
+									Vl. Total
+									
+13,90
+
+
+
+
+
+
+
+
+CAPSULA D GUSTO CAFFE MATINAL 80G
+
+
+
+										(Código:
+										360433
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										18,9
+
+
+
+
+
+									Vl. Total
+									
+18,90
+
+
+
+
+
+
+
+
+CAPSULA D GUSTO CAFFE MATINAL 80G
+
+
+
+										(Código:
+										360433
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										18,9
+
+
+
+
+
+									Vl. Total
+									
+18,90
+
+
+
+
+
+
+
+
+TORRESMO PORCCINO 70G
+
+
+
+										(Código:
+										357879
+										)
+									
+
+
+
+
+
+
+Qtde.:
+2
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										6,39
+
+
+
+
+
+									Vl. Total
+									
+12,78
+
+
+
+
+
+
+
+
+BISC TOSTINES LEITE MALTADO 160G
+
+
+
+										(Código:
+										364616
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										3,9
+
+
+
+
+
+									Vl. Total
+									
+3,90
+
+
+
+
+
+
+
+
+BISC PIRAQUE LEITE MALTADO 132G
+
+
+
+										(Código:
+										361556
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										3,89
+
+
+
+
+
+									Vl. Total
+									
+3,89
+
+
+
+
+
+
+
+
+BISC RENATA CRISTAL 420G
+
+
+
+										(Código:
+										364865
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										5,98
+
+
+
+
+
+									Vl. Total
+									
+5,98
+
+
+
+
+
+
+
+
+QUEIJO RALADO VIGOR PARMESAO 50G
+
+
+
+										(Código:
+										77232
+										)
+									
+
+
+
+
+
+
+Qtde.:
+3
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										6,69
+
+
+
+
+
+									Vl. Total
+									
+20,07
+
+
+
+
+
+
+
+
+MILHO PIPOCA YOKI 400G
+
+
+
+										(Código:
+										361253
+										)
+									
+
+
+
+
+
+
+Qtde.:
+2
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										8,98
+
+
+
+
+
+									Vl. Total
+									
+17,96
+
+
+
+
+
+
+
+
+PASSATA FUGINI 300G
+
+
+
+										(Código:
+										353123
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										3,29
+
+
+
+
+
+									Vl. Total
+									
+3,29
+
+
+
+
+
+
+
+
+AC DEMERARA ALTO ALEGRE 1KG
+
+
+
+										(Código:
+										346072
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										5,98
+
+
+
+
+
+									Vl. Total
+									
+5,98
+
+
+
+
+
+
+
+
+SAL CISNE REFINADO 1KG
+
+
+
+										(Código:
+										68748
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										3,45
+
+
+
+
+
+									Vl. Total
+									
+3,45
+
+
+
+
+
+
+
+
+FARINHA TRIGO RENATA 1KG
+
+
+
+										(Código:
+										59080
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										7,29
+
+
+
+
+
+									Vl. Total
+									
+7,29
+
+
+
+
+
+
+
+
+MAC D BENTA OVOS ESPAGUET N 8 500G
+
+
+
+										(Código:
+										119555
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										3,39
+
+
+
+
+
+									Vl. Total
+									
+3,39
+
+
+
+
+
+
+
+
+BISC PIRAQUE LEITE MALTADO 132G
+
+
+
+										(Código:
+										361556
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										3,89
+
+
+
+
+
+									Vl. Total
+									
+3,89
+
+
+
+
+
+
+
+
+FEIJAO CAMIL CARIOCA 1KG
+
+
+
+										(Código:
+										137561
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										6,19
+
+
+
+
+
+									Vl. Total
+									
+6,19
+
+
+
+
+
+
+
+
+ARROZ PRATO FINO T1 5KG
+
+
+
+										(Código:
+										37192
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										23,49
+
+
+
+
+
+									Vl. Total
+									
+23,49
+
+
+
+
+
+
+
+
+BISC BWAW CAES TRAD 500G
+
+
+
+										(Código:
+										341845
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										17,98
+
+
+
+
+
+									Vl. Total
+									
+17,98
+
+
+
+
+
+
+
+
+SACO LIXO ENROLADINHO 50L C/10
+
+
+
+										(Código:
+										133906
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										8,59
+
+
+
+
+
+									Vl. Total
+									
+8,59
+
+
+
+
+
+
+
+
+DET LIQ OMO LAVAG PERF 900ML
+
+
+
+										(Código:
+										352047
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										11,98
+
+
+
+
+
+									Vl. Total
+									
+11,98
+
+
+
+
+
+
+
+
+DET YPE COCO 500ML
+
+
+
+										(Código:
+										44970
+										)
+									
+
+
+
+
+
+
+Qtde.:
+4
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										2,39
+
+
+
+
+
+									Vl. Total
+									
+9,56
+
+
+
+
+
+
+
+
+BATATA PRINGLES PIZZA MARGUERITA 105G
+
+
+
+										(Código:
+										366283
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										10,9
+
+
+
+
+
+									Vl. Total
+									
+10,90
+
+
+
+
+
+
+
+
+KETCHUP CEPERA 400G
+
+
+
+										(Código:
+										340160
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										9,19
+
+
+
+
+
+									Vl. Total
+									
+9,19
+
+
+
+
+
+
+
+
+SH ELSEVE ZERO CASPA 400ML
+
+
+
+										(Código:
+										343414
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										29,98
+
+
+
+
+
+									Vl. Total
+									
+29,98
+
+
+
+
+
+
+
+
+PANO PIA FORT LIMP 30X30CM
+
+
+
+										(Código:
+										56774
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										2,98
+
+
+
+
+
+									Vl. Total
+									
+2,98
+
+
+
+
+
+
+
+
+PANO PIA FORT LIMP 30X30CM
+
+
+
+										(Código:
+										56774
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										2,98
+
+
+
+
+
+									Vl. Total
+									
+2,98
+
+
+
+
+
+
+
+
+PANO OBER M USO FORT LIMP AZUL C/5
+
+
+
+										(Código:
+										95850
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										5,19
+
+
+
+
+
+									Vl. Total
+									
+5,19
+
+
+
+
+
+
+
+
+SAND IPANEMA GLOW FEM AD
+
+
+
+										(Código:
+										366387
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										21,98
+
+
+
+
+
+									Vl. Total
+									
+21,98
+
+
+
+
+
+
+
+
+SAND CARTAGO ARIZONA
+
+
+
+										(Código:
+										363577
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										39,98
+
+
+
+
+
+									Vl. Total
+									
+39,98
+
+
+
+
+
+
+
+
+TOALHA UMED TON TON C/140
+
+
+
+										(Código:
+										365870
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										7,69
+
+
+
+
+
+									Vl. Total
+									
+7,69
+
+
+
+
+
+
+
+
+AZEITE SACCIALI EX VIRGEM 500ML
+
+
+
+										(Código:
+										360221
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										28,98
+
+
+
+
+
+									Vl. Total
+									
+28,98
+
+
+
+
+
+
+
+
+OLEO LIZA SOJA 900ML
+
+
+
+										(Código:
+										59226
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										6,98
+
+
+
+
+
+									Vl. Total
+									
+6,98
+
+
+
+
+
+
+
+
+TOALHA PAPEL SORELLA C/2
+
+
+
+										(Código:
+										193313
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										4,39
+
+
+
+
+
+									Vl. Total
+									
+4,39
+
+
+
+
+
+
+
+
+SAB PHEBO VERBENA TROPICAL 100G
+
+
+
+										(Código:
+										364570
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										5,49
+
+
+
+
+
+									Vl. Total
+									
+5,49
+
+
+
+
+
+
+
+
+HASTES FLEX COTONETES C/75
+
+
+
+										(Código:
+										219614
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										6,19
+
+
+
+
+
+									Vl. Total
+									
+6,19
+
+
+
+
+
+
+
+
+CR DENT ORAL-B 3D WHITE FRESH 70G
+
+
+
+										(Código:
+										305995
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										6,98
+
+
+
+
+
+									Vl. Total
+									
+6,98
+
+
+
+
+
+
+
+
+ODORIZ LUXCAR NEW FRESH 60ML
+
+
+
+										(Código:
+										344964
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										11,59
+
+
+
+
+
+									Vl. Total
+									
+11,59
+
+
+
+
+
+
+
+
+CR TRAT ELSEVE LISO SONHOS BOTOX 300G
+
+
+
+										(Código:
+										364744
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										26,69
+
+
+
+
+
+									Vl. Total
+									
+26,69
+
+
+
+
+
+
+
+
+SAB PHEBO COCO BAHIA 100G
+
+
+
+										(Código:
+										364569
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										5,49
+
+
+
+
+
+									Vl. Total
+									
+5,49
+
+
+
+
+
+
+
+
+SAB LIQ LUX BUQ JASMIM 200ML
+
+
+
+										(Código:
+										350042
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										8,98
+
+
+
+
+
+									Vl. Total
+									
+8,98
+
+
+
+
+
+
+
+
+ESPUMA MAGICA PROAUTO 400ML
+
+
+
+										(Código:
+										64793
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										22,98
+
+
+
+
+
+									Vl. Total
+									
+22,98
+
+
+
+
+
+
+
+
+GEL ADESIVO PATO RF BLUE C/6
+
+
+
+										(Código:
+										364900
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										12,98
+
+
+
+
+
+									Vl. Total
+									
+12,98
+
+
+
+
+
+
+
+
+ESP BANHO PONJITA LV3 PG2
+
+
+
+										(Código:
+										342600
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										10,49
+
+
+
+
+
+									Vl. Total
+									
+10,49
+
+
+
+
+
+
+
+
+VASSOURA CONDOR MADRI
+
+
+
+										(Código:
+										45659
+										)
+									
+
+
+
+
+
+
+Qtde.:
+1
+
+
+
+
+UN: 
+UN
+
+
+
+
+Vl. Unit.:
+
+										 
+										5,98
+
+
+
+
+
+									Vl. Total
+									
+5,98
+
+
+
+
+
+
+
+
+
+
+Qtd. total de itens:
+
+
+78
+
+
+
+
+
+
+Valor total R$:
+
+
+938,79
+
+
+
+
+
+
+Descontos R$:
+
+
+0,90
+
+
+
+
+
+
+Valor a pagar R$:
+
+
+937,89
+
+
+
+
+
+
+Forma de pagamento:
+
+
+Valor pago R$:
+
+
+
+
+
+
+
+
+
+
+937,89
+
+
+
+
+
+
+Troco 
+
+
+NaN
+
+
+
+
+
+
+Informação dos Tributos Totais Incidentes
+									(Lei Federal 12.741/2012) R$
+
+
+206,70
+
+
+
+
+
+
+
+
+
+
+
+
+Informações gerais da Nota
+
+
+
+
+
+
+EMISSÃO NORMAL
+
+
+
+
+
+
+Número: 
+1417
+ Série: 
+165
+ Emissão: 
+20/01/2026 21:38:07
+								- Via Consumidor
+								
+Protocolo de Autorização: 
+135260454835010       20/01/2026 21:38:07
+
+										Ambiente de Produção -
+									
+									Versão XML:
+									4.00
+									- Versão XSLT: 2.05
+								
+
+
+
+
+
+
+
+
+Chave de acesso
+
+
+
+
+
+								Consulte pela Chave de Acesso em
+								
+								https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica
+Chave de acesso:
+3526 0146 0297 2400 0754 6516 5000 0014 1714 4934 5613
+
+
+
+
+
+
+
+
+Consumidor
+
+
+
+
+
+
+Consumidor não identificado
+
+
+
+
+
+
+
+
+
+
+Informações de interesse do contribuinte
+
+
+
+
+Tributos Incidentes Lei Federal 12.741/12 Total R$ 937,8  9,89% Federal  12,15% Estadual 0.00% Municipal        Operador: 70000557 -    ELISABETE C L SVALOR TOTAL DO ICMS:               64,64
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Data/Hora: 14/05/2026 17:01
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

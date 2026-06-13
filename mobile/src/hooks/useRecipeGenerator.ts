@@ -14,11 +14,11 @@ export function useRecipeGenerator() {
     erro: null,
   });
 
-  const gerarReceitas = useCallback(async (ingredientes: string[]) => {
+  const gerarReceitas = useCallback(async (ingredientes: string[], forcarIA = false) => {
     setState({ receitas: [], loading: true, erro: null });
 
     try {
-      const receitas = await recipeGeneratorService.gerarReceitas(ingredientes);
+      const receitas = await recipeGeneratorService.gerarReceitas(ingredientes, forcarIA);
       setState({ receitas, loading: false, erro: null });
       return receitas;
     } catch (error: any) {

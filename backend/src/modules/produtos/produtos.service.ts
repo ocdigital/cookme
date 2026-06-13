@@ -14,6 +14,7 @@ import { UpdateProdutoDto } from './dto/update-produto.dto';
 import { CreateMarcaDto } from './dto/create-marca.dto';
 import { CreateCategoriaDto } from './dto/create-categoria.dto';
 import { ProductType } from '@common/enums/product-type.enum';
+import { OcrAliasService } from '../product-classification/services/ocr-alias.service';
 
 @Injectable()
 export class ProdutosService {
@@ -24,6 +25,7 @@ export class ProdutosService {
     private readonly marcaRepository: Repository<Marca>,
     @InjectRepository(Categoria)
     private readonly categoriaRepository: Repository<Categoria>,
+    private readonly ocrAliasService: OcrAliasService,
   ) { }
 
   // ========== PRODUTOS ==========
@@ -42,8 +44,7 @@ export class ProdutosService {
     // Define tipo padrão como ALIMENTO se não fornecido
     const tipo = createProdutoDto.tipo || ProductType.ALIMENTO;
 
-    // Validar campos obrigatórios para produtos alimentícios
-    this.validateFoodProduct(tipo, createProdutoDto);
+    // validateFoodProduct disponível para uso futuro — não aplicada na criação via SEFAZ/OCR
 
     // Validar se a categoria é de alimentos (quando fornecida)
     if (createProdutoDto.categoria_id) {
@@ -74,7 +75,21 @@ export class ProdutosService {
       ...createProdutoDto,
       tipo,
     });
-    return this.produtoRepository.save(produto);
+    const saved = await this.produtoRepository.save(produto);
+
+    // Normalizar nome OCR → nome_display em background (não bloqueia resposta)
+    if (!saved.nome_display) {
+      this.ocrAliasService
+        .resolverNomeCanônico(saved.nome)
+        .then((nomeDisplay) => {
+          if (nomeDisplay && nomeDisplay !== saved.nome.toLowerCase()) {
+            return this.produtoRepository.update(saved.id, { nome_display: nomeDisplay });
+          }
+        })
+        .catch(() => {});
+    }
+
+    return saved;
   }
 
   /**
@@ -153,6 +168,102 @@ export class ProdutosService {
       where: { codigo_barras },
       relations: ['marca', 'categoria'],
     });
+  }
+
+  async pesquisarPreco(nome: string): Promise<{ loja: string; preco: number }[]> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const puppeteer = require('puppeteer');
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+    try {
+      const page = await browser.newPage();
+      await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
+
+      const q = encodeURIComponent(`${nome} preço supermercado`);
+      await page.goto(`https://www.google.com.br/search?q=${q}&tbm=shop&gl=br&hl=pt-BR`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 12000,
+      });
+
+      const resultados: { loja: string; preco: number }[] = await page.evaluate(() => {
+        const items: { loja: string; preco: number }[] = [];
+        const seen = new Set<number>();
+
+        // Google Shopping result cards
+        document.querySelectorAll('.sh-dgr__gr-auto, .KZmu8e, .i0X6df').forEach((el: Element) => {
+          const precoTexts = [
+            el.querySelector('.a8Pemb')?.textContent,
+            el.querySelector('.HRLxBb')?.textContent,
+            el.querySelector('[aria-label]')?.getAttribute('aria-label'),
+          ].filter(Boolean).join(' ');
+
+          const lojaText = (
+            el.querySelector('.E5ocAb')?.textContent ||
+            el.querySelector('.aULzUe')?.textContent ||
+            el.querySelector('.IuHnof')?.textContent ||
+            'Supermercado'
+          ).trim().slice(0, 40);
+
+          const match = precoTexts.match(/R\$\s*([\d.]+,\d{2})/);
+          if (match) {
+            const preco = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+            if (!isNaN(preco) && preco > 0.1 && preco < 9999 && !seen.has(preco)) {
+              seen.add(preco);
+              items.push({ loja: lojaText || 'Supermercado', preco });
+            }
+          }
+        });
+
+        return items.slice(0, 6);
+      });
+
+      return resultados;
+    } catch {
+      return [];
+    } finally {
+      await browser.close();
+    }
+  }
+
+  async buscarPorBarcode(codigo: string): Promise<{ titulo: string; descricao: string }[]> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const https = require('https');
+    const url = `https://www.google.com/search?q=${encodeURIComponent(codigo)}&hl=pt-BR&gl=br&num=8`;
+    const html: string = await new Promise((resolve, reject) => {
+      const req = https.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'pt-BR,pt;q=0.9',
+          'Accept-Encoding': 'identity',
+        },
+      }, (res: any) => {
+        let data = '';
+        res.on('data', (chunk: any) => data += chunk);
+        res.on('end', () => resolve(data));
+      });
+      req.on('error', reject);
+      req.setTimeout(10000, () => { req.destroy(); reject(new Error('timeout')); });
+    });
+
+    // CAPTCHA check
+    if (html.includes('/sorry/index')) return [];
+
+    const resultados: { titulo: string; descricao: string }[] = [];
+    // Extrair títulos e snippets dos resultados orgânicos
+    const blocos = html.match(/<h3[^>]*>(.*?)<\/h3>/gs) || [];
+    for (const bloco of blocos) {
+      const titulo = bloco.replace(/<[^>]+>/g, '').trim();
+      if (titulo.length > 5) {
+        resultados.push({ titulo, descricao: '' });
+      }
+      if (resultados.length >= 6) break;
+    }
+
+    return resultados;
   }
 
   async searchForAutocomplete(query: string, limit: number = 10) {

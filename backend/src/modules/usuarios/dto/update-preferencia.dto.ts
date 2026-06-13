@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsInt, Min } from 'class-validator';
+import { IsArray, IsOptional, IsInt, Min, IsString, IsIn } from 'class-validator';
 
 export class UpdatePreferenciaDto {
   @ApiProperty({
@@ -55,4 +55,20 @@ export class UpdatePreferenciaDto {
   @Min(1)
   @IsOptional()
   numero_pessoas?: number;
+
+  @IsString()
+  @IsOptional()
+  estado?: string;
+
+  @IsString()
+  @IsOptional()
+  regiao_culinaria?: string;
+
+  @IsIn(['normal', 'fitness', 'vegetariano', 'vegano'])
+  @IsOptional()
+  modo_alimentar?: 'normal' | 'fitness' | 'vegetariano' | 'vegano';
+
+  @IsIn(['almoco_jantar', 'almoco', 'jantar'])
+  @IsOptional()
+  refeicoes_planejamento?: 'almoco_jantar' | 'almoco' | 'jantar';
 }

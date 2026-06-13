@@ -102,13 +102,13 @@ export const ProfilePage: React.FC = () => {
     <div className="space-y-2">
       {/* Header */}
       <header className="-mt-1">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Meu Perfil</h1>
+        <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Meu Perfil</h1>
       </header>
 
       {/* Success Message */}
       {successMessage && (
         <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/30 rounded-xl text-green-700 dark:text-green-400 text-sm flex items-center gap-2">
-          <Check size={16} className="flex-shrink-0" />
+          <Check size={13} className="flex-shrink-0" />
           {successMessage}
         </div>
       )}
@@ -266,7 +266,7 @@ export const ProfilePage: React.FC = () => {
                 disabled={isSaving}
                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
               >
-                <Save size={16} />
+                <Save size={13} />
                 {isSaving ? 'Salvando...' : 'Salvar'}
               </button>
             </div>

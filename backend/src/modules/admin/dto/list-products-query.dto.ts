@@ -41,6 +41,16 @@ export class ListProductsQueryDto {
   @Max(100)
   limit: number = 20;
 
+  @ApiProperty({ description: 'Filtrar por origem (manual, api_externa, usuario, marca)', required: false })
+  @IsOptional()
+  @IsString()
+  origem?: string;
+
+  @ApiProperty({ description: 'Filtrar por verificado (true/false)', required: false })
+  @IsOptional()
+  @IsString()
+  verificado?: string;
+
   @ApiProperty({
     description: 'Ordenar por campo (nome, criado_em)',
     required: false,
@@ -58,4 +68,9 @@ export class ListProductsQueryDto {
   @IsOptional()
   @IsString()
   order: 'ASC' | 'DESC' = 'DESC';
+
+  @ApiProperty({ description: 'Filtrar por classificação: ingrediente, nao_ingrediente, sem_classificacao', required: false })
+  @IsOptional()
+  @IsString()
+  ingredienteFilter?: string;
 }

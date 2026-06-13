@@ -25,25 +25,55 @@ export default defineConfig({
 
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Aprendizado', link: '/aprendizado/' },
-      { text: 'Arquitetura', link: '/arquitetura/' },
-      { text: 'Setup', link: '/setup/' },
-      { text: 'Guias', link: '/guides/' },
+      { text: '🧠 Inteligência', link: '/inteligencia' },
+      { text: 'Backend', link: '/backend/' },
+      { text: 'Mobile', link: '/mobile/' },
+      { text: 'Admin Frontend', link: '/frontend/' },
       {
-        text: 'Links',
+        text: 'Mais',
         items: [
-          { text: 'GitHub', link: 'https://github.com' },
-          { text: 'Issues', link: 'https://github.com/issues' },
+          { text: 'Arquitetura', link: '/arquitetura/' },
+          { text: 'Setup', link: '/setup/' },
+          { text: 'Guias', link: '/guides/' },
+          { text: 'Aprendizado', link: '/aprendizado/' },
         ]
-      }
+      },
     ],
 
     sidebar: {
+      '/backend/': [
+        {
+          text: 'Backend (NestJS)',
+          items: [
+            { text: 'Visão Geral & Módulos', link: '/backend/' },
+            { text: 'Todos os Endpoints', link: '/backend/api' },
+            { text: 'Entidades TypeORM', link: '/backend/entidades' },
+          ]
+        }
+      ],
+      '/mobile/': [
+        {
+          text: 'Mobile (Expo)',
+          items: [
+            { text: 'Telas & Navegação', link: '/mobile/' },
+            { text: 'Hooks & Services', link: '/mobile/servicos' },
+          ]
+        }
+      ],
+      '/frontend/': [
+        {
+          text: 'Admin Frontend (React)',
+          items: [
+            { text: 'Páginas & Componentes', link: '/frontend/' },
+          ]
+        }
+      ],
       '/aprendizado/': [
         {
           text: 'Aprendizado',
           items: [
             { text: 'Guia de Aprendizado', link: '/aprendizado/guia-aprendizado' },
+            { text: 'Roadmap Dev IA', link: '/aprendizado/roadmap-ia' },
           ]
         }
       ],

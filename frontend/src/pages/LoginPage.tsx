@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChefHat, Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/useToast';
+import { CookmeLogo } from '../components/CookmeLogo';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export const LoginPage: React.FC = () => {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -29,9 +31,9 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(formData.email, formData.password);
+      const destino = await login(formData.email, formData.password, rememberMe);
       toast.success('Login realizado com sucesso!', 'Bem-vindo ao CookMe');
-      navigate('/dashboard');
+      navigate(destino ?? '/dashboard');
     } catch (err: any) {
       const message = err.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.';
       toast.error('Erro no login', message);
@@ -76,14 +78,12 @@ export const LoginPage: React.FC = () => {
         {/* Logo and Header */}
         <motion.div className="text-center mb-6" variants={itemVariants}>
           <motion.div
-            className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center text-primary font-bold text-3xl mx-auto mb-3 shadow-2xl"
-            whileHover={{ scale: 1.05, rotate: 5 }}
+            className="flex justify-center mb-3"
+            whileHover={{ scale: 1.05 }}
             transition={{ type: 'spring', stiffness: 300 }}
           >
-            <ChefHat size={40} className="text-primary" />
+            <CookmeLogo size={64} textSize={32} dark showTagline tagline="Gerenciador de Receitas Inteligente" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">CookMe</h1>
-          <p className="text-white/80 text-sm">Gerenciador de Receitas Inteligente</p>
         </motion.div>
 
         {/* Form Card */}
@@ -138,6 +138,22 @@ export const LoginPage: React.FC = () => {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+            </motion.div>
+
+            {/* Remember Me */}
+            <motion.div variants={itemVariants} className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setRememberMe(v => !v)}
+                className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors flex-shrink-0 ${
+                  rememberMe ? 'bg-primary border-primary' : 'border-gray-300 bg-white'
+                }`}
+              >
+                {rememberMe && <CheckCircle size={12} className="text-white" />}
+              </button>
+              <span className="text-sm text-gray-600 select-none cursor-pointer" onClick={() => setRememberMe(v => !v)}>
+                Manter logado
+              </span>
             </motion.div>
 
             {/* Submit Button */}

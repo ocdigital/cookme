@@ -67,6 +67,30 @@ export class InventarioController {
     );
   }
 
+  @Post('adicionar-manual')
+  @ApiOperation({ summary: 'Adicionar ingrediente manualmente por nome' })
+  @ApiResponse({ status: 201, description: 'Item adicionado com sucesso' })
+  async adicionarManual(
+    @CurrentUser() user: Usuario,
+    @Body() body: { nome: string; quantidade: number; unidade: string; data_validade?: string },
+  ) {
+    return this.inventarioService.adicionarManual(
+      user.id,
+      body.nome,
+      body.quantidade,
+      body.unidade as any,
+      body.data_validade,
+    );
+  }
+
+  @Post('importar-automatico')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Importar ingredientes elegíveis das compras pendentes automaticamente' })
+  @ApiResponse({ status: 200, description: 'Resultado da importação automática' })
+  async importarAutomatico(@CurrentUser() user: Usuario) {
+    return this.inventarioService.importarIngredientesAutomatico(user.id);
+  }
+
   @Get('stats')
   @ApiOperation({ summary: 'Estatísticas do inventário' })
   @ApiResponse({ status: 200, description: 'Estatísticas calculadas' })
@@ -87,6 +111,13 @@ export class InventarioController {
     @Query('days') days?: number,
   ): Promise<Inventario[]> {
     return this.inventarioService.findExpiringSoon(user.id, days);
+  }
+
+  @Get('ingredientes-disponiveis')
+  @ApiOperation({ summary: 'Listar nomes de ingredientes disponíveis para matching com receitas' })
+  @ApiResponse({ status: 200, description: 'Lista de nomes de ingredientes normalizados', type: [String] })
+  async getIngredientesDisponiveis(@CurrentUser() user: Usuario): Promise<string[]> {
+    return this.inventarioService.ingredientesDisponiveis(user.id);
   }
 
   @Get('vencidos')
@@ -146,6 +177,14 @@ export class InventarioController {
     return this.inventarioService.update(id, user.id, updateInventarioDto);
   }
 
+  @Delete('todos')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Limpar todo o inventário do usuário (cache reset)' })
+  @ApiResponse({ status: 200, description: 'Inventário limpo' })
+  async limparTodos(@CurrentUser() user: Usuario) {
+    return this.inventarioService.limparTodos(user.id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover item do inventário' })
@@ -156,5 +195,28 @@ export class InventarioController {
     @Param('id') id: string,
   ): Promise<void> {
     return this.inventarioService.remove(id, user.id);
+  }
+
+  @Patch(':id/nome')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Corrigir nome exibido do ingrediente (treina alias automático)' })
+  async corrigirNome(
+    @CurrentUser() user: Usuario,
+    @Param('id') id: string,
+    @Body('nome') nome: string,
+  ) {
+    await this.inventarioService.corrigirNome(id, user.id, nome);
+    return { ok: true };
+  }
+
+  @Patch(':id/esgotado')
+  @ApiOperation({ summary: 'Marcar/desmarcar ingrediente como esgotado' })
+  @ApiResponse({ status: 200, description: 'Status atualizado' })
+  async marcarEsgotado(
+    @CurrentUser() user: Usuario,
+    @Param('id') id: string,
+    @Body('esgotado') esgotado: boolean,
+  ) {
+    return this.inventarioService.marcarEsgotado(id, user.id, esgotado);
   }
 }

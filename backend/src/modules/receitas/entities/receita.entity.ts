@@ -69,13 +69,17 @@ export class Receita {
     };
 
     // Lista normalizada de ingredientes para busca rápida (lowercase, sem acento)
-    @Column('simple-array', { nullable: true })
+    @Column('text', { array: true, nullable: true })
     @Index()
     ingredientes_chave: string[];
 
-    // Origem (catalogo, ia_gerada, usuario)
+    // Origem (catalogo, ia_gerada, usuario, internet)
     @Column({ default: 'catalogo' })
     origem: string;
+
+    // URL da fonte original (sites brasileiros de receitas)
+    @Column({ type: 'varchar', nullable: true })
+    url_fonte: string | null;
 
     // Se foi gerada por IA, guardar prompt usado
     @Column({ type: 'text', nullable: true })
@@ -89,6 +93,18 @@ export class Receita {
     @Column({ type: 'int', default: 0 })
     vezes_executada: number;
 
+    // Inteligência regional
+    @Column({ nullable: true })
+    regiao_origem: string; // norte, nordeste, centro_oeste, sudeste, sul, nacional
+
+    // Dias da semana tradicionais (ex: ["sexta","sabado"] para feijoada)
+    @Column('simple-array', { nullable: true })
+    dias_semana_tradicionais: string[];
+
+    // Período sazonal (ex: "festas_juninas", "quaresma", "natal")
+    @Column({ nullable: true })
+    periodo_sazonal: string;
+
     // Moderação
     @Column({ type: 'int', default: 0 })
     denuncias: number;
@@ -99,6 +115,27 @@ export class Receita {
         default: 'ok'
     })
     status_moderacao: 'ok' | 'em_revisao' | 'arquivado';
+
+    // Validação automática (Mestre Cuca)
+    @Column({ type: 'int', nullable: true })
+    validation_score: number | null;
+
+    @Column({ type: 'text', nullable: true })
+    validation_issues: string | null;
+
+    // Comunidade — autor (usuário que publicou a receita)
+    @Column('uuid', { nullable: true })
+    autor_id: string | null;
+
+    // Foto sugerida pela comunidade, aguardando moderação
+    @Column({ type: 'varchar', nullable: true })
+    foto_pendente_url: string | null;
+
+    @Column('uuid', { nullable: true })
+    foto_pendente_autor_id: string | null;
+
+    @Column({ type: 'text', nullable: true })
+    foto_pendente_motivo_rejeicao: string | null;
 
     @CreateDateColumn()
     criado_em: Date;

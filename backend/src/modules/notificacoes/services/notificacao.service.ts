@@ -35,10 +35,15 @@ export class NotificacaoService {
     return saved;
   }
 
+  private readonly BROADCAST_ID = '00000000-0000-0000-0000-000000000000';
+
   async listarPorAdmin(usuarioAdminId: string, naoLidas = false) {
     const query = this.notificacaoRepository
       .createQueryBuilder('notificacao')
-      .where('notificacao.usuario_admin_id = :usuarioAdminId', { usuarioAdminId })
+      .where(
+        'notificacao.usuario_admin_id = :usuarioAdminId OR notificacao.usuario_admin_id = :broadcastId',
+        { usuarioAdminId, broadcastId: this.BROADCAST_ID },
+      )
       .orderBy('notificacao.criado_em', 'DESC');
 
     if (naoLidas) {
@@ -49,10 +54,14 @@ export class NotificacaoService {
   }
 
   async contarNaoLidas(usuarioAdminId: string): Promise<number> {
-    return this.notificacaoRepository.countBy({
-      usuario_admin_id: usuarioAdminId,
-      lido: false,
-    });
+    return this.notificacaoRepository
+      .createQueryBuilder('notificacao')
+      .where(
+        'notificacao.usuario_admin_id = :usuarioAdminId OR notificacao.usuario_admin_id = :broadcastId',
+        { usuarioAdminId, broadcastId: this.BROADCAST_ID },
+      )
+      .andWhere('notificacao.lido = false')
+      .getCount();
   }
 
   async marcarComoLida(id: string): Promise<void> {
@@ -63,12 +72,14 @@ export class NotificacaoService {
   }
 
   async marcarTodasComoLidas(usuarioAdminId: string): Promise<void> {
+    const agora = new Date();
     await this.notificacaoRepository.update(
       { usuario_admin_id: usuarioAdminId, lido: false },
-      {
-        lido: true,
-        lido_em: new Date(),
-      },
+      { lido: true, lido_em: agora },
+    );
+    await this.notificacaoRepository.update(
+      { usuario_admin_id: this.BROADCAST_ID, lido: false },
+      { lido: true, lido_em: agora },
     );
   }
 

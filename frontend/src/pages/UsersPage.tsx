@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Edit2, Trash2, Users, AlertTriangle, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { UserPlus, Edit2, Trash2, Users, AlertTriangle, Eye, LayoutDashboard } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { UserFormModal } from '../components/UserFormModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -33,6 +34,7 @@ interface User {
 }
 
 export const UsersPage: React.FC = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -206,7 +208,7 @@ export const UsersPage: React.FC = () => {
     <div className="space-y-2">
       {/* Header */}
       <header className="-mt-1">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Usuários</h1>
+        <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Usuários</h1>
       </header>
 
       {/* Stats Bar */}
@@ -225,9 +227,9 @@ export const UsersPage: React.FC = () => {
           <CardTitle>Lista de Usuários</CardTitle>
           <button
             onClick={handleCreateUser}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 text-sm font-medium"
+            className="bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 text-xs font-medium"
           >
-            <UserPlus size={16} />
+            <UserPlus size={13} />
             Novo Usuário
           </button>
         </div>
@@ -266,15 +268,15 @@ export const UsersPage: React.FC = () => {
           ) : users.length > 0 ? (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Nome</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Email</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Função</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Último Acesso</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Atividade</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">Ações</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Nome</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Email</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Função</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Último Acesso</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Atividade</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -290,43 +292,49 @@ export const UsersPage: React.FC = () => {
                           temRisco ? 'bg-red-50/50 dark:bg-red-950/10' : ''
                         }`}
                       >
-                        <td className="py-3 px-4 text-gray-800 dark:text-gray-200 font-medium flex items-center gap-2">
+                        <td className="py-2 px-3 text-gray-800 dark:text-gray-200 font-medium flex items-center gap-2">
                           {temRisco && <AlertTriangle size={14} className="text-red-500" />}
                           {user.nome}
                         </td>
-                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-sm">{user.email}</td>
-                        <td className="py-3 px-4">
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                        <td className="py-2 px-3 text-gray-600 dark:text-gray-400 text-sm">{user.email}</td>
+                        <td className="py-2 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
                             {user.funcao}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${badgeAcesso.color}`}>
+                        <td className="py-2 px-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeAcesso.color}`}>
                             {diasDesdeAcesso === Infinity ? 'Nunca' : `${diasDesdeAcesso}d`}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 capitalize">
+                        <td className="py-2 px-3">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 capitalize">
                             {user.nivel_atividade || 'N/A'}
                           </span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-2 px-3">
                           <div className="flex gap-2">
                             <ActionButton
                               variant="view"
-                              icon={<Eye size={16} />}
+                              icon={<Eye size={13} />}
                               title="Detalhes"
                               onClick={() => handleViewDetails(user)}
                             />
                             <ActionButton
+                              variant="view"
+                              icon={<LayoutDashboard size={13} />}
+                              title="Ver dados (inventário, compras, receitas)"
+                              onClick={() => navigate(`/users/${user.id}`)}
+                            />
+                            <ActionButton
                               variant="edit"
-                              icon={<Edit2 size={16} />}
+                              icon={<Edit2 size={13} />}
                               title="Editar"
                               onClick={() => handleEditUser(user)}
                             />
                             <ActionButton
                               variant="delete"
-                              icon={<Trash2 size={16} />}
+                              icon={<Trash2 size={13} />}
                               title="Deletar"
                               onClick={() => handleDeleteUser(user)}
                             />

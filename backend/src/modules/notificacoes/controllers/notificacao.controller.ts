@@ -1,11 +1,13 @@
 import { Controller, Get, Patch, Delete, Param, Query, HttpCode, HttpStatus, Request, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { v4 as uuid } from 'uuid';
 import { NotificacaoService } from '../services/notificacao.service';
 import { NotificacaoTriggersService } from '../services/notificacao-triggers.service';
 import { Public } from '../../../common/decorators/public.decorator';
 
 @ApiTags('Notificações')
+@SkipThrottle()
 @Controller('notificacoes')
 export class NotificacaoController {
   constructor(
@@ -38,13 +40,6 @@ export class NotificacaoController {
     return { naoLidas: count };
   }
 
-  @Patch(':id/lido')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Marcar notificação como lida' })
-  async marcarComoLida(@Param('id') id: string) {
-    await this.notificacaoService.marcarComoLida(id);
-  }
-
   @Patch('marcar-todas/lido')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Marcar todas as notificações como lidas' })
@@ -54,6 +49,13 @@ export class NotificacaoController {
       throw new Error('Usuário não autenticado');
     }
     await this.notificacaoService.marcarTodasComoLidas(usuarioId);
+  }
+
+  @Patch(':id/lido')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Marcar notificação como lida' })
+  async marcarComoLida(@Param('id') id: string) {
+    await this.notificacaoService.marcarComoLida(id);
   }
 
   @Delete(':id')
@@ -79,7 +81,8 @@ export class NotificacaoController {
         | 'usuario_inativo'
         | 'produto_incompleto'
         | 'erro_sistema'
-        | 'limite_recursos';
+        | 'limite_recursos'
+        | 'limite_ia';
     },
   ) {
     const testId = uuid();
@@ -125,6 +128,13 @@ export class NotificacaoController {
           'CPU',
           85,
           100,
+        );
+        break;
+
+      case 'limite_ia':
+        await this.notificacaoTriggers.limiteIAAtingido(
+          'Gemini',
+          'Cota de requisições esgotada',
         );
         break;
     }

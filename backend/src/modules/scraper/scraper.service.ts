@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import { spawn, ChildProcess } from 'child_process';
 import { v4 as uuid } from 'uuid';
@@ -27,6 +28,7 @@ export class ScraperService {
   constructor(
     @InjectRepository(Compra)
     private readonly compraRepository: Repository<Compra>,
+    private readonly jwtService: JwtService,
   ) {
     // Caminho para o script Python (ajuste conforme sua estrutura)
     this.PYTHON_SCRIPT_PATH = path.resolve(
@@ -248,6 +250,11 @@ export class ScraperService {
         '../../../../lib/venv/bin/python',
       );
 
+      const userToken = await this.jwtService.signAsync(
+        { sub: session.userId },
+        { expiresIn: '2h' },
+      );
+
       const pythonProcess = spawn(pythonPath, [
         this.PYTHON_SCRIPT_PATH,
         '--session-id',
@@ -256,6 +263,8 @@ export class ScraperService {
         session.qrcodeTexto,
         '--mode',
         'api',
+        '--token',
+        userToken,
       ]);
 
       session.processoHandle = pythonProcess;

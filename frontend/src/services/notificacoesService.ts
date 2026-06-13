@@ -9,7 +9,8 @@ export interface Notificacao {
   tipo: NotificationType;
   titulo: string;
   mensagem: string;
-  lida: boolean;
+  lida: boolean;  // alias — backend retorna como 'lido'
+  lido: boolean;
   icone?: string;
   criado_em: Date;
 }
@@ -53,8 +54,8 @@ export const notificacoesService = {
    * Marca uma notificação como lida
    */
   markAsRead: async (id: string): Promise<Notificacao> => {
-    const response = await api.post<Notificacao>(
-      `/notificacoes/${id}/mark-read`
+    const response = await api.patch<Notificacao>(
+      `/notificacoes/${id}/lido`
     );
     return response.data;
   },
@@ -63,7 +64,7 @@ export const notificacoesService = {
    * Marca todas as notificações como lidas
    */
   markAllAsRead: async (): Promise<void> => {
-    await api.post('/notificacoes/mark-all-read');
+    await api.patch('/notificacoes/marcar-todas/lido');
   },
 
   /**

@@ -20,9 +20,13 @@ export const colors = {
     500: '#E8920D',
     600: '#C97A08',
     700: '#A36205',
+    800: '#7A4903',
+    900: '#532F01',
   },
   red: {
     50:  '#FFF2F0',
+    100: '#FFE4E0',
+    200: '#FFCAC4',
     500: '#E03A2E',
     600: '#C42F24',
   },
@@ -89,5 +93,12 @@ export const shadows = {
     shadowOpacity: 0.10,
     shadowRadius: 24,
     elevation: 6,
+  },
+  modal: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 12,
   },
 };

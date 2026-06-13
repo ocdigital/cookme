@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,21 +9,26 @@ import {
   ActivityIndicator,
   ScrollView,
   FlatList,
-  SafeAreaView,
+  TextInput,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  BackHandler,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Camera, CameraView } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
+import ScreenWrapper from '@/components/ScreenWrapper';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = 100;
 const MAX_PHOTOS = 10;
 
-type Step = 'choose' | 'camera' | 'gallery' | 'processing' | 'review' | 'success';
+type Step = 'choose' | 'form' | 'camera' | 'gallery' | 'processing' | 'review' | 'success';
 
 interface OcrResult {
   items: Array<{ name: string; quantity: number; price: number }>;
@@ -32,6 +37,7 @@ interface OcrResult {
 }
 
 export default function ReceiptOcrScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [currentStep, setCurrentStep] = useState<Step>('choose');
@@ -40,12 +46,23 @@ export default function ReceiptOcrScreen() {
   const [ocrResult, setOcrResult] = useState<OcrResult | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
+  const [nomeEstabelecimento, setNomeEstabelecimento] = useState('');
+
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
   }, []);
+
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (currentStep === 'camera') { setCurrentStep('form'); return true; }
+      if (currentStep === 'form') { setCurrentStep('choose'); return true; }
+      return false;
+    });
+    return () => handler.remove();
+  }, [currentStep]);
 
   const takePhoto = async () => {
     try {
@@ -164,32 +181,36 @@ export default function ReceiptOcrScreen() {
   // --- PERMISSION ---
   if (hasPermission === null) {
     return (
-      <View style={styles.permissionContainer}>
-        <ActivityIndicator size="large" color={C.green[500]} />
-        <Text style={styles.permissionText}>Solicitando permissão...</Text>
-      </View>
+      <ScreenWrapper>
+        <View style={styles.permissionContainer}>
+          <ActivityIndicator size="large" color={C.green[500]} />
+          <Text style={styles.permissionText}>Solicitando permissão...</Text>
+        </View>
+      </ScreenWrapper>
     );
   }
   if (hasPermission === false) {
     return (
-      <SafeAreaView style={styles.permissionContainer}>
-        <View style={styles.permissionIconWrap}>
-          <MaterialCommunityIcons name="camera-off" size={32} color={C.red[500]} />
+      <ScreenWrapper>
+        <View style={styles.permissionContainer}>
+          <View style={styles.permissionIconWrap}>
+            <MaterialCommunityIcons name="camera-off" size={32} color={C.red[500]} />
+          </View>
+          <Text style={styles.permissionTitle}>Câmera não autorizada</Text>
+          <Text style={styles.permissionSub}>Permita o acesso à câmera nas configurações</Text>
+          <TouchableOpacity style={styles.permissionBtn} onPress={() => router.back()}>
+            <Text style={styles.permissionBtnText}>Voltar</Text>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.permissionTitle}>Câmera não autorizada</Text>
-        <Text style={styles.permissionSub}>Permita o acesso à câmera nas configurações</Text>
-        <TouchableOpacity style={styles.permissionBtn} onPress={() => router.back()}>
-          <Text style={styles.permissionBtnText}>Voltar</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      </ScreenWrapper>
     );
   }
 
   // ===== CHOOSE =====
   if (currentStep === 'choose') {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <ScreenWrapper>
+        <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
           <TouchableOpacity style={styles.headerBack} onPress={() => router.back()}>
             <MaterialCommunityIcons name="arrow-left" size={20} color={C.ink[700]} />
           </TouchableOpacity>
@@ -207,50 +228,100 @@ export default function ReceiptOcrScreen() {
           </View>
 
           <View style={styles.chooseOptions}>
-            <TouchableOpacity style={styles.optionCard} onPress={() => setCurrentStep('camera')} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.optionCard} onPress={() => router.push('/(app)/qr-scanner')} activeOpacity={0.7}>
+              <View style={[styles.optionIcon, { backgroundColor: C.amber[50] }]}>
+                <MaterialCommunityIcons name="qrcode-scan" size={28} color={C.amber[600]} />
+              </View>
+              <View style={styles.optionText}>
+                <Text style={styles.optionTitle}>Ler QRCode</Text>
+                <Text style={styles.optionSub}>Escaneie o QR do cupom fiscal</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[300]} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.optionCard} onPress={() => setCurrentStep('form')} activeOpacity={0.7}>
               <View style={[styles.optionIcon, { backgroundColor: C.green[50] }]}>
                 <MaterialCommunityIcons name="camera" size={28} color={C.green[600]} />
               </View>
               <View style={styles.optionText}>
-                <Text style={styles.optionTitle}>Usar Câmera</Text>
+                <Text style={styles.optionTitle}>Tirar Foto</Text>
                 <Text style={styles.optionSub}>Fotografe o cupom agora</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[300]} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.optionCard} onPress={pickFromGallery} activeOpacity={0.7}>
-              <View style={[styles.optionIcon, { backgroundColor: C.amber[50] }]}>
-                <MaterialCommunityIcons name="image-multiple" size={28} color={C.amber[600]} />
-              </View>
-              <View style={styles.optionText}>
-                <Text style={styles.optionTitle}>Galeria</Text>
-                <Text style={styles.optionSub}>Escolha fotos existentes</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[300]} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.optionCard, styles.optionCardTest]}
-              onPress={() => { setCurrentStep('processing'); processPhotos(['test']); }}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.optionIcon, { backgroundColor: C.ink[100] }]}>
-                <MaterialCommunityIcons name="beaker-outline" size={28} color={C.ink[500]} />
-              </View>
-              <View style={styles.optionText}>
-                <Text style={[styles.optionTitle, { color: C.ink[500] }]}>Modo de Teste</Text>
-                <Text style={styles.optionSub}>3 cupons de exemplo</Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[300]} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.tipCard}>
-            <MaterialCommunityIcons name="lightbulb-outline" size={16} color={C.amber[600]} />
-            <Text style={styles.tipText}>Dica: Até {MAX_PHOTOS} fotos para melhor resultado. Garanta boa iluminação.</Text>
+            <MaterialCommunityIcons name="lightbulb-outline" size={16} color={C.amber[600]} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text style={styles.tipText}>
+                <Text style={{ fontWeight: '700' }}>QR Code garante dados completos e precisos.</Text>
+                {' '}Use-o sempre que disponível no cupom.
+              </Text>
+              <Text style={styles.tipText}>
+                Sem QR Code? As fotos funcionam, mas certifique-se de que a nota esteja legível, sem rasuras ou dobras, e com boa iluminação.
+              </Text>
+            </View>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </ScreenWrapper>
+    );
+  }
+
+  // ===== FORM =====
+  if (currentStep === 'form') {
+    return (
+      <ScreenWrapper>
+        <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+          <TouchableOpacity style={styles.headerBack} onPress={() => setCurrentStep('choose')}>
+            <MaterialCommunityIcons name="arrow-left" size={20} color={C.ink[700]} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Dados do Cupom</Text>
+          <View style={{ width: 36 }} />
+        </View>
+
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+
+            <View style={styles.formHero}>
+              <View style={styles.formHeroIcon}>
+                <MaterialCommunityIcons name="store-outline" size={28} color={C.green[600]} />
+              </View>
+              <Text style={styles.formHeroTitle}>Informações do estabelecimento</Text>
+              <Text style={styles.formHeroSub}>Preencha o que souber — as fotos complementam o restante</Text>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Nome do estabelecimento</Text>
+              <TextInput
+                style={styles.formInput}
+                placeholder="Ex: Supermercado Extra"
+                placeholderTextColor={C.ink[400]}
+                value={nomeEstabelecimento}
+                onChangeText={setNomeEstabelecimento}
+                autoCapitalize="words"
+                returnKeyType="done"
+                onSubmitEditing={() => setCurrentStep('camera')}
+              />
+            </View>
+
+            <View style={styles.formTip}>
+              <MaterialCommunityIcons name="information-outline" size={16} color={C.green[600]} />
+              <Text style={styles.formTipText}>Esses dados ajudam a validar os itens extraídos das fotos</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.formBtn}
+              onPress={() => setCurrentStep('camera')}
+              activeOpacity={0.85}
+            >
+              <MaterialCommunityIcons name="camera" size={18} color={C.ink[0]} />
+              <Text style={styles.formBtnText}>Continuar para câmera</Text>
+            </TouchableOpacity>
+
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </ScreenWrapper>
     );
   }
 
@@ -260,7 +331,7 @@ export default function ReceiptOcrScreen() {
       <View style={styles.cameraContainer}>
         <CameraView style={StyleSheet.absoluteFill} ref={cameraRef} facing="back">
           {/* Overlay escuro */}
-          <SafeAreaView style={styles.cameraUI}>
+          <View style={styles.cameraUI}>
             {/* Top bar */}
             <View style={styles.cameraTopBar}>
               <TouchableOpacity style={styles.camBtn} onPress={() => setCurrentStep('choose')}>
@@ -317,7 +388,7 @@ export default function ReceiptOcrScreen() {
 
               <View style={{ width: 80 }} />
             </View>
-          </SafeAreaView>
+          </View>
         </CameraView>
       </View>
     );
@@ -344,8 +415,8 @@ export default function ReceiptOcrScreen() {
   // ===== REVIEW =====
   if (currentStep === 'review' && ocrResult) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <ScreenWrapper>
+        <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
           <TouchableOpacity style={styles.headerBack} onPress={() => setCurrentStep('choose')}>
             <MaterialCommunityIcons name="arrow-left" size={20} color={C.ink[700]} />
           </TouchableOpacity>
@@ -413,35 +484,37 @@ export default function ReceiptOcrScreen() {
             }
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </ScreenWrapper>
     );
   }
 
   // ===== SUCCESS =====
   if (currentStep === 'success') {
     return (
-      <SafeAreaView style={styles.successContainer}>
-        <View style={styles.successIconWrap}>
-          <MaterialCommunityIcons name="check-circle" size={48} color={C.green[600]} />
-        </View>
-        <Text style={styles.successTitle}>Cupom Digitalizado!</Text>
-        <Text style={styles.successSub}>{ocrResult?.items.length} itens extraídos com sucesso</Text>
-        <View style={styles.successStats}>
-          <View style={styles.successStat}>
-            <Text style={styles.successStatLabel}>Total</Text>
-            <Text style={styles.successStatValue}>R$ {ocrResult?.total.toFixed(2)}</Text>
+      <ScreenWrapper>
+        <View style={styles.successContainer}>
+          <View style={styles.successIconWrap}>
+            <MaterialCommunityIcons name="check-circle" size={48} color={C.green[600]} />
           </View>
-          {(ocrResult?.duplicates.length ?? 0) > 0 && (
-            <View style={[styles.successStat, { borderLeftWidth: 1, borderLeftColor: C.ink[150] }]}>
-              <Text style={styles.successStatLabel}>Duplicatas</Text>
-              <Text style={styles.successStatValue}>{ocrResult?.duplicates.length}</Text>
+          <Text style={styles.successTitle}>Cupom Digitalizado!</Text>
+          <Text style={styles.successSub}>{ocrResult?.items.length} itens extraídos com sucesso</Text>
+          <View style={styles.successStats}>
+            <View style={styles.successStat}>
+              <Text style={styles.successStatLabel}>Total</Text>
+              <Text style={styles.successStatValue}>R$ {ocrResult?.total.toFixed(2)}</Text>
             </View>
-          )}
+            {(ocrResult?.duplicates.length ?? 0) > 0 && (
+              <View style={[styles.successStat, { borderLeftWidth: 1, borderLeftColor: C.ink[150] }]}>
+                <Text style={styles.successStatLabel}>Duplicatas</Text>
+                <Text style={styles.successStatValue}>{ocrResult?.duplicates.length}</Text>
+              </View>
+            )}
+          </View>
+          <TouchableOpacity style={styles.doneBtn} onPress={handleDone}>
+            <Text style={styles.doneBtnText}>Concluído</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.doneBtn} onPress={handleDone}>
-          <Text style={styles.doneBtnText}>Concluído</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      </ScreenWrapper>
     );
   }
 
@@ -505,6 +578,39 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: C.amber[200], padding: 12,
   },
   tipText: { ...T.small, color: C.amber[700], flex: 1 },
+
+  // Form
+  formContent: { padding: 20, paddingBottom: 40, gap: 20 },
+  formHero: { alignItems: 'center', gap: 8, paddingVertical: 8 },
+  formHeroIcon: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: C.green[50], borderWidth: 1, borderColor: C.green[200],
+    alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+  },
+  formHeroTitle: { ...T.h3, color: C.ink[900], textAlign: 'center' },
+  formHeroSub: { ...T.small, color: C.ink[500], textAlign: 'center', lineHeight: 20 },
+  formGroup: { gap: 6 },
+  formLabel: { ...T.small, color: C.ink[700], fontWeight: '600' },
+  formInput: {
+    backgroundColor: C.ink[0],
+    borderWidth: 1, borderColor: C.ink[200],
+    borderRadius: radius.md,
+    paddingHorizontal: 14, paddingVertical: 13,
+    fontSize: 15, color: C.ink[900],
+    ...shadows.sm,
+  },
+  formTip: {
+    flexDirection: 'row', gap: 8, alignItems: 'flex-start',
+    backgroundColor: C.green[50], borderRadius: radius.md,
+    borderWidth: 1, borderColor: C.green[200], padding: 12,
+  },
+  formTipText: { ...T.small, color: C.green[700], flex: 1, lineHeight: 18 },
+  formBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.green[500], paddingVertical: 15,
+    borderRadius: radius.md, marginTop: 4, ...shadows.md,
+  },
+  formBtnText: { ...T.body, color: C.ink[0], fontWeight: '700' },
 
   // Camera
   cameraContainer: { flex: 1, backgroundColor: C.ink[900] },

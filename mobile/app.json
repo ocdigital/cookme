@@ -33,6 +33,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       [
         "expo-splash-screen",
         {
@@ -49,6 +50,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "61ac85de-0558-4d36-90f7-62201c204b47"
+      }
+    },
+    "owner": "eduocdigital"
   }
 }

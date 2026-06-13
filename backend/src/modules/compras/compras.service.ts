@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Compra } from './entities/compra.entity';
 import { CompraItem } from './entities/compra-item.entity';
 import { CreateCompraDto } from './dto/create-compra.dto';
 import { Produto } from '../produtos/entities/produto.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
 import { ProductClassificationService } from '../product-classification/services/product-classification.service';
+import { OcrAliasService } from '../product-classification/services/ocr-alias.service';
 import { ProductImageService } from '../produtos/services/product-image.service';
 import { UnidadeMedida } from '@common/enums/unidade-medida.enum';
 import { MetodoCadastro } from '@common/enums/metodo-cadastro.enum';
@@ -24,7 +25,10 @@ export class ComprasService {
     @InjectRepository(Inventario)
     private readonly inventarioRepository: Repository<Inventario>,
     private readonly productClassificationService: ProductClassificationService,
+    private readonly ocrAliasService: OcrAliasService,
     private readonly productImageService: ProductImageService,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -43,117 +47,131 @@ export class ComprasService {
 
     const savedCompra = await this.compraRepository.save(compra);
 
-    // Valida cada item da compra com Claude usando batch (mais eficiente)
-    const itensValidados: CompraItem[] = [];
+    // Busca produtos referenciados nos itens
+    const produtoIds = createCompraDto.itens
+      .map((item) => item.produto_id)
+      .filter((id) => id);
 
-    try {
-      // Busca todos os produtos para obter seus nomes
-      const produtoIds = createCompraDto.itens
-        .map((item) => item.produto_id)
-        .filter((id) => id);
+    let produtoMap = new Map<string, Produto>();
+    if (produtoIds.length > 0) {
+      const produtos = await this.produtoRepository
+        .createQueryBuilder('produto')
+        .where('produto.id IN (:...ids)', { ids: produtoIds })
+        .getMany();
+      produtoMap = new Map(produtos.map((p) => [p.id, p]));
+    }
 
-      let produtos: Produto[] = [];
-      if (produtoIds.length > 0) {
-        // Usar query builder para melhor suporte ao IN operator
-        const query = this.produtoRepository.createQueryBuilder('produto');
-        query.where('produto.id IN (:...ids)', { ids: produtoIds });
-        produtos = await query.getMany();
-      }
+    const itensComProduto = createCompraDto.itens.filter(
+      (item) => produtoMap.has(item.produto_id),
+    );
 
-      // Cria mapa de produto_id -> produto para acesso rápido
-      const produtoMap = new Map(produtos.map((p) => [p.id, p]));
+    if (itensComProduto.length === 0) {
+      return this.findOne(savedCompra.id, usuarioId);
+    }
 
-      // Filtra itens com produtos válidos
-      const itensComProduto = createCompraDto.itens.filter(
-        (item) => produtoMap.has(item.produto_id),
-      );
-
-      if (itensComProduto.length === 0) {
-        // Se nenhum produto válido, retorna compra vazia
-        return this.findOne(savedCompra.id, usuarioId);
-      }
-
-      // Extrai nomes dos produtos para classificação em batch
-      const nomeProdutos = itensComProduto.map((item) => {
-        const produto = produtoMap.get(item.produto_id);
-        return produto?.nome || '';
-      }).filter(nome => nome !== '');
-
-      // Classifica todos os produtos em UMA ÚNICA chamada à Claude
-      const classificacoes = await this.productClassificationService.classificarEmBatch(
-        nomeProdutos,
+    // Classifica em background e persiste ingrediente_receita em cada produto
+    const itensParaSalvar = itensComProduto;
+    this.productClassificationService
+      .classificarEmBatch(
+        itensComProduto.map((item) => produtoMap.get(item.produto_id)?.nome || '').filter(Boolean),
         usuarioId,
-      );
+      )
+      .then(async (classificacoes) => {
+        for (const clf of classificacoes) {
+          if (clf.ingrediente_receita === null || clf.ingrediente_receita === undefined) continue;
+          // Encontra o produto pelo nome e atualiza a flag
+          const produto = [...produtoMap.values()].find(
+            (p) => p.nome === clf.produto || (p as any).nome_display === clf.produto,
+          );
+          if (produto) {
+            const updates: Record<string, any> = { ingrediente_receita: clf.ingrediente_receita };
+            // Retroalimenta nome_display com canonical_name da IA (ex: "Req Tirolez 200G" → "requeijão")
+            if (clf.canonical_name) updates.nome_display = clf.canonical_name;
+            await this.produtoRepository.update(produto.id, updates);
+            console.log(`🏷️  ${clf.produto} → "${clf.canonical_name || '-'}" | ingrediente=${clf.ingrediente_receita} (conf=${clf.confidence})`);
+          }
+        }
+      })
+      .catch(() => {});
 
-      // Cria mapa de nome -> classificação para acesso rápido
-      const classificacaoMap = new Map(
-        classificacoes.map((clf) => [clf.produto, clf]),
-      );
+    // Salva itens na compra
+    const compraItems: CompraItem[] = itensParaSalvar.map((item) =>
+      this.compraItemRepository.create({
+        compra_id: savedCompra.id,
+        produto_id: item.produto_id,
+        quantidade: item.quantidade,
+        unidade: item.unidade,
+        preco_unitario: item.preco_unitario,
+        validade_final: item.validade_final ? new Date(item.validade_final) : null,
+        lote: item.lote,
+      }),
+    );
 
-      // Processa cada item e adiciona apenas alimentos à compra
-      const itensDescartados: string[] = [];
+    if (compraItems.length > 0) {
+      const savedItems = await this.compraItemRepository.save(compraItems);
 
-      for (const item of itensComProduto) {
-        const produto = produtoMap.get(item.produto_id);
-        if (!produto) continue;
-
-        const classificacao = classificacaoMap.get(produto.nome);
-
-        // Se for alimento, adiciona o item à compra
-        if (
-          classificacao &&
-          classificacao.categoria === 'alimento'
-        ) {
-          const compraItem = this.compraItemRepository.create({
-            compra_id: savedCompra.id,
-            produto_id: item.produto_id,
-            quantidade: item.quantidade,
-            unidade: item.unidade,
-            preco_unitario: item.preco_unitario,
-            validade_final: item.validade_final ? new Date(item.validade_final) : null,
-            lote: item.lote,
+      // Recalcula valor_total a partir dos itens quando o DTO veio com 0 (SEFAZ/QR)
+      if (!savedCompra.valor_total || Number(savedCompra.valor_total) === 0) {
+        const totalCalculado = savedItems.reduce(
+          (s, i) => s + Number(i.preco_unitario) * Number(i.quantidade),
+          0,
+        );
+        if (totalCalculado > 0) {
+          await this.compraRepository.update(savedCompra.id, {
+            valor_total: Math.round(totalCalculado * 100) / 100,
           });
-          itensValidados.push(compraItem);
-          console.log(`✅ ACEITO: ${produto.nome} (${classificacao.categoria})`);
-        } else if (classificacao) {
-          // Se não for alimento, registra como descartado
-          itensDescartados.push(`${produto.nome} (${classificacao.categoria})`);
-          console.log(`❌ DESCARTADO: ${produto.nome} (${classificacao.categoria}) - confidence: ${classificacao.confidence}`);
         }
       }
 
-      // Log resumido
-      if (itensDescartados.length > 0) {
-        console.log(`\n📊 RESUMO DA VALIDAÇÃO:`);
-        console.log(`   ✅ Itens aceitos: ${itensValidados.length}`);
-        console.log(`   ❌ Itens descartados: ${itensDescartados.length}`);
-        console.log(`   Descartados: ${itensDescartados.join(', ')}`);
+      // Atualiza inventário via upsert: só produtos que são (ou podem ser) ingredientes
+      // ingrediente_receita=false significa explicitamente não-ingrediente (p.ex. papel higiênico)
+      const dataValidade = new Date();
+      dataValidade.setDate(dataValidade.getDate() + 30);
+      const metodo = (savedCompra.metodo_cadastro as MetodoCadastro) ?? MetodoCadastro.CUPOM_SAT;
+
+      for (const ci of savedItems.filter((ci) => {
+        if (ci.produto_id == null) return false;
+        const produto = produtoMap.get(ci.produto_id);
+        // Se já classificado como NÃO-ingrediente, não adiciona à despensa
+        return produto?.ingrediente_receita !== false;
+      })) {
+        await this.dataSource.query(
+          `INSERT INTO inventario
+             (id, usuario_id, produto_id, quantidade_disponivel, unidade, data_validade,
+              metodo_atualizacao, compra_item_id, esgotado, criado_em, ultima_atualizacao)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, false, NOW(), NOW())
+           ON CONFLICT (usuario_id, produto_id, data_validade)
+           DO UPDATE SET
+             quantidade_disponivel = inventario.quantidade_disponivel + EXCLUDED.quantidade_disponivel,
+             ultima_atualizacao = NOW()`,
+          [usuarioId, ci.produto_id, ci.quantidade, ci.unidade, dataValidade, metodo, ci.id ?? null],
+        );
       }
-    } catch (error) {
-      // Se houver erro na classificação em batch, loga mas continua com a compra vazia (segurança)
-      console.error(`Erro ao classificar produtos em batch:`, error);
-      // Não adiciona itens à compra se houver erro
     }
 
-    // Salva apenas os itens válidos
-    if (itensValidados.length > 0) {
-      await this.compraItemRepository.save(itensValidados);
-    }
-
-    // Retorna a compra com seus itens validados
     return this.findOne(savedCompra.id, usuarioId);
   }
 
   /**
    * Lista compras do usuário
    */
-  async findAll(usuarioId: string, limit = 20): Promise<Compra[]> {
-    return this.compraRepository.find({
-      where: { usuario_id: usuarioId },
-      relations: ['itens', 'itens.produto'],
-      order: { data_compra: 'DESC' },
-      take: limit,
-    });
+  async findAll(usuarioId: string, limit = 50, mes?: number, ano?: number): Promise<Compra[]> {
+    const qb = this.compraRepository
+      .createQueryBuilder('compra')
+      .leftJoinAndSelect('compra.itens', 'item')
+      .leftJoinAndSelect('item.produto', 'produto')
+      .where('compra.usuario_id = :uid', { uid: usuarioId })
+      .orderBy('compra.data_compra', 'DESC')
+      .take(limit);
+
+    if (mes !== undefined && ano !== undefined) {
+      const inicio = new Date(ano, mes - 1, 1);
+      const fim = new Date(ano, mes, 1);
+      qb.andWhere('compra.data_compra >= :inicio', { inicio })
+        .andWhere('compra.data_compra < :fim', { fim });
+    }
+
+    return qb.getMany();
   }
 
   /**
@@ -178,6 +196,50 @@ export class ComprasService {
   async remove(id: string, usuarioId: string): Promise<void> {
     const compra = await this.findOne(id, usuarioId);
     await this.compraRepository.remove(compra);
+  }
+
+  /**
+   * Resumo de gastos do mês atual
+   */
+  async resumoMes(usuarioId: string, mes?: number, ano?: number): Promise<{
+    gasto_mes: number;
+    total_compras_mes: number;
+    total_itens_mes: number;
+    mes_label: string;
+  }> {
+    const agora = new Date();
+    const m = mes !== undefined ? mes - 1 : agora.getMonth();
+    const a = ano ?? agora.getFullYear();
+    const inicio = new Date(a, m, 1);
+    const fim = new Date(a, m + 1, 1);
+
+    const compras = await this.compraRepository
+      .createQueryBuilder('compra')
+      .leftJoinAndSelect('compra.itens', 'item')
+      .where('compra.usuario_id = :uid', { uid: usuarioId })
+      .andWhere('compra.data_compra >= :inicio', { inicio })
+      .andWhere('compra.data_compra < :fim', { fim })
+      .getMany();
+
+    const gasto_mes = compras.reduce((s, c) => {
+      const vt = Number(c.valor_total);
+      if (vt > 0) return s + vt;
+      // fallback: soma dos itens (registros antigos gravados com valor_total=0)
+      const vtItens = (c.itens ?? []).reduce(
+        (si, i) => si + Number(i.preco_unitario) * Number(i.quantidade),
+        0,
+      );
+      return s + vtItens;
+    }, 0);
+    const total_itens_mes = compras.reduce((s, c) => s + (c.itens?.length ?? 0), 0);
+    const mes_label = inicio.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+    return {
+      gasto_mes: Math.round(gasto_mes * 100) / 100,
+      total_compras_mes: compras.length,
+      total_itens_mes,
+      mes_label,
+    };
   }
 
   /**
@@ -385,6 +447,17 @@ IMPORTANTE:
           });
           produto = await this.produtoRepository.save(novoProduto);
 
+          // Normalizar nome OCR → nome_display canônico em background
+          const produtoRef = produto;
+          this.ocrAliasService
+            .resolverNomeCanônico(item.nome)
+            .then((nomeDisplay) => {
+              if (nomeDisplay && nomeDisplay !== item.nome.toLowerCase()) {
+                return this.produtoRepository.update(produtoRef.id, { nome_display: nomeDisplay });
+              }
+            })
+            .catch(() => {});
+
           // Buscar imagem automaticamente em background (não bloqueia)
           this.productImageService
             .fetchAndSaveProductImage(produto!.id)
@@ -394,6 +467,17 @@ IMPORTANTE:
                 err,
               );
             });
+        } else if (!produto.nome_display) {
+          // Produto existente sem nome_display — normalizar também
+          const produtoRef = produto;
+          this.ocrAliasService
+            .resolverNomeCanônico(produto.nome)
+            .then((nomeDisplay) => {
+              if (nomeDisplay && nomeDisplay !== produto!.nome.toLowerCase()) {
+                return this.produtoRepository.update(produtoRef.id, { nome_display: nomeDisplay });
+              }
+            })
+            .catch(() => {});
         }
 
         // 2. Criar item no inventário

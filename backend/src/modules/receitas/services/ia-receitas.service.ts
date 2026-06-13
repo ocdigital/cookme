@@ -6,6 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { Receita } from '../entities/receita.entity';
 import { Produto } from '../../produtos/entities/produto.entity';
 import { ReceitaIngrediente } from '../entities/receita-ingrediente.entity';
+import { NotificacaoTriggersService } from '../../notificacoes/services/notificacao-triggers.service';
+import { retryWithBackoff, isTransientError } from '../../../common/utils/retry.util';
 
 @Injectable()
 export class IAReceitasService {
@@ -20,12 +22,17 @@ export class IAReceitasService {
     private produtoRepository: Repository<Produto>,
     @InjectRepository(ReceitaIngrediente)
     private ingredienteRepository: Repository<ReceitaIngrediente>,
+    private notificacaoTriggers: NotificacaoTriggersService,
   ) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
       this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     }
+  }
+
+  private isRateLimitError(err: any): boolean {
+    return isTransientError(err);
   }
 
   async gerarReceita(ingredientes: string[]): Promise<any> {
@@ -57,7 +64,18 @@ IMPORTANTE:
 - unidade: APENAS "kg", "g", "mg", "l", "ml", "un", "pct", "cx", "dente", "folha", "ramo"
 - Use observacao para informações adicionais (ex: "2 xícaras", "a gosto")`;
 
-    const result = await this.model.generateContent(prompt);
+    let result: any;
+    try {
+      result = await retryWithBackoff(
+        () => this.model.generateContent(prompt),
+        { maxAttempts: 3, initialDelayMs: 500, shouldRetry: isTransientError },
+      );
+    } catch (err) {
+      if (this.isRateLimitError(err)) {
+        this.notificacaoTriggers.limiteIAAtingido('Gemini (Receitas)', 'Cota de requisições esgotada').catch(() => {});
+      }
+      throw err;
+    }
     const text = result.response.text();
 
     // Extrair JSON do texto
@@ -198,8 +216,16 @@ IMPORTANTE:
 - unidade: APENAS "kg", "g", "mg", "l", "ml", "un", "pct", "cx", "dente", "folha", "ramo"
 - Use observacao para medidas caseiras (ex: "2 xícaras", "1 colher")`;
 
-        const result = await this.model.generateContent(prompt);
-        const text = result.response.text();
+        let weekResult: any;
+        try {
+          weekResult = await this.model.generateContent(prompt);
+        } catch (err) {
+          if (this.isRateLimitError(err)) {
+            this.notificacaoTriggers.limiteIAAtingido('Gemini (Receitas Semana)', 'Cota de requisições esgotada').catch(() => {});
+          }
+          throw err;
+        }
+        const text = weekResult.response.text();
         const jsonMatch = text.match(/\{[\s\S]*\}/);
 
         if (jsonMatch) {

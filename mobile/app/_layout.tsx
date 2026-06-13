@@ -5,6 +5,16 @@ import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ModoAlimentarProvider } from '@/contexts/ModoAlimentarContext';
+import { inicializarNotificacoes } from '@/services/notifications';
+
+const AppTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: '#F5A623', // amber[400]
+  },
+};
 
 SplashScreen.preventAutoHideAsync();
 
@@ -16,6 +26,12 @@ function RootLayoutContent() {
       SplashScreen.hideAsync();
     }
   }, [loading]);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      inicializarNotificacoes();
+    }
+  }, [isSignedIn]);
 
   if (loading) {
     return null;
@@ -48,11 +64,13 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#F5A623' }}>
       <SafeAreaProvider>
-        <ThemeProvider value={DefaultTheme}>
+        <ThemeProvider value={AppTheme}>
           <AuthProvider>
-            <RootLayoutContent />
+            <ModoAlimentarProvider>
+              <RootLayoutContent />
+            </ModoAlimentarProvider>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

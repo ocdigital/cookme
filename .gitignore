@@ -204,3 +204,6 @@ secrets.json
 # Claude Code
 # ===================================
 .claude/
+*.pid
+.backend.pid
+.frontend.pid

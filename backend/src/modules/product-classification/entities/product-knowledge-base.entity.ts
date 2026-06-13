@@ -28,6 +28,11 @@ export class ProductKnowledgeBase {
   @Column({ type: 'varchar', length: 50 })
   normalized_name: string;
 
+  // Nome canônico do ingrediente para matching com receitas (ex: "ovo", "leite", "frango")
+  // Null = ainda não mapeado, usar normalizer como fallback
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  canonical_ingredient: string;
+
   @Column({
     type: 'varchar',
     length: 50,

@@ -212,7 +212,7 @@ export class ReceitasService {
     return this.executadaRepository.find({
       where: { usuario_id: usuarioId },
       relations: ['receita'],
-      order: { data_execucao: 'DESC' },
+      order: { receita: { nome: 'ASC' } },
       take: 50,
     });
   }

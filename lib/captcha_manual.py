@@ -24,6 +24,8 @@ from datetime import datetime
 import requests
 import argparse
 import sys
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 # ========================================
@@ -63,15 +65,20 @@ def aguardar_continuar():
 class CookMeAPIClient:
     """Cliente para integração com a API do CookMe"""
 
-    def __init__(self, base_url="http://localhost:3000/api", email=None, senha=None):
+    def __init__(self, base_url="http://localhost:3000/api", email=None, senha=None, token=None):
         self.base_url = base_url
         self.email = email
         self.senha = senha
-        self.access_token = None
+        self.access_token = token  # JWT já fornecido (pula login)
         self.headers = {"Content-Type": "application/json"}
+        if token:
+            self.headers["Authorization"] = f"Bearer {token}"
 
     def autenticar(self):
         """Autentica na API e obtém o access token"""
+        if self.access_token:
+            return True  # Token já fornecido externamente
+
         print("\n🔐 Autenticando na API CookMe...")
 
         try:
@@ -153,6 +160,16 @@ class CookMeAPIClient:
             print(f"❌ Erro ao criar compra: {e}")
             return None
 
+    def _normalizar_unidade(self, unidade_sefaz):
+        """Mapeia unidade do SEFAZ para valor válido do enum UnidadeMedida"""
+        mapa = {
+            "un": "un", "unid": "un", "und": "un", "pc": "pct", "pct": "pct",
+            "kg": "kg", "g": "g", "gr": "g", "grama": "g",
+            "l": "l", "lt": "l", "litro": "l",
+            "ml": "ml", "cx": "cx",
+        }
+        return mapa.get(unidade_sefaz.lower().strip(), "un")
+
     def salvar_cupom_fiscal(self, cupom_dados):
         """Processa e salva um cupom fiscal completo na API. Retorna dict com ID da compra ou False"""
         print("\n💾 Salvando cupom fiscal na API...")
@@ -168,8 +185,8 @@ class CookMeAPIClient:
         for item in cupom_dados.get("itens", []):
             codigo = item.get("codigo", "")
 
-            # Buscar se o produto já existe
-            produto_existente = self.buscar_produto_por_codigo(codigo)
+            # Buscar se o produto já existe pelo código de barras
+            produto_existente = self.buscar_produto_por_codigo(codigo) if codigo else None
 
             if produto_existente:
                 print(f"   ✅ Produto encontrado: {item['descricao']}")
@@ -180,24 +197,34 @@ class CookMeAPIClient:
 
                 produto_novo = {
                     "nome": item.get("descricao", "").title(),
-                    "codigo_barras": codigo,
-                    "unidade_padrao": item.get("unidade", "un").lower(),
+                    "unidade_padrao": self._normalizar_unidade(item.get("unidade", "un")),
                 }
+                if codigo:
+                    produto_novo["codigo_barras"] = codigo
 
                 produto_criado = self.criar_produto(produto_novo)
 
                 if produto_criado:
                     produto_id = produto_criado.get("id")
                     print(f"   ✅ Produto criado com ID: {produto_id}")
+                elif codigo:
+                    # 409 Conflict: produto já existe com esse código (criado antes neste loop)
+                    produto_recheck = self.buscar_produto_por_codigo(codigo)
+                    if produto_recheck:
+                        produto_id = produto_recheck.get("id")
+                        print(f"   🔁 Produto já existia (recheck): {item['descricao']}")
+                    else:
+                        print(f"   ❌ Falha ao criar/encontrar produto: {item['descricao']}")
+                        continue
                 else:
-                    print(f"   ❌ Falha ao criar produto: {item['descricao']}")
+                    print(f"   ❌ Falha ao criar produto sem código: {item['descricao']}")
                     continue
 
             # Adicionar ao mapeamento
             produtos_mapeados.append({
                 "produto_id": produto_id,
                 "quantidade": item.get("quantidade", 1),
-                "unidade": item.get("unidade", "un").lower(),
+                "unidade": self._normalizar_unidade(item.get("unidade", "un")),
                 "preco_unitario": item.get("valor_unitario", 0)
             })
 
@@ -227,15 +254,219 @@ class CookMeAPIClient:
 
         if compra_criada:
             compra_id = compra_criada.get('id')
+            itens_salvos = len(compra_criada.get('itens', []))
             print("\n✅ Compra registrada com sucesso!")
             print(f"   ID da Compra: {compra_id}")
-            print(f"   Total de itens: {len(produtos_mapeados)}")
+            print(f"   Itens salvos no banco: {itens_salvos} / {len(produtos_mapeados)}")
             print(f"   Valor total: R$ {compra_data['valor_total']:.2f}")
-            # Retornar dict com ID para que possa ser usado no resultado
-            return {"id": compra_id}
+            return compra_criada  # Retorna objeto completo com itens
         else:
             print("\n❌ Falha ao registrar compra")
             return False
+
+
+def extrair_nfce_de_texto(html):
+    """
+    Extrai itens e totais de cupom NFC-e (SP).
+    O HTML da página pública tem a estrutura:
+      NOME_PRODUTO
+      (Código: CODE)
+      Qtde.: QTY
+      UN: UNIT
+      Vl. Unit.: PRICE
+      Vl. Total TOTAL
+    """
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, 'html.parser')
+    texto = soup.get_text(separator='\n')
+    linhas = [l.strip() for l in texto.splitlines()]
+
+    # Palavras-chave que NÃO são nomes de produto
+    KEYWORDS = {
+        'qtde.:', 'un:', 'vl. unit.:', 'vl. total', 'valor total r$:', 'descontos r$:',
+        'valor a pagar r$:', 'forma de pagamento:', 'valor pago r$:', 'troco',
+        '(código:', ')', 'consulta resumida', 'documento auxiliar',
+        'secretaria da fazenda', 'cnpj:', 'av.', 'rua ', 'chave de acesso',
+        'protocolo', 'consumidor', 'tributos', 'informações', 'ambiente',
+        'emissão:', 'versão'
+    }
+
+    def is_keyword(line):
+        l = line.lower()
+        return any(l.startswith(k) for k in KEYWORDS) or l == '' or len(line) < 3
+
+    itens = []
+    total_cupom = 0.0
+    estabelecimento = {}
+
+    i = 0
+    n = len(linhas)
+
+    # Extrair nome do estabelecimento (primeiras linhas não-vazias após o título)
+    nome_estab = ''
+    cnpj_estab = ''
+    for j, linha in enumerate(linhas):
+        if 'CNPJ:' in linha:
+            cnpj_estab = linha.replace('CNPJ:', '').strip()
+        if linha and not is_keyword(linha) and 'CNPJ' not in linha and len(linha) > 5:
+            if not nome_estab and j > 10:  # skip header lines
+                nome_estab = linha
+    estabelecimento = {'nome': nome_estab, 'cnpj': cnpj_estab}
+
+    # Parsear itens usando máquina de estados
+    # Marcadores de início de bloco: linha de produto seguida por "(Código:"
+    while i < n:
+        linha = linhas[i]
+
+        # Detectar linha de produto: não-vazia, não keyword, seguida de (Código: logo adiante
+        if linha and not is_keyword(linha) and len(linha) > 3:
+            # Verificar se nas próximas 10 linhas tem "(Código:"
+            tem_codigo = any(
+                '(Código:' in linhas[i + k] or '(Código:' in linhas[i + k]
+                for k in range(1, min(10, n - i))
+            )
+            if tem_codigo:
+                nome_produto = linha
+                codigo = ''
+                qtde = 1.0
+                unidade = 'UN'
+                vl_unit = 0.0
+                vl_total = 0.0
+
+                j = i + 1
+                while j < min(i + 40, n):
+                    lj = linhas[j]
+
+                    if '(Código:' in lj or '(Código:' in lj:
+                        # Próxima linha não-vazia é o código
+                        for k in range(j + 1, min(j + 5, n)):
+                            if linhas[k]:
+                                codigo = linhas[k].strip(')')
+                                break
+
+                    elif lj.lower().startswith('qtde.:'):
+                        # Quantidade pode estar na mesma linha ou na próxima
+                        partes = lj.split(':')
+                        if len(partes) > 1 and partes[1].strip():
+                            try:
+                                qtde = float(partes[1].strip().replace(',', '.'))
+                            except Exception:
+                                pass
+                        else:
+                            for k in range(j + 1, min(j + 4, n)):
+                                if linhas[k]:
+                                    try:
+                                        qtde = float(linhas[k].replace(',', '.'))
+                                    except Exception:
+                                        pass
+                                    break
+
+                    elif lj.lower().startswith('un:'):
+                        partes = lj.split(':')
+                        if len(partes) > 1 and partes[1].strip():
+                            unidade = partes[1].strip()
+                        else:
+                            for k in range(j + 1, min(j + 4, n)):
+                                if linhas[k]:
+                                    unidade = linhas[k]
+                                    break
+
+                    elif lj.lower().startswith('vl. unit.:'):
+                        for k in range(j + 1, min(j + 6, n)):
+                            lk = linhas[k].strip()
+                            if lk and lk != ' ':
+                                try:
+                                    vl_unit = float(lk.replace('.', '').replace(',', '.'))
+                                except Exception:
+                                    pass
+                                if vl_unit:
+                                    break
+
+                    elif lj.lower() == 'vl. total':
+                        for k in range(j + 1, min(j + 6, n)):
+                            lk = linhas[k].strip()
+                            if lk:
+                                try:
+                                    vl_total = float(lk.replace('.', '').replace(',', '.'))
+                                except Exception:
+                                    pass
+                                if vl_total:
+                                    break
+                        # Fim do bloco do item
+                        i = j
+                        break
+
+                    j += 1
+
+                if nome_produto:
+                    itens.append({
+                        'descricao': nome_produto,
+                        'codigo': codigo,
+                        'quantidade': qtde,
+                        'unidade': unidade,
+                        'valor_unitario': vl_unit if vl_unit else (vl_total / qtde if qtde and qtde > 0 else vl_total),
+                        'valor_total': vl_total,
+                    })
+
+        # Extrair total do cupom
+        if linha.lower().startswith('valor total r$:'):
+            for k in range(i + 1, min(i + 5, n)):
+                if linhas[k]:
+                    try:
+                        total_cupom = float(linhas[k].replace('.', '').replace(',', '.'))
+                    except Exception:
+                        pass
+                    break
+
+        i += 1
+
+    return {
+        'estabelecimento': estabelecimento,
+        'itens': itens,
+        'totais': {'total': total_cupom},
+        'informacoes_fiscais': {},
+        'data_extracao': datetime.now().isoformat(),
+    }
+
+
+class ConsultaNFCe:
+    """Consulta cupom NFC-e diretamente via URL do QR Code — sem CAPTCHA"""
+
+    def __init__(self, modo_api=False):
+        self.modo_api = modo_api
+
+    def consultar(self, url_qrcode):
+        """Faz GET na URL do QR Code NFC-e e retorna HTML do cupom"""
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'pt-BR,pt;q=0.9',
+        }
+
+        if self.modo_api:
+            enviar_mensagem_json("status", status="consultando_sat", progress=30)
+            print("🌐 Consultando NFC-e diretamente...", file=sys.stderr)
+        else:
+            print("🌐 Consultando NFC-e diretamente...")
+
+        try:
+            response = requests.get(url_qrcode, headers=headers, timeout=30, verify=False)
+            response.raise_for_status()
+            html = response.text
+
+            if self.modo_api:
+                print(f"✅ Resposta recebida ({len(html)} chars)", file=sys.stderr)
+            else:
+                print(f"✅ Resposta recebida ({len(html)} chars)")
+
+            return html
+        except Exception as e:
+            if self.modo_api:
+                print(f"❌ Erro ao consultar NFC-e: {e}", file=sys.stderr)
+            else:
+                print(f"❌ Erro ao consultar NFC-e: {e}")
+            return None
 
 
 class LeitorQRCodeSAT:
@@ -475,63 +706,63 @@ class ConsultaSATRobusta:
                             while i < limite and linhas[i] != 'X':
                                 i += 1
 
-                            if i >= limite or linhas[i] != 'X':
-                                print(f"   ⚠️ Item {numero_item}: 'X' não encontrado, pulando")
+                            # Se não encontrou "X", salva com valor 0 (modo raw)
+                            valor_unitario_str = '0'
+                            valor_total_str = '0'
+
+                            if i < limite and linhas[i] == 'X':
+                                # Pular "X" e espaços
                                 i += 1
-                                continue
+                                while i < limite and not linhas[i]:
+                                    i += 1
 
-                            # Pular "X" e espaços
-                            i += 1
-                            while i < limite and not linhas[i]:
-                                i += 1
+                                if i < limite:
+                                    valor_unitario_str = linhas[i]
 
-                            if i >= limite:
-                                break
+                                    # Pular desconto (entre parênteses)
+                                    i += 1
+                                    while i < limite and not linhas[i]:
+                                        i += 1
 
-                            # Valor unitário
-                            valor_unitario_str = linhas[i]
+                                    # Valor total
+                                    i += 1
+                                    while i < limite and not linhas[i]:
+                                        i += 1
+                                    if i < limite:
+                                        valor_total_str = linhas[i]
+                            else:
+                                print(f"   ⚠️ Item {numero_item}: 'X' não encontrado — salvando com valor 0")
 
-                            # Desconto (entre parênteses) - pular para próximo valor
-                            i += 1
-                            while i < limite and not linhas[i]:
-                                i += 1
-                            if i >= limite:
-                                break
-                            # desconto_str = linhas[i]  # Não usamos desconto por enquanto
-
-                            # Valor total
-                            i += 1
-                            while i < limite and not linhas[i]:
-                                i += 1
-                            if i >= limite:
-                                break
-                            valor_total_str = linhas[i]
-
-                            # Parsear valores (remover espaços extras e converter)
+                            # Parsear valores com fallback 0
                             try:
                                 quantidade = float(quantidade_str.replace(',', '.'))
+                            except ValueError:
+                                quantidade = 1.0
+                            try:
                                 valor_unitario = float(valor_unitario_str.replace(',', '.').replace(' ', ''))
+                            except ValueError:
+                                valor_unitario = 0.0
+                            try:
                                 valor_total = float(valor_total_str.replace(',', '.').replace(' ', ''))
+                            except ValueError:
+                                valor_total = 0.0
 
-                                item = {
-                                    "numero": numero_item,
-                                    "codigo": codigo,
-                                    "descricao": descricao,
-                                    "quantidade": quantidade,
-                                    "unidade": unidade,
-                                    "valor_unitario": valor_unitario,
-                                    "valor_total": valor_total
-                                }
+                            item = {
+                                "numero": numero_item,
+                                "codigo": codigo,
+                                "descricao": descricao,
+                                "quantidade": quantidade,
+                                "unidade": unidade,
+                                "valor_unitario": valor_unitario,
+                                "valor_total": valor_total
+                            }
 
-                                # Verificar se já não foi adicionado
-                                if not any(it['numero'] == item['numero'] for it in cupom["itens"]):
-                                    cupom["itens"].append(item)
-                                    print(f"   ✅ Item {item['numero']}: {item['descricao']} (x{item['quantidade']}) - R$ {item['valor_total']:.2f}")
-                                else:
-                                    print(f"   ℹ️  Item {numero_item} já foi adicionado")
-                            except ValueError as ve:
-                                print(f"   ⚠️ Item {numero_item}: Erro ao converter valores - {ve}")
-                                print(f"      QTD: '{quantidade_str}', VLR UN: '{valor_unitario_str}', VLR TOT: '{valor_total_str}'")
+                            # Verificar se já não foi adicionado (pelo número do item)
+                            if not any(it['numero'] == item['numero'] for it in cupom["itens"]):
+                                cupom["itens"].append(item)
+                                print(f"   ✅ Item {item['numero']}: {item['descricao']} (x{item['quantidade']}) - R$ {item['valor_total']:.2f}")
+                            else:
+                                print(f"   ℹ️  Item {numero_item} já foi adicionado")
 
                         except Exception as e:
                             print(f"   ⚠️ Erro ao extrair item {numero_item}: {e}")
@@ -836,66 +1067,35 @@ class ConsultaSATRobusta:
             
             # 3. Aguardar reCAPTCHA
             if self.modo_api:
-                # Modo API: notificar backend e aguardar confirmação
+                # Notifica mobile para mostrar modal "resolva o CAPTCHA no servidor"
+                # O CAPTCHA está no navegador Selenium aberto no servidor — não no celular
                 print("🧩 3. CAPTCHA detectado - notificando backend...", file=sys.stderr)
                 enviar_mensagem_json("captcha_required", url=self.url, chave_acesso=chave_acesso)
+                print("⏳ Aguardando CAPTCHA ser resolvido no Selenium (servidor)...", file=sys.stderr)
 
-                print("⏳ Aguardando usuário resolver CAPTCHA no mobile...", file=sys.stderr)
-                html_cupom = aguardar_continuar()
+                tempo_inicio = time.time()
+                captcha_resolvido = False
 
-                if not html_cupom:
-                    print("❌ HTML do cupom não foi recebido", file=sys.stderr)
-                    enviar_mensagem_json("erro", mensagem="HTML do cupom não foi recebido")
-                    sys.exit(1)
-
-                print("✅ Confirmação recebida do mobile!", file=sys.stderr)
-                print("✅ Cupom HTML recebido, processando dados...", file=sys.stderr)
-
-                # Processar HTML do cupom
-                enviar_mensagem_json("status", status="processando_dados", progress=70)
-
-                # Verificar se contém cupom fiscal
-                if "TOTAL R$" in html_cupom or "CUPOM FISCAL" in html_cupom or "Extrato" in html_cupom:
-                    print("✅ Cupom fiscal detectado no HTML!", file=sys.stderr)
-                    print("🔄 Extraindo dados...", file=sys.stderr)
-
-                    cupom_dados = self.extrair_dados_cupom(html_cupom)
-
-                    if cupom_dados and len(cupom_dados.get('itens', [])) > 0:
-                        # Salvar na API
-                        print("🚀 Integrando com API CookMe...", file=sys.stderr)
-                        enviar_mensagem_json("status", status="salvando_dados", progress=80)
-
-                        api_client = CookMeAPIClient(
-                            base_url="http://localhost:3000/api",
-                            email="eduardo@ocdigital.com.br",
-                            senha="3221#Edu"
+                while time.time() - tempo_inicio < tempo_espera_captcha:
+                    try:
+                        recaptcha_response = self.driver.execute_script(
+                            "return document.getElementById('g-recaptcha-response') ? document.getElementById('g-recaptcha-response').value : ''"
                         )
+                        botao_temp = self.driver.find_element(By.ID, "conteudo_btnConsultar")
+                        botao_habilitado = not botao_temp.get_attribute("disabled")
 
-                        resultado_api = api_client.salvar_cupom_fiscal(cupom_dados)
+                        if recaptcha_response and len(recaptcha_response) > 50 and botao_habilitado:
+                            print("✅ reCAPTCHA resolvido no Selenium!", file=sys.stderr)
+                            captcha_resolvido = True
+                            break
+                        time.sleep(1)
+                    except Exception:
+                        time.sleep(1)
 
-                        if resultado_api and resultado_api.get('id'):
-                            # Enviar mensagem de sucesso com ID real da compra
-                            enviar_mensagem_json(
-                                "compra_criada",
-                                compra_id=resultado_api.get('id'),
-                                total_produtos=len(cupom_dados.get('itens', [])),
-                                valor_total=cupom_dados.get('totais', {}).get('total', 0)
-                            )
-                            print("✅ Compra criada com sucesso!", file=sys.stderr)
-                            return cupom_dados
-                        else:
-                            print("❌ Falha ao salvar na API", file=sys.stderr)
-                            enviar_mensagem_json("erro", mensagem="Falha ao salvar cupom na API")
-                            sys.exit(1)
-                    else:
-                        print("❌ Nenhum item foi extraído do cupom", file=sys.stderr)
-                        enviar_mensagem_json("erro", mensagem="Nenhum item foi extraído do cupom")
-                        sys.exit(1)
-                else:
-                    print("❌ HTML não contém cupom fiscal", file=sys.stderr)
-                    enviar_mensagem_json("erro", mensagem="HTML não contém cupom fiscal")
+                if not captcha_resolvido:
+                    enviar_mensagem_json("erro", mensagem="Tempo esgotado aguardando CAPTCHA")
                     sys.exit(1)
+                # Continua para passo 4 (clicar botão) e passo 6 (capturar HTML do Selenium)
 
             else:
                 # Modo manual: esperar usuário resolver localmente
@@ -1077,8 +1277,9 @@ class ConsultaSATRobusta:
 
                 api_client = CookMeAPIClient(
                     base_url="http://localhost:3000/api",
-                    email="eduardo@ocdigital.com.br",
-                    senha="3221#Edu"
+                    token=args.token if args.mode == 'api' else None,
+                    email="eduardo@ocdigital.com.br" if args.mode != 'api' else None,
+                    senha="3221#Edu" if args.mode != 'api' else None,
                 )
 
                 resultado_api = api_client.salvar_cupom_fiscal(cupom_dados)
@@ -1169,6 +1370,7 @@ def main():
                        help='Modo de execução: manual (interativo) ou api (background)')
     parser.add_argument('--session-id', help='ID da sessão (modo API)')
     parser.add_argument('--qrcode', help='Texto do QR Code (modo API)')
+    parser.add_argument('--token', help='JWT token do usuário (modo API)')
 
     args = parser.parse_args()
 
@@ -1183,35 +1385,79 @@ def main():
         # Modo manual - usar exemplo
         texto_qrcode = "35251005088303000121590006146504781051248106|20251031103830|83.09||JewGEhBbHavStPy3r6DIDCK/Cx6i1efHrsYuYYU1UU1zGBlllazKVz+lofV/Vmh1ZX2zYw0ipCCofYyl18MZ+yOvv7/1ncKdF9IaZcKVn2HB6lb6Kkdefj6qooVtKk97ZePd9RiVDp7BG/pVTRyOoW5SyEe0Yc9KKmTRRmNujL/o02fGPuXa564SvxODNJ3UBqfexbvCaYk8jsNpbjZe7DVqlbFLVZxEeqexSdt9veIKnb1KZuMEQqfHWx7e/DqRR9/qRL26+jQGgAaQLBJUhprgaJwAk/AUqujcSPj2jaL9JMjKTauclt+FT8l0FcVUsiEOneNxADuPPP7gdcIGIQ=="
 
-    chave = LeitorQRCodeSAT.extrair_chave_de_texto(texto_qrcode)
+    # ── Detectar tipo de QR Code ──────────────────────────────────────────────
+    is_nfce_url = texto_qrcode.startswith('http')
 
-    if chave:
-        print(f"\n{'='*60}")
-        print("✅ SUCESSO!")
-        print(f"📋 Chave: {chave}")
-        print("="*60)
-
+    if is_nfce_url:
+        # NFC-e: URL direta — sem formulário, sem CAPTCHA
+        print("🔗 QR Code NFC-e (URL direta)")
         if args.mode == 'api':
-            # Modo API - executar automaticamente
             enviar_mensagem_json("status", status="consultando_sat", progress=20)
-            consultor = ConsultaSATRobusta(modo_api=True)
-            consultor.iniciar_navegador()
-            consultor.consultar(chave)
-        else:
-            # Modo manual - perguntar ao usuário
-            usar_agora = input("\n🔍 Deseja consultar agora? (s/n): ").strip().lower()
+            nfce = ConsultaNFCe(modo_api=True)
+            html_cupom = nfce.consultar(texto_qrcode)
+            if not html_cupom:
+                enviar_mensagem_json("erro", mensagem="Falha ao consultar cupom NFC-e")
+                sys.exit(1)
 
-            if usar_agora == 's':
-                consultor = ConsultaSATRobusta(modo_api=False)
+            enviar_mensagem_json("status", status="processando_dados", progress=60)
+            cupom_dados = extrair_nfce_de_texto(html_cupom)
+
+            if not cupom_dados or len(cupom_dados.get('itens', [])) == 0:
+                enviar_mensagem_json("erro", mensagem="Nenhum item extraído do cupom NFC-e")
+                sys.exit(1)
+
+            enviar_mensagem_json("status", status="salvando_api", progress=80)
+            api_client = CookMeAPIClient(
+                base_url="http://localhost:3000/api",
+                token=args.token,
+            )
+            resultado = api_client.salvar_cupom_fiscal(cupom_dados)
+            if resultado and resultado.get('id'):
+                itens_salvos = len(resultado.get('itens', []))
+                enviar_mensagem_json(
+                    "compra_criada",
+                    compra_id=resultado.get('id'),
+                    total_produtos=itens_salvos,
+                    valor_total=cupom_dados.get('totais', {}).get('total', 0)
+                )
+            else:
+                enviar_mensagem_json("erro", mensagem="Falha ao salvar cupom NFC-e na API")
+                sys.exit(1)
+        else:
+            nfce = ConsultaNFCe(modo_api=False)
+            html_cupom = nfce.consultar(texto_qrcode)
+            if html_cupom:
+                cupom = extrair_nfce_de_texto(html_cupom)
+                print(f"\n✅ {len(cupom.get('itens', []))} itens extraídos")
+                print(f"💰 Total: R$ {cupom.get('totais', {}).get('total', 0):.2f}")
+    else:
+        # SAT: formato pipe-separado — usa Selenium + formulário + CAPTCHA
+        chave = LeitorQRCodeSAT.extrair_chave_de_texto(texto_qrcode)
+
+        if chave:
+            print(f"\n{'='*60}")
+            print("✅ SUCESSO!")
+            print(f"📋 Chave SAT: {chave}")
+            print("="*60)
+
+            if args.mode == 'api':
+                enviar_mensagem_json("status", status="consultando_sat", progress=20)
+                consultor = ConsultaSATRobusta(modo_api=True)
                 consultor.iniciar_navegador()
                 consultor.consultar(chave)
             else:
-                print("\n✅ Script finalizado")
-    else:
-        print("\n❌ Falha ao extrair chave")
-        if args.mode == 'api':
-            enviar_mensagem_json("erro", mensagem="Falha ao extrair chave do QR Code")
-            sys.exit(2)
+                usar_agora = input("\n🔍 Deseja consultar agora? (s/n): ").strip().lower()
+                if usar_agora == 's':
+                    consultor = ConsultaSATRobusta(modo_api=False)
+                    consultor.iniciar_navegador()
+                    consultor.consultar(chave)
+                else:
+                    print("\n✅ Script finalizado")
+        else:
+            print("\n❌ Falha ao extrair chave")
+            if args.mode == 'api':
+                enviar_mensagem_json("erro", mensagem="Falha ao extrair chave do QR Code")
+                sys.exit(2)
 
 
 if __name__ == "__main__":

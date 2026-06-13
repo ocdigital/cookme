@@ -8,9 +8,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is already logged in on mount
+  // Check if user is already logged in on mount (localStorage = persistent, sessionStorage = session-only)
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     if (token) {
       loadUserProfile();
     } else {
@@ -26,21 +26,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error loading profile:', error);
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('refreshToken');
     } finally {
       setLoading(false);
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe = true): Promise<string> => {
     setLoading(true);
     try {
       const response = await authService.login(email, password);
       const { access_token, refresh_token, user } = response.data;
 
-      localStorage.setItem('accessToken', access_token);
-      localStorage.setItem('refreshToken', refresh_token);
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('accessToken', access_token);
+      if (refresh_token) storage.setItem('refreshToken', refresh_token);
 
-      setUser(user);
+      // Clear the other storage to avoid conflicts
+      if (rememberMe) {
+        sessionStorage.removeItem('accessToken');
+        sessionStorage.removeItem('refreshToken');
+      } else {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
+
+      setUser(user as User);
+
+      return user?.deve_trocar_senha ? '/trocar-senha' : '/dashboard';
+    } catch (error) {
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -48,6 +64,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     authService.logout();
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    sessionStorage.removeItem('accessToken');
+    sessionStorage.removeItem('refreshToken');
     setUser(null);
   };
 

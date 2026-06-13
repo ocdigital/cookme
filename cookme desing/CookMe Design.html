@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>CookMe · Design</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; }
+  body { font-family: "Plus Jakarta Sans", -apple-system, system-ui, sans-serif; }
+  *::selection { background: oklch(0.88 0.08 145); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="src/tokens.jsx"></script>
+<script type="text/babel" src="src/icons.jsx"></script>
+<script type="text/babel" src="src/components.jsx"></script>
+<script type="text/babel" src="src/phone.jsx"></script>
+<script type="text/babel" src="src/screens/design-system.jsx"></script>
+<script type="text/babel" src="src/screens/recipes.jsx"></script>
+<script type="text/babel" src="src/screens/pantry.jsx"></script>
+<script type="text/babel" src="src/screens/validation.jsx"></script>
+<script type="text/babel" src="src/screens/other.jsx"></script>
+
+<script type="text/babel">
+const App = () => (
+  <DesignCanvas>
+    <DCSection id="brand" title="CookMe · Design System" subtitle="Tokens, tipografia, componentes base">
+      <DCArtboard id="ds" label="Design System" width={1120} height={1400}>
+        <DesignSystem/>
+      </DCArtboard>
+    </DCSection>
+
+    <DCSection id="core" title="Fluxo principal · IA + Despensa" subtitle="Prioridade: receitas → despensa → validação pós-OCR">
+      <DCArtboard id="recipes" label="Receitas sugeridas" width={390} height={780}>
+        <ScreenRecipes/>
+      </DCArtboard>
+      <DCArtboard id="recipes-loading" label="Receitas · IA gerando" width={390} height={780}>
+        <ScreenRecipesLoading/>
+      </DCArtboard>
+      <DCArtboard id="recipe-detail" label="Detalhe da receita" width={390} height={780}>
+        <ScreenRecipeDetail/>
+      </DCArtboard>
+      <DCArtboard id="pantry" label="Despensa · lista" width={390} height={780}>
+        <ScreenPantry/>
+      </DCArtboard>
+      <DCArtboard id="pantry-empty" label="Despensa · vazia" width={390} height={780}>
+        <ScreenPantryEmpty/>
+      </DCArtboard>
+      <DCArtboard id="validation" label="Validação pós-OCR" width={390} height={780}>
+        <ScreenValidation/>
+      </DCArtboard>
+    </DCSection>
+
+    <DCSection id="support" title="Telas de apoio" subtitle="Captura, compras, notificações">
+      <DCArtboard id="scan" label="OCR · câmera" width={390} height={780}>
+        <ScreenScan/>
+      </DCArtboard>
+      <DCArtboard id="shopping" label="Lista de compras" width={390} height={780}>
+        <ScreenShopping/>
+      </DCArtboard>
+      <DCArtboard id="notifs" label="Notificações" width={390} height={780}>
+        <ScreenNotifs/>
+      </DCArtboard>
+    </DCSection>
+  </DesignCanvas>
+);
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -43,7 +43,7 @@ export const DashboardPage: React.FC = () => {
     <div className="space-y-2">
       {/* Header */}
       <header className="-mt-1">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Dashboard</h1>
+        <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Dashboard</h1>
       </header>
 
       {/* Stats Bar */}

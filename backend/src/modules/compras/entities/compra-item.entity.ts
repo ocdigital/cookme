@@ -18,8 +18,17 @@ export class CompraItem {
     @Column('uuid')
     compra_id: string;
 
-    @Column('uuid')
-    produto_id: string;
+    // Nullable: itens OCR de não-alimentos não têm produto no catálogo
+    @Column('uuid', { nullable: true })
+    produto_id: string | null;
+
+    // Nome exato como veio do OCR do cupom fiscal
+    @Column({ nullable: true })
+    nome_ocr: string;
+
+    // Nome limpo para exibição (sem marca, sem unidade)
+    @Column({ nullable: true })
+    nome_display: string;
 
     @Column({ type: 'decimal', precision: 10, scale: 3 })
     quantidade: number;
@@ -27,6 +36,7 @@ export class CompraItem {
     @Column({
         type: 'enum',
         enum: UnidadeMedida,
+        default: UnidadeMedida.UN,
     })
     unidade: UnidadeMedida;
 
@@ -35,6 +45,21 @@ export class CompraItem {
 
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     preco_total: number;
+
+    // Classificação do item
+    @Column({ nullable: true })
+    eh_alimento: boolean;
+
+    @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+    confianca: number;
+
+    // Nome canonical do ingrediente (ex: "frango", não "Frango Sadia 1kg")
+    @Column({ nullable: true })
+    ingrediente_canonical: string;
+
+    // Indica se este item já foi adicionado ao inventário de ingredientes
+    @Column({ default: false })
+    adicionado_inventario: boolean;
 
     // Validade escaneada via OCR
     @Column({ type: 'date', nullable: true })
@@ -48,7 +73,6 @@ export class CompraItem {
     @Column({ type: 'date', nullable: true })
     validade_final: Date | null;
 
-    // Lote (rastreabilidade)
     @Column({ nullable: true })
     lote: string;
 
@@ -62,7 +86,7 @@ export class CompraItem {
     @JoinColumn({ name: 'compra_id' })
     compra: Compra;
 
-    @ManyToOne(() => Produto, (produto) => produto.compra_itens)
+    @ManyToOne(() => Produto, (produto) => produto.compra_itens, { nullable: true })
     @JoinColumn({ name: 'produto_id' })
-    produto: Produto;
+    produto: Produto | null;
 }

@@ -33,6 +33,9 @@ interface ProductValidationItem {
 
 interface ReceiptImportResponse {
   status: 'sucesso' | 'requer_validacao';
+  compra_id: string;
+  ingredientes: any[];
+  outros_itens: any[];
   produtos_adicionados: number;
   produtos_para_validar: ProductValidationItem[];
   resumo: {
@@ -100,6 +103,9 @@ export class ReceiptImportController {
       if (itemsExtraidos.length === 0) {
         return {
           status: 'sucesso',
+          compra_id: '',
+          ingredientes: [],
+          outros_itens: [],
           produtos_adicionados: 0,
           produtos_para_validar: [],
           resumo: {
@@ -145,27 +151,31 @@ export class ReceiptImportController {
         `Cupom importado: ${resultado.produtos_adicionados} produtos salvos`,
       );
 
+      const confiancaMedia = resultado_classificacao.produtos_filtrados.length > 0
+        ? Math.round(
+            resultado_classificacao.produtos_filtrados.reduce((s, p) => s + p.confianca, 0) /
+            resultado_classificacao.produtos_filtrados.length,
+          )
+        : 0;
+
       return {
         status: resultado.requer_validacao ? 'requer_validacao' : 'sucesso',
-        produtos_adicionados: resultado.produtos_adicionados,
+        compra_id: resultado.compra_id,
+        // Itens separados por domínio
+        ingredientes: resultado.itens.filter(i => i.eh_alimento),
+        outros_itens: resultado.itens.filter(i => !i.eh_alimento),
+        // Legado (mobile atual usa esses campos)
+        produtos_adicionados: resultado.ingredientes_adicionados,
         produtos_para_validar: resultado.produtos_para_validar,
         resumo: {
           total_extraido: itemsExtraidos.length,
-          alimentos: resultado_classificacao.resumo.alimentos,
-          nao_alimentos: resultado_classificacao.resumo.rejeitados,
-          confianca_media:
-            resultado_classificacao.produtos_filtrados.length > 0
-              ? Math.round(
-                  resultado_classificacao.produtos_filtrados.reduce(
-                    (sum, p) => sum + p.confianca,
-                    0,
-                  ) / resultado_classificacao.produtos_filtrados.length,
-                )
-              : 0,
+          alimentos: resultado.ingredientes_adicionados,
+          nao_alimentos: resultado.outros_itens,
+          confianca_media: confiancaMedia,
         },
         message: resultado.requer_validacao
-          ? `${resultado.produtos_para_validar.length} produto(s) precisam de validação manual`
-          : 'Cupom importado com sucesso!',
+          ? `${resultado.produtos_para_validar.length} ingrediente(s) precisam de confirmação`
+          : `${resultado.ingredientes_adicionados} ingrediente(s) adicionados à despensa`,
       };
     } catch (error) {
       this.logger.error('Erro ao importar cupom:', error);
@@ -198,7 +208,6 @@ export class ReceiptImportController {
         request.produto_id,
         usuarioId,
         request.ingrediente_receita,
-        request.motivo,
       );
 
       return {

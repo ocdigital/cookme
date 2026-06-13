@@ -25,6 +25,10 @@ export class Produto {
     @Column()
     nome: string;
 
+    // Nome limpo para exibição em receitas e no app (ex: "Leite de Coco", "Alho")
+    @Column({ nullable: true })
+    nome_display: string;
+
     @Column({
         type: 'enum',
         enum: ProductType,
@@ -105,6 +109,29 @@ export class Produto {
     // Precisa validação manual?
     @Column({ default: false })
     requer_validacao_manual: boolean;
+
+    // ─── Inteligência culinária ────────────────────────────────────────────────
+
+    // ─── Inteligência culinária (adicionado via migration) ────────────────────
+    // Sempre usado "a gosto" — nunca gerar com quantidade exata (ex: sal, pimenta)
+    @Column({ default: false })
+    sempre_a_gosto: boolean;
+
+    // Pode ser omitido sem quebrar a receita (ex: cheiro-verde, coentro, louro)
+    @Column({ default: false })
+    opcional_por_natureza: boolean;
+
+    // Se false, receita pode ser sugerida mesmo sem este item no inventário
+    @Column({ default: true })
+    bloqueia_receita_se_ausente: boolean;
+
+    // Categoria culinária (ex: proteina_animal, aromatico_base, especiaria)
+    @Column({ nullable: true })
+    categoria_culinaria: string;
+
+    // Região de origem (nordeste, norte, sul, sudeste, centro_oeste)
+    @Column({ nullable: true })
+    regional: string;
 
     @CreateDateColumn()
     criado_em: Date;

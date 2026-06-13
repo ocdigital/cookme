@@ -145,4 +145,8 @@ export class UsuariosService {
 
     return this.preferenciaRepository.save(preferencias);
   }
+
+  async savePushToken(usuarioId: string, token: string): Promise<void> {
+    await this.usuarioRepository.update(usuarioId, { push_token: token });
+  }
 }

@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsNumber, Min, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateItemListaDto {
   @IsString()
@@ -9,8 +10,9 @@ export class CreateItemListaDto {
   descricao?: string;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
   quantidade?: number;
 
   @IsOptional()
@@ -18,6 +20,7 @@ export class CreateItemListaDto {
   unidade?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   preco_unitario?: number;

@@ -310,4 +310,75 @@ export class SubscriptionService {
     proxima.setMonth(proxima.getMonth() + 1);
     return proxima;
   }
+
+  private readonly LIMITES_FREE = { ocr: 3, ia: 5 };
+
+  private mesAtual(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth()}`;
+  }
+
+  private async resetarUsoSeNecessario(assinatura: Subscription): Promise<Subscription> {
+    const resetadoEm = assinatura.usos_resetados_em;
+    const mesReset = resetadoEm
+      ? `${resetadoEm.getFullYear()}-${resetadoEm.getMonth()}`
+      : null;
+    if (mesReset !== this.mesAtual()) {
+      assinatura.ocr_usos_mes = 0;
+      assinatura.ia_usos_mes = 0;
+      assinatura.usos_resetados_em = new Date();
+      return this.subscriptionRepository.save(assinatura);
+    }
+    return assinatura;
+  }
+
+  async obterUsoMensal(usuarioId: string): Promise<{
+    ocr: { usado: number; limite: number | null };
+    ia:  { usado: number; limite: number | null };
+  }> {
+    let assinatura = await this.subscriptionRepository.findOne({
+      where: { usuario_id: usuarioId, status: SubscriptionStatus.ACTIVE },
+    });
+    if (!assinatura) {
+      return {
+        ocr: { usado: 0, limite: this.LIMITES_FREE.ocr },
+        ia:  { usado: 0, limite: this.LIMITES_FREE.ia },
+      };
+    }
+    assinatura = await this.resetarUsoSeNecessario(assinatura);
+    const isPremium = assinatura.plano !== SubscriptionPlan.FREE;
+    return {
+      ocr: { usado: assinatura.ocr_usos_mes, limite: isPremium ? null : this.LIMITES_FREE.ocr },
+      ia:  { usado: assinatura.ia_usos_mes,  limite: isPremium ? null : this.LIMITES_FREE.ia },
+    };
+  }
+
+  async registrarUso(usuarioId: string, tipo: 'ocr' | 'ia'): Promise<void> {
+    let assinatura = await this.subscriptionRepository.findOne({
+      where: { usuario_id: usuarioId, status: SubscriptionStatus.ACTIVE },
+    });
+    if (!assinatura) {
+      assinatura = this.subscriptionRepository.create({
+        usuario_id: usuarioId,
+        plano: SubscriptionPlan.FREE,
+        preco_mensal: 0,
+        status: SubscriptionStatus.ACTIVE,
+        data_proximo_pagamento: this.calcularProximaDataPagamento(new Date()),
+        usos_resetados_em: new Date(),
+      });
+      assinatura = await this.subscriptionRepository.save(assinatura);
+    }
+    assinatura = await this.resetarUsoSeNecessario(assinatura);
+    const isPremium = assinatura.plano !== SubscriptionPlan.FREE;
+    if (!isPremium) {
+      const usado = tipo === 'ocr' ? assinatura.ocr_usos_mes : assinatura.ia_usos_mes;
+      const limite = tipo === 'ocr' ? this.LIMITES_FREE.ocr : this.LIMITES_FREE.ia;
+      if (usado >= limite) {
+        throw new Error(`LIMIT_EXCEEDED:${tipo}:${limite}`);
+      }
+    }
+    if (tipo === 'ocr') assinatura.ocr_usos_mes += 1;
+    else assinatura.ia_usos_mes += 1;
+    await this.subscriptionRepository.save(assinatura);
+  }
 }

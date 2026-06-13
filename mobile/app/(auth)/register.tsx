@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
+import { LogoIcon } from '@/components/CookmeLogo';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -12,6 +14,8 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -20,6 +24,10 @@ export default function RegisterScreen() {
     }
     if (password !== confirmPassword) {
       Alert.alert('Erro', 'As senhas não conferem');
+      return;
+    }
+    if (name.trim().length < 3) {
+      Alert.alert('Erro', 'O nome deve ter pelo menos 3 caracteres');
       return;
     }
     if (password.length < 6) {
@@ -38,9 +46,10 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
           <View style={styles.logoArea}>
+            <LogoIcon size={48} />
             <Text style={styles.logoText}>cookme<Text style={styles.logoDot}>.</Text></Text>
             <Text style={styles.title}>Criar conta</Text>
             <Text style={styles.subtitle}>Junte-se à comunidade CookMe</Text>
@@ -48,10 +57,8 @@ export default function RegisterScreen() {
 
           <View style={styles.form}>
             {[
-              { label: 'Nome', value: name, set: setName, placeholder: 'Seu nome completo', secure: false, type: 'default' as const },
-              { label: 'Email', value: email, set: setEmail, placeholder: 'seu@email.com', secure: false, type: 'email-address' as const },
-              { label: 'Senha', value: password, set: setPassword, placeholder: 'Criar senha', secure: true, type: 'default' as const },
-              { label: 'Confirmar Senha', value: confirmPassword, set: setConfirmPassword, placeholder: 'Confirmar senha', secure: true, type: 'default' as const },
+              { label: 'Nome', value: name, set: setName, placeholder: 'Seu nome completo', type: 'default' as const },
+              { label: 'Email', value: email, set: setEmail, placeholder: 'seu@email.com', type: 'email-address' as const },
             ].map((field) => (
               <View key={field.label} style={styles.inputGroup}>
                 <Text style={styles.label}>{field.label}</Text>
@@ -64,10 +71,57 @@ export default function RegisterScreen() {
                   editable={!loading}
                   keyboardType={field.type}
                   autoCapitalize={field.type === 'email-address' ? 'none' : 'words'}
-                  secureTextEntry={field.secure}
                 />
               </View>
             ))}
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Senha</Text>
+              <View style={styles.inputWrap}>
+                <TextInput
+                  style={styles.inputWithIcon}
+                  placeholder="Criar senha"
+                  placeholderTextColor={C.ink[400]}
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!loading}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword(v => !v)}>
+                  <MaterialCommunityIcons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={C.ink[400]}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirmar Senha</Text>
+              <View style={styles.inputWrap}>
+                <TextInput
+                  style={styles.inputWithIcon}
+                  placeholder="Confirmar senha"
+                  placeholderTextColor={C.ink[400]}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  editable={!loading}
+                  secureTextEntry={!showConfirm}
+                  autoCapitalize="none"
+                  returnKeyType="done"
+                  onSubmitEditing={handleRegister}
+                />
+                <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowConfirm(v => !v)}>
+                  <MaterialCommunityIcons
+                    name={showConfirm ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={C.ink[400]}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
@@ -108,6 +162,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 15, color: C.ink[900],
     ...shadows.sm,
+  },
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.ink[0],
+    borderWidth: 1, borderColor: C.ink[200],
+    borderRadius: radius.md,
+    ...shadows.sm,
+  },
+  inputWithIcon: {
+    flex: 1,
+    paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 15, color: C.ink[900],
+  },
+  eyeBtn: {
+    paddingHorizontal: 14, paddingVertical: 14,
+    alignItems: 'center', justifyContent: 'center',
   },
   button: {
     backgroundColor: C.green[500],

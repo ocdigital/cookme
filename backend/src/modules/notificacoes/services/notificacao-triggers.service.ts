@@ -154,6 +154,22 @@ export class NotificacaoTriggersService {
   }
 
   /**
+   * Trigger: Limite de IA atingido (rate limit / quota)
+   */
+  async limiteIAAtingido(servico: string, motivo: string) {
+    this.logger.warn(`Trigger: Limite IA - ${servico}: ${motivo}`);
+
+    await this.notificacaoService.criar({
+      tipo: 'sistema',
+      severidade: 'alta',
+      titulo: `⚠️ Limite de IA: ${servico}`,
+      mensagem: `${servico} indisponível — ${motivo}. Sistema usando modo fallback.`,
+      dados: { servico, motivo, timestamp: new Date() },
+      usuario_admin_id: '00000000-0000-0000-0000-000000000000',
+    });
+  }
+
+  /**
    * Trigger: Notificação customizada
    */
   async custom(

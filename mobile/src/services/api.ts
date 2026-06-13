@@ -59,8 +59,12 @@ api.interceptors.response.use(
 
           // Backend retorna AuthResponseDto diretamente
           const newAccessToken = response.data.access_token || response.data.accessToken;
+          const newRefreshToken = response.data.refresh_token || response.data.refreshToken;
           if (newAccessToken) {
             await SecureStore.setItemAsync('accessToken', newAccessToken);
+            if (newRefreshToken) {
+              await SecureStore.setItemAsync('refreshToken', newRefreshToken);
+            }
 
             api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
             (originalRequest as any).headers.Authorization = `Bearer ${newAccessToken}`;

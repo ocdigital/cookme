@@ -116,7 +116,7 @@ export const NotificationsPage: React.FC = () => {
     <div className="space-y-2">
       {/* Header */}
       <header className="-mt-1 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Notificações</h1>
+        <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Notificações</h1>
         <div className="flex items-center gap-2">
           {isConnected ? (
             <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
@@ -262,7 +262,7 @@ export const NotificationsPage: React.FC = () => {
                             className="p-2 hover:bg-white dark:hover:bg-gray-600 rounded transition-colors"
                             title="Marcar como lido"
                           >
-                            <Check size={16} className="text-gray-600 dark:text-gray-400" />
+                            <Check size={13} className="text-gray-600 dark:text-gray-400" />
                           </button>
                         )}
                         <button
@@ -270,7 +270,7 @@ export const NotificationsPage: React.FC = () => {
                           className="p-2 hover:bg-white dark:hover:bg-gray-600 rounded transition-colors"
                           title="Deletar"
                         >
-                          <Trash2 size={16} className="text-gray-600 dark:text-gray-400" />
+                          <Trash2 size={13} className="text-gray-600 dark:text-gray-400" />
                         </button>
                       </div>
                     </div>

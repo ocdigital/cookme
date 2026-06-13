@@ -3,16 +3,17 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRecipeGenerator } from '@/hooks/useRecipeGenerator';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
+import ScreenWrapper from '@/components/ScreenWrapper';
 
 function ReceitaImageComponent({ imageUrl }: { imageUrl?: string }) {
   const [imageError, setImageError] = useState(false);
@@ -120,6 +121,7 @@ function ReceitaCard({ receita, idx }: { receita: any; idx: number }) {
 }
 
 export default function ReceitasGeradasScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { ingredientes_json } = useLocalSearchParams<{ ingredientes_json: string }>();
   const { receitas, loading, erro, gerarReceitas, limpar } = useRecipeGenerator();
@@ -133,9 +135,9 @@ export default function ReceitasGeradasScreen() {
   }, [ingredientes_json]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenWrapper>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={20} color={C.ink[800]} />
         </TouchableOpacity>
@@ -181,7 +183,7 @@ export default function ReceitasGeradasScreen() {
           ))}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 

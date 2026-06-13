@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Anthropic } from '@anthropic-ai/sdk';
 import axios from 'axios';
-import puppeteer from 'puppeteer';
+import { ConfigService } from '@nestjs/config';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ReceitaBancoService } from './receita-banco.service';
+import { RecipeSearchService } from './recipe-search.service';
+import { RecipeValidationService } from './recipe-validation.service';
 
 export interface Receita {
   titulo: string;
@@ -14,428 +15,258 @@ export interface Receita {
   modo_preparo: string;
   rendimento: string;
   imagem_url?: string;
+  is_nova?: boolean;
+  url_fonte?: string;
+  site_origem?: string;
+  avaliacao?: number;
+  tags_dieta?: string[];
+  validation_score?: number;
+  validation_issues?: string[];
 }
 
 @Injectable()
 export class RecipeGeneratorService {
   private readonly logger = new Logger('RecipeGeneratorService');
-  private claudeClient: Anthropic | null;
-  private geminiKey: string;
+  private geminiModel: any;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly receitaBancoService: ReceitaBancoService,
+    private readonly recipeSearchService: RecipeSearchService,
+    private readonly validationService: RecipeValidationService,
   ) {
-    try {
-      const apiKey = this.configService.get<string>('CLAUDE_API_KEY');
-      this.logger.log(`CLAUDE_API_KEY exists: ${!!apiKey}`);
-
-      if (!apiKey) {
-        throw new Error('CLAUDE_API_KEY não configurada');
-      }
-
-      this.claudeClient = new Anthropic({
-        apiKey,
-      });
-      this.logger.log('Claude API initialized successfully');
-    } catch (error: any) {
-      this.logger.error(`Error initializing Claude: ${error.message}`);
-      this.claudeClient = null;
+    const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+    if (apiKey) {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      this.geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     }
-
-    this.geminiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
-    this.logger.log(`GEMINI_API_KEY exists: ${!!this.geminiKey}`);
   }
 
-  async gerarReceitas(ingredientes: string[]): Promise<Receita[]> {
+  async gerarReceitas(ingredientes: string[], forcarIA = false): Promise<Receita[]> {
     if (ingredientes.length === 0) return [];
 
-    // 1. Busca no banco compartilhado primeiro
-    this.logger.log(`🔍 Buscando receitas no banco para ${ingredientes.length} ingredientes...`);
-    const receitasDoBanco = await this.receitaBancoService.buscarPorIngredientes(ingredientes, 0.7, 5);
+    // 1. Banco compartilhado — receitas reais já salvas de buscas anteriores
+    // forcarIA=true pula banco e vai direto para scraping (usuário quer novas receitas)
+    let receitasDoBanco: any[] = [];
+    if (!forcarIA) {
+      this.logger.log(`🔍 Buscando no banco para ${ingredientes.length} ingredientes...`);
+      receitasDoBanco = await this.receitaBancoService.buscarPorIngredientes(ingredientes, 0.4, 5);
+      if (receitasDoBanco.length >= 5) {
+        this.logger.log(`✅ Banco retornou ${receitasDoBanco.length} receitas`);
+        return receitasDoBanco.map((r) => this.receitaBancoService.entidadeParaFormato(r));
+      }
+    } else {
+      this.logger.log(`🔄 forcarIA=true — pulando banco, buscando novas na web`);
+    }
 
-    if (receitasDoBanco.length >= 3) {
-      this.logger.log(`✅ Banco retornou ${receitasDoBanco.length} receitas — IA não necessária!`);
+    this.logger.log(`⚡ Banco retornou ${receitasDoBanco.length} receita(s) — buscando na web...`);
+
+    // 2. Scraping de sites reais de receitas
+    const quantidadeBuscar = forcarIA ? 6 : Math.max(3, 5 - receitasDoBanco.length);
+    this.logger.log(`🌐 Buscando ${quantidadeBuscar} receita(s) na internet...`);
+    let receitasWeb = await this.recipeSearchService.buscarReceitasReais(ingredientes, quantidadeBuscar);
+
+    if (receitasWeb.length === 0) {
+      this.logger.warn('⚠️ Nenhuma receita encontrada nos sites');
       return receitasDoBanco.map((r) => this.receitaBancoService.entidadeParaFormato(r));
     }
 
-    this.logger.log(`⚡ Banco retornou ${receitasDoBanco.length} receita(s). Gerando ${3 - receitasDoBanco.length} com IA...`);
-
-    // 2. Gera com IA apenas o que falta
-    const quantidadeGerar = 3 - receitasDoBanco.length;
-    const prompt = this.montarPrompt(ingredientes, quantidadeGerar);
-    let receitasIA: Receita[] = [];
-
-    if (this.geminiKey) {
-      try {
-        this.logger.log('Trying Gemini API...');
-        receitasIA = await this.gerarComGemini(prompt);
-      } catch (error) {
-        this.logger.warn(`Gemini failed: ${error}`);
-      }
-    }
-
-    if (receitasIA.length === 0 && this.claudeClient) {
-      try {
-        this.logger.log('Trying Claude API...');
-        receitasIA = await this.gerarComClaude(prompt);
-      } catch (error: any) {
-        this.logger.error(`Claude error: ${error.message || error}`);
-      }
-    }
-
-    if (receitasIA.length === 0) {
-      this.logger.log('Using mock recipes');
-      receitasIA = this.getReceitasMock(ingredientes).slice(0, quantidadeGerar);
-    }
-
-    // 3. Busca imagens para receitas novas
-    this.logger.log(`🖼️ Buscando imagens para ${receitasIA.length} receitas novas...`);
-    const receitasIAComImagens = await Promise.all(
-      receitasIA.map(async (receita) => {
-        const imagem_url = await this.buscarImagemReceita(receita.titulo);
-        return { ...receita, imagem_url };
-      }),
+    // 3. Filtra receitas web pelo cobertura de ingredientes do usuário
+    const normalizados = ingredientes.map(i =>
+      i.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
     );
 
-    // 4. Salva cada receita nova no banco para os próximos usuários
-    this.logger.log(`💾 Salvando ${receitasIAComImagens.length} receitas novas no banco compartilhado...`);
+    const receitasFiltradas = receitasWeb.filter(receita => {
+      const chaves = this.receitaBancoService.extrairChaves(receita.ingredientes);
+      if (chaves.length === 0) return false;
+
+      let pesoTotal = 0;
+      let pesoEncontrado = 0;
+      for (const chave of chaves) {
+        const peso = this.receitaBancoService.pesoIngrediente(chave, receita.titulo);
+        pesoTotal += peso;
+        // Normaliza a chave também (remove acentos) para comparação consistente
+        const chaveNorm = chave.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        if (normalizados.some(n => n.includes(chaveNorm) || chaveNorm.includes(n))) {
+          pesoEncontrado += peso;
+        }
+      }
+
+      const cobertura = pesoTotal > 0 ? pesoEncontrado / pesoTotal : 0;
+      if (cobertura >= 0.25) {
+        this.logger.log(`✅ "${receita.titulo}" cobertura ${Math.round(cobertura * 100)}%`);
+        return true;
+      }
+      this.logger.debug(`❌ "${receita.titulo}" cobertura ${Math.round(cobertura * 100)}% — descartada`);
+      return false;
+    });
+
+    receitasWeb = receitasFiltradas.slice(0, quantidadeBuscar);
+
+    if (receitasWeb.length === 0) {
+      this.logger.warn('⚠️ Nenhuma receita web passou o filtro de cobertura — retornando banco');
+      return receitasDoBanco.map((r) => this.receitaBancoService.entidadeParaFormato(r));
+    }
+
+    // 4. Reescreve, valida e busca imagem (Mestre Cuca pipeline)
+    const enriquecidas = await Promise.all(receitasWeb.map(r => this.enriquecerReceita(r)));
+    receitasWeb = enriquecidas.filter((r): r is Receita => r !== null).map(r => ({ ...r, is_nova: true }));
+
+    // 5. Salva receitas reais no banco para próximos usuários
+    this.logger.log(`💾 Salvando ${receitasWeb.length} receita(s) no banco...`);
     await Promise.allSettled(
-      receitasIAComImagens.map((r) => this.receitaBancoService.salvarReceitaGerada(r)),
+      receitasWeb.map((r) =>
+        this.receitaBancoService.salvarReceitaGerada(r).catch((err) =>
+          this.logger.error(`❌ Falha ao salvar "${r.titulo}": ${err.message}`),
+        ),
+      ),
     );
 
-    // 5. Combina banco + IA e retorna
+    // 6. Combina banco + web
     const receitasBancoFormatadas = receitasDoBanco.map((r) =>
       this.receitaBancoService.entidadeParaFormato(r),
     );
-    const resultado = [...receitasBancoFormatadas, ...receitasIAComImagens].slice(0, 5);
+    const resultado = [...receitasBancoFormatadas, ...receitasWeb].slice(0, 5);
 
-    this.logger.log(`✨ Total: ${resultado.length} receitas (${receitasDoBanco.length} do banco + ${receitasIAComImagens.length} da IA)`);
+    this.logger.log(
+      `✨ Total: ${resultado.length} receita(s) (${receitasDoBanco.length} banco + ${receitasWeb.length} web)`,
+    );
     return resultado;
   }
 
-  private montarPrompt(ingredientes: string[], quantidade: number): string {
-    return `Você é um chef experiente de culinária brasileira.
+  async importarReceitaPorUrl(url: string): Promise<{ receita: any; nova: boolean }> {
+    const scraped = await this.recipeSearchService.scraparUrl(url);
+    if (!scraped) throw new Error(`Não foi possível extrair receita de: ${url}`);
 
-Dados estes ingredientes disponíveis: ${ingredientes.join(', ')}
-
-Gere ${quantidade} receita${quantidade > 1 ? 's' : ''} criativa${quantidade > 1 ? 's' : ''} e prática${quantidade > 1 ? 's' : ''} que use${quantidade > 1 ? 'm' : ''} ALGUNS destes ingredientes (não precisa usar todos, mas use pelo menos 2 de cada receita).
-
-IMPORTANTE: Retorne APENAS um JSON array válido, sem markdown, sem explicações adicionais, sem blocos de código.
-
-Formato exato esperado:
-[
-  {
-    "titulo": "Nome descritivo da receita",
-    "descricao": "Uma frase curta sobre o prato",
-    "tempo_preparo": "20 minutos",
-    "dificuldade": "fácil",
-    "ingredientes": ["ingrediente 1", "ingrediente 2", "ingrediente 3"],
-    "modo_preparo": "Passo 1. Descrição.\\nPasso 2. Descrição.",
-    "rendimento": "2 porções"
-  }
-]
-
-Lembre-se: APENAS JSON, NADA MAIS.`;
+    const enriquecida = await this.enriquecerReceita(scraped);
+    if (!enriquecida) throw new Error(`Receita "${scraped.titulo}" rejeitada pela validação automática`);
+    const salva = await this.receitaBancoService.salvarReceitaGerada(enriquecida);
+    this.logger.log(`Importado "${salva.nome}" de ${url}`);
+    return { receita: this.receitaBancoService.entidadeParaFormato(salva), nova: true };
   }
 
-  private async gerarComClaude(prompt: string): Promise<Receita[]> {
-    if (!this.claudeClient) throw new Error('Claude não disponível');
+  async popularReceitasFitness(): Promise<number> {
+    return this.popularModoAlimentar('fitness');
+  }
 
-    const message = await this.claudeClient.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    });
+  async popularModoAlimentar(modo: 'normal' | 'fitness' | 'vegetariano' | 'vegano'): Promise<number> {
+    const LABEL = { normal: '🍽️', fitness: '🏋️', vegetariano: '🥗', vegano: '🌱' }[modo];
+    this.logger.log(`${LABEL} Populando banco: receitas ${modo} do TudoGostoso...`);
 
-    const content = message.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Resposta não é texto');
+    let receitas: Receita[];
+    if (modo === 'normal') {
+      receitas = await this.recipeSearchService.buscarReceitasNormais(60);
+    } else if (modo === 'fitness') {
+      receitas = await this.recipeSearchService.buscarReceitasFitness(30);
+    } else if (modo === 'vegetariano') {
+      receitas = await this.recipeSearchService.buscarReceitasVegetarianas(30);
+    } else {
+      receitas = await this.recipeSearchService.buscarReceitasVeganas(20);
     }
 
-    const receitas = JSON.parse(content.text);
-    this.logger.log('Recipes generated with Claude');
-    return receitas;
-  }
+    if (receitas.length === 0) return 0;
 
-  private async gerarComGemini(prompt: string): Promise<Receita[]> {
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.geminiKey}`,
-      {
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-      }
+    let salvas = 0;
+    await Promise.allSettled(
+      receitas.map(async (r) => {
+        if (!r.imagem_url) r.imagem_url = await this.buscarImagemReceita(r.titulo);
+        await this.receitaBancoService.salvarReceitaGerada(r);
+        salvas++;
+      }),
     );
 
-    let text =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    // Remove markdown code blocks if present
-    const jsonMatch = text.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
-    if (jsonMatch) {
-      text = jsonMatch[1];
-    }
-
-    // Try to parse as array first, then wrap if single object
-    let receitas: Receita[] = [];
-    const parsed = JSON.parse(text);
-
-    if (Array.isArray(parsed)) {
-      receitas = parsed;
-    } else {
-      // If it's a single recipe, wrap it in array and normalize fields
-      receitas = [{
-        titulo: parsed.titulo || parsed.nome || '',
-        descricao: parsed.descricao || '',
-        tempo_preparo: parsed.tempo_preparo || `${parsed.tempo_preparo_minutos || 30} minutos`,
-        dificuldade: (parsed.dificuldade || 'médio').toLowerCase() as 'fácil' | 'médio' | 'difícil',
-        ingredientes: parsed.ingredientes?.map((ing: any) =>
-          typeof ing === 'string' ? ing : `${ing.item} - ${ing.quantidade}`
-        ) || [],
-        modo_preparo: Array.isArray(parsed.instrucoes)
-          ? parsed.instrucoes.join('\n')
-          : parsed.modo_preparo || '',
-        rendimento: parsed.rendimento || `${parsed.rendimento_porcoes || 2} porções`,
-      }];
-    }
-
-    this.logger.log(`Recipes generated with Gemini (${receitas.length} recipes)`);
-    return receitas;
+    this.logger.log(`✅ ${salvas} receitas ${modo} salvas`);
+    return salvas;
   }
 
-  private getReceitasMock(ingredientes: string[]): Receita[] {
-    const ingred1 = ingredientes.slice(0, 2).join(', ') || 'vegetais';
-    const ingred2 = ingredientes.slice(1, 3).join(', ') || 'ingredientes selecionados';
-    const ingred3 = ingredientes.slice(0, 4).join(', ') || 'ingredientes disponíveis';
+  async enriquecerReceita(receita: Receita): Promise<Receita | null> {
+    const [modo_preparo, imagem_url, validacao] = await Promise.all([
+      this.reescreverModoPreparo(receita.titulo, receita.ingredientes, receita.modo_preparo),
+      receita.imagem_url ? Promise.resolve(receita.imagem_url) : this.buscarImagemReceita(receita.titulo),
+      this.validationService.validar({
+        titulo: receita.titulo,
+        ingredientes: receita.ingredientes,
+        modo_preparo: receita.modo_preparo,
+        tempo_preparo: receita.tempo_preparo,
+        rendimento: receita.rendimento,
+      }),
+    ]);
 
-    return [
-      {
-        titulo: `Prato com ${ingredientes[0] || 'Vegetais'}`,
-        descricao: `Receita deliciosa usando ${ingred1}`,
-        tempo_preparo: '15 minutos',
-        dificuldade: 'fácil',
-        ingredientes: ingredientes.slice(0, 3),
-        modo_preparo: `1. Prepare ${ingredientes[0] || 'os ingredientes'}
-2. Tempere conforme seu gosto
-3. Cozinhe em fogo médio por 10-15 minutos
-4. Sirva quente e aproveite`,
-        rendimento: '2 porções',
-      },
-      {
-        titulo: `Refogado com ${ingredientes[1] || 'Ingredientes Selecionados'}`,
-        descricao: `Refogado prático usando ${ingred2}`,
-        tempo_preparo: '20 minutos',
-        dificuldade: 'fácil',
-        ingredientes: ingredientes.slice(0, 4),
-        modo_preparo: `1. Aqueça óleo em uma panela
-2. Adicione ${ingredientes.slice(0, 2).join(' e ') || 'seus ingredientes'}
-3. Refogue até ficar macio (cerca de 10 minutos)
-4. Tempere e sirva acompanhado`,
-        rendimento: '3 porções',
-      },
-      {
-        titulo: `Combinação Especial`,
-        descricao: `Prato completo com ${ingred3}`,
-        tempo_preparo: '30 minutos',
-        dificuldade: 'médio',
-        ingredientes: ingredientes.slice(0, 5),
-        modo_preparo: `1. Prepare todos os ${ingredientes.length} ingredientes
-2. Cozinhe os que precisam de mais tempo primeiro
-3. Combine gradualmente os outros
-4. Ajuste tempero e deixar em fogo baixo por 5 minutos
-5. Sirva em prato quente`,
-        rendimento: '4 porções',
-      },
-    ];
+    if (validacao.status === 'descartar') {
+      this.logger.warn(`"${receita.titulo}" descartada (score ${validacao.score}): ${validacao.issues.join(', ')}`);
+      return null;
+    }
+
+    return {
+      ...receita,
+      modo_preparo,
+      imagem_url,
+      validation_score: validacao.score,
+      validation_issues: validacao.issues,
+    };
   }
 
-  /**
-   * Busca imagem do prato usando múltiplas estratégias
-   */
+  async reescreverModoPreparo(titulo: string, ingredientes: string[], modoOriginal: string): Promise<string> {
+    if (!this.geminiModel) return modoOriginal;
+    try {
+      const prompt = `Você é um chef que escreve receitas originais. Reescreva o modo de preparo abaixo com suas próprias palavras, mantendo os mesmos passos e técnicas mas sem copiar o texto original. Use linguagem clara e amigável.
+
+Receita: ${titulo}
+Ingredientes: ${ingredientes.slice(0, 10).join(', ')}
+
+Modo de preparo original (NÃO copiar):
+${modoOriginal}
+
+Retorne APENAS o modo de preparo reescrito, sem título, sem comentários extras.`;
+
+      const result = await this.geminiModel.generateContent(prompt);
+      const reescrito = result.response.text().trim();
+      if (reescrito && reescrito.length > 50) return reescrito;
+    } catch (err: any) {
+      this.logger.warn(`Falha ao reescrever modo_preparo de "${titulo}": ${err.message}`);
+    }
+    return modoOriginal;
+  }
+
   async buscarImagemReceita(titulo: string): Promise<string | undefined> {
     try {
-      this.logger.debug(`🔍 Buscando imagem para: "${titulo}"`);
-
-      // Tenta buscar do Freepik (funciona 100%)
-      const imagemFreepik = await this.buscarImagemFreepik(titulo);
-      if (imagemFreepik && imagemFreepik.startsWith('http')) {
-        this.logger.log(`✅ Imagem Freepik encontrada para "${titulo}"`);
-        return imagemFreepik;
-      }
-
-      // Tenta buscar do Google Images (fallback)
-      const imagemGoogle = await this.buscarImagemGoogle(titulo);
-      if (imagemGoogle && imagemGoogle.startsWith('http')) {
-        this.logger.log(`✅ Imagem Google encontrada para "${titulo}"`);
-        return imagemGoogle;
-      }
-
-      // Fallback final: placeholder genérico
-      const placeholders = [
-        'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400&h=300&fit=crop',
-        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
-        'https://images.unsplash.com/photo-1504674900967-60f4a61f5a6e?w=400&h=300&fit=crop',
-      ];
-      const randomPlaceholder = placeholders[Math.floor(Math.random() * placeholders.length)];
-      this.logger.log(`⚠️ Usando placeholder para "${titulo}"`);
-      return randomPlaceholder;
-    } catch (error: any) {
-      this.logger.error(`❌ Erro ao buscar imagem para "${titulo}": ${error.message}`);
-      return 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400&h=300&fit=crop';
+      const imagemUnsplash = await this.buscarImagemUnsplash(titulo);
+      if (imagemUnsplash) return imagemUnsplash;
+    } catch (err: any) {
+      this.logger.error(`Erro ao buscar imagem para "${titulo}": ${err.message}`);
     }
+
+    const placeholders = [
+      'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1504674900967-60f4a61f5a6e?w=400&h=300&fit=crop',
+    ];
+    return placeholders[Math.floor(Math.random() * placeholders.length)];
   }
 
-  /**
-   * Busca imagem no Freepik usando Puppeteer (Funciona 100%!)
-   */
-  private async buscarImagemFreepik(titulo: string): Promise<string | undefined> {
-    let browser;
+  private async buscarImagemUnsplash(titulo: string): Promise<string | undefined> {
+    const apiKey = this.configService.get<string>('UNSPLASH_API_KEY');
+    if (!apiKey) return undefined;
+
+    const queries = [`${titulo} food`, titulo, 'comida brasileira caseira'];
+
     try {
-      this.logger.log(`📸 Buscando em Freepik: "${titulo}"`);
-
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
-
-      const page = await browser.newPage();
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-
-      const url = `https://br.freepik.com/search?query=${encodeURIComponent(titulo)}`;
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-
-      // Scroll para carregar mais imagens
-      await page.evaluate(() => {
-        window.scrollBy(0, window.innerHeight * 2);
-      });
-
-      const imageUrls = await page.evaluate(() => {
-        const imgs = new Set<string>();
-        document.querySelectorAll('img').forEach((img) => {
-          const src = img.src || (img as any).dataset.src;
-          if (src && src.includes('freepik.com')) {
-            imgs.add(src);
-          }
+      this.logger.debug(`📸 Buscando em Unsplash: "${titulo}"`);
+      for (const query of queries) {
+        const response = await axios.get('https://api.unsplash.com/search/photos', {
+          params: { query, per_page: 3, orientation: 'landscape' },
+          headers: { Authorization: `Client-ID ${apiKey}` },
+          timeout: 8000,
         });
-        return Array.from(imgs);
-      });
 
-      if (imageUrls.length > 0) {
-        this.logger.log(`✅ Freepik: ${imageUrls.length} imagens encontradas`);
-        return imageUrls[0]; // Retorna a primeira imagem
-      }
-
-      this.logger.log(`⚠️ Freepik: nenhuma imagem encontrada para "${titulo}"`);
-      return undefined;
-    } catch (error: any) {
-      this.logger.debug(`Freepik error: ${error.message}`);
-      return undefined;
-    } finally {
-      if (browser) {
-        try {
-          await browser.close();
-        } catch (e) {
-          // Ignorar erros ao fechar browser
+        const results = response.data?.results;
+        if (results?.length > 0) {
+          return results[0].urls?.regular || results[0].urls?.small;
         }
       }
+    } catch (err: any) {
+      this.logger.debug(`Unsplash error: ${err.message}`);
     }
-  }
-
-  /**
-   * Busca imagem no Google Images usando padrão AF_initDataCallback
-   * Técnica baseada em: https://dev.to/serpapi/web-scraping-google-images-with-nodejs-1c9g
-   */
-  private async buscarImagemGoogle(titulo: string): Promise<string | undefined> {
-    try {
-      const query = encodeURIComponent(titulo);
-      const googleImagesUrl = `https://www.google.com/search?q=${query}&tbm=isch&hl=pt-BR`;
-
-      this.logger.log(`🔍 Buscando em Google Images: ${titulo}`);
-
-      const response = await axios.get(googleImagesUrl, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-        timeout: 10000,
-      });
-
-      // Padrão 1: Buscar por AF_initDataCallback que contém as URLs
-      this.logger.log(`📄 Resposta Google Images: ${response.data.length} chars`);
-
-      const hasCallback = response.data.includes('AF_initDataCallback');
-      this.logger.log(`${hasCallback ? '✓' : '✗'} AF_initDataCallback present`);
-
-      // Tenta encontrar a primeira URL de imagem na resposta
-      const urlMatches = response.data.match(/https?:\/\/[^\s"<>]+\.(?:jpg|jpeg|png|gif|webp)/gi) || [];
-      this.logger.log(`🔍 URLs encontradas: ${urlMatches.length}`);
-
-      if (urlMatches && urlMatches.length > 0) {
-        // Filtra URLs que parecem ser de imagens reais (não cache do Google)
-        const realImageUrl = urlMatches.find(url =>
-          !url.includes('google.com') &&
-          !url.includes('gstatic.com') &&
-          url.length > 50
-        );
-
-        if (realImageUrl) {
-          this.logger.log(`✅ Imagem encontrada: ${realImageUrl.substring(0, 80)}`);
-          return realImageUrl;
-        }
-      }
-
-      // Padrão 2: Buscar por "ou":"URL" (fallback)
-      const imageMatch = response.data.match(/"ou":"([^"]+)"/);
-      if (imageMatch && imageMatch[1] && imageMatch[1].startsWith('http')) {
-        this.logger.log(`✅ Imagem encontrada (padrão ou): ${imageMatch[1].substring(0, 80)}`);
-        return imageMatch[1];
-      }
-
-      this.logger.log(`⚠️ Nenhuma imagem encontrada para "${titulo}"`);
-      return undefined;
-    } catch (error: any) {
-      this.logger.debug(`Google Images error: ${error.message}`);
-      return undefined;
-    }
-  }
-
-  /**
-   * Extrai URLs de imagens da estrutura JSON do Google
-   */
-  private extrairURLsDoJSON(data: any): string[] {
-    const urls: string[] = [];
-
-    const buscar = (obj: any): void => {
-      if (Array.isArray(obj)) {
-        for (const item of obj) {
-          if (typeof item === 'string' && item.startsWith('http')) {
-            if (item.includes('.jpg') || item.includes('.jpeg') || item.includes('.png') || item.includes('.webp') || item.includes('.gif')) {
-              urls.push(item);
-            }
-          } else {
-            buscar(item);
-          }
-        }
-      } else if (obj && typeof obj === 'object') {
-        for (const key in obj) {
-          buscar(obj[key]);
-        }
-      }
-    };
-
-    buscar(data);
-    return urls;
+    return undefined;
   }
 }

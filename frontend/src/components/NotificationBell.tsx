@@ -16,10 +16,17 @@ export const NotificationBell: React.FC = () => {
 
   useEffect(() => {
     loadNotifications();
-    // Fallback: ainda fazer polling a cada 30 segundos caso WebSocket falhe
+    // Fallback: polling a cada 30 segundos caso WebSocket falhe
     const interval = setInterval(loadNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Atualiza badge em tempo real quando chega notificação via WebSocket
+  useEffect(() => {
+    if (notifications.length > 0) {
+      loadNotifications();
+    }
+  }, [notifications]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

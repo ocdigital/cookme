@@ -4,9 +4,10 @@ export interface User {
   nome: string;
   email: string;
   telefone?: string;
-  role: 'USER' | 'PREMIUM' | 'ADMIN' | 'MARCA';
+  role: 'USER' | 'PREMIUM' | 'ADMIN' | 'MARCA' | 'admin' | 'user';
   avatar_url?: string;
   alertas_habilitados?: boolean;
+  deve_trocar_senha?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,7 +81,7 @@ export interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<string>;
   logout: () => void;
   refreshToken: () => Promise<void>;
 }

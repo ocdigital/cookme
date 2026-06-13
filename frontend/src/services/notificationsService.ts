@@ -19,13 +19,15 @@ export const notificationsService = {
   getNotifications: async (): Promise<Notification[]> => {
     try {
       const response = await apiService.getAll(1, 20);
-      return (response.data || []).map((notif) => ({
+      // backend retorna array simples, mas o tipo declara PaginatedResponse
+      const items: any[] = Array.isArray(response) ? response : (response.data || []);
+      return items.map((notif) => ({
         id: notif.id,
         type: (notif.tipo as NotificationType) || 'info',
         title: notif.titulo,
         message: notif.mensagem,
         timestamp: new Date(notif.criado_em),
-        read: notif.lida,
+        read: notif.lido ?? notif.lida ?? false,
         icon: notif.icone,
       }));
     } catch (err) {
@@ -40,7 +42,8 @@ export const notificationsService = {
   getUnreadCount: async (): Promise<number> => {
     try {
       const response = await apiService.getAll(1, 100);
-      return (response.data || []).filter((n) => !n.lida).length;
+      const items: any[] = Array.isArray(response) ? response : (response.data || []);
+      return items.filter((n) => !(n.lido ?? n.lida ?? false)).length;
     } catch (err) {
       console.error('Erro ao obter contagem de não lidas:', err);
       return 0;

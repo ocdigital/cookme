@@ -8,6 +8,9 @@ import { ReceitaFavorita } from './entities/receita-favorita.entity';
 import { Produto } from '../produtos/entities/produto.entity';
 import { Preferencia } from '../usuarios/entities/preferencia.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
+import { Usuario } from '../usuarios/entities/usuario.entity';
+import { Compra } from '../compras/entities/compra.entity';
+import { CompraItem } from '../compras/entities/compra-item.entity';
 import { ReceitasService } from './receitas.service';
 import { IAReceitasService } from './services/ia-receitas.service';
 import { MOIEngineService } from './services/moi-engine.service';
@@ -18,6 +21,17 @@ import { RecipeSuggestionService } from './services/recipe-suggestion.service';
 import { RecipeExecutionService } from './services/recipe-execution.service';
 import { RecipeGeneratorService } from './services/recipe-generator.service';
 import { ReceitaBancoService } from './services/receita-banco.service';
+import { RecipeSearchService } from './services/recipe-search.service';
+import { TudoGostosoScraperService } from './services/tudogostoso-scraper.service';
+import { ReceiteriaCrawlerService } from './services/receiteria-scraper.service';
+import { RecipeCrawlerService } from './services/recipe-crawler.service';
+import { RecipeValidationService } from './services/recipe-validation.service';
+import { IngredientNormalizerService } from './services/ingredient-normalizer.service';
+import { ModeracaoService } from './services/moderacao.service';
+import { AvaliacaoService } from './services/avaliacao.service';
+import { AprendizadoService } from './services/aprendizado.service';
+import { ReceitaClassificacaoService } from './services/receita-classificacao.service';
+import { PreferenciaAprendida } from '../usuarios/entities/preferencia-aprendida.entity';
 import { ReceitasController } from './receitas.controller';
 import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
 import { ReceiptImportController } from './controllers/receipt-import.controller';
@@ -25,25 +39,54 @@ import { RecipeSuggestionController } from './controllers/recipe-suggestion.cont
 import { RecipeExecutionController } from './controllers/recipe-execution.controller';
 import { RecipeGeneratorController } from './controllers/recipe-generator.controller';
 import { RecipeTestController } from './controllers/recipe-test.controller';
+import { ReceitasUsuarioController } from './controllers/receitas-usuario.controller';
+import { ModeracaoUsuarioController } from './controllers/moderacao-usuario.controller';
+import { AvaliacaoController } from './controllers/avaliacao.controller';
 import { InventarioService } from '../inventario/inventario.service';
+import { ListasModule } from '../listas/listas.module';
 import { ProductClassificationModule } from '../product-classification/product-classification.module';
+import { NotificacaoModule } from '../notificacoes/notificacao.module';
+import { UploadModule } from '../upload/upload.module';
+import { PushNotificationService } from '../notificacoes/services/push-notification.service';
 
 @Module({
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([
-      Receita,
-      ReceitaIngrediente,
-      ReceitaExecutada,
-      ReceitaFavorita,
-      Produto,
-      Preferencia,
-      Inventario,
+      Receita, ReceitaIngrediente, ReceitaExecutada, ReceitaFavorita,
+      Produto, Preferencia, Inventario, Usuario, Compra, CompraItem,
+      PreferenciaAprendida,
     ]),
     ProductClassificationModule,
+    NotificacaoModule,
+    UploadModule,
+    ListasModule,
   ],
-  providers: [ReceitasService, IAReceitasService, MOIEngineService, ReceiptOcrService, ProductClassifierService, ReceiptImportService, RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService, ReceitaBancoService, InventarioService],
-  controllers: [ReceitasController, ReceiptOcrController, ReceiptImportController, RecipeSuggestionController, RecipeExecutionController, RecipeGeneratorController, RecipeTestController],
-  exports: [TypeOrmModule, ReceitasService, ReceiptOcrService, ProductClassifierService, ReceiptImportService, RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService, ReceitaBancoService, ProductClassificationModule],
+  providers: [
+    ReceitasService, IAReceitasService, MOIEngineService,
+    ReceiptOcrService, ProductClassifierService, ReceiptImportService,
+    RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService,
+    IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, TudoGostosoScraperService,
+    ReceiteriaCrawlerService, RecipeCrawlerService, RecipeValidationService,
+    InventarioService, PushNotificationService,
+    ModeracaoService,
+    AvaliacaoService,
+    AprendizadoService,
+    ReceitaClassificacaoService,
+  ],
+  controllers: [
+    ReceitasUsuarioController, ModeracaoUsuarioController,
+    ReceitasController, ReceiptOcrController, ReceiptImportController,
+    RecipeSuggestionController, RecipeExecutionController,
+    RecipeGeneratorController, RecipeTestController,
+    AvaliacaoController,
+  ],
+  exports: [
+    TypeOrmModule, ReceitasService, ReceiptOcrService, ProductClassifierService,
+    ReceiptImportService, RecipeSuggestionService, RecipeExecutionService,
+    RecipeGeneratorService, ReceitaBancoService, IngredientNormalizerService,
+    ProductClassificationModule, ModeracaoService, ReceitaClassificacaoService,
+    RecipeCrawlerService,
+  ],
 })
 export class ReceitasModule {}

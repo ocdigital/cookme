@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { Notificacao } from '../services/notificationService';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Socket.IO não usa prefixo /api — extrai só o origin
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/api$/, '');
 
 export const useNotificacoes = (usuarioId: string | null) => {
   const [notifications, setNotifications] = useState<Notificacao[]>([]);

@@ -53,9 +53,15 @@ export class Usuario {
     @Column({ default: false })
     email_verificado: boolean;
 
+    @Column({ default: false })
+    deve_trocar_senha: boolean;
+
     @Column({ nullable: true, type: 'text' })
     @Exclude()
     refresh_token: string | null;
+
+    @Column({ nullable: true, type: 'text' })
+    push_token: string | null;
 
     @Column({ type: 'timestamp', nullable: true })
     ultimo_acesso: Date;

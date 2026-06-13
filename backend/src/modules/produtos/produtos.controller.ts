@@ -111,6 +111,20 @@ export class ProdutosController {
     return this.productImageService.fetchAndSaveProductImage(id);
   }
 
+  @Get('pesquisar-preco')
+  @ApiOperation({ summary: 'Pesquisar preço de produto em sites de comparação' })
+  @ApiQuery({ name: 'nome', required: true })
+  async pesquisarPreco(@Query('nome') nome: string) {
+    return this.produtosService.pesquisarPreco(nome);
+  }
+
+  @Get('buscar-barcode')
+  @ApiOperation({ summary: 'Buscar informações de produto pelo código de barras no Google' })
+  @ApiQuery({ name: 'codigo', required: true })
+  async buscarPorBarcode(@Query('codigo') codigo: string) {
+    return this.produtosService.buscarPorBarcode(codigo);
+  }
+
   @Get('barcode/:codigo')
   @ApiOperation({ summary: 'Buscar produto por código de barras' })
   @ApiResponse({

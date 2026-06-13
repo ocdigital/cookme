@@ -33,7 +33,7 @@ export class ListaService {
     return await this.listaRepository.find({
       where: { usuarioId },
       relations: ['itens'],
-      order: { criado_em: 'DESC' },
+      order: { titulo: 'ASC' },
     });
   }
 
@@ -41,6 +41,7 @@ export class ListaService {
     const lista = await this.listaRepository.findOne({
       where: { id, usuarioId },
       relations: ['itens'],
+      order: { itens: { nome: 'ASC' } },
     });
 
     if (!lista) {
@@ -85,8 +86,7 @@ export class ListaService {
     const novoItem = this.itemRepository.create({
       ...createDto,
       listaId,
-      preco_total:
-        (createDto.preco_unitario || 0) * (createDto.quantidade || 1),
+      preco_total: Number(createDto.preco_unitario || 0) * Number(createDto.quantidade || 1),
     });
 
     const item = await this.itemRepository.save(novoItem);
@@ -102,7 +102,7 @@ export class ListaService {
 
     return await this.itemRepository.find({
       where: { listaId },
-      order: { ordem: 'ASC', criado_em: 'DESC' },
+      order: { nome: 'ASC' },
     });
   }
 
@@ -124,8 +124,8 @@ export class ListaService {
 
     // Se atualizou quantidade ou preço, recalcular total
     if (updateDto.quantidade || updateDto.preco_unitario) {
-      const quantidade = updateDto.quantidade || item.quantidade;
-      const precoUnitario = updateDto.preco_unitario || item.preco_unitario || 0;
+      const quantidade = Number(updateDto.quantidade || item.quantidade);
+      const precoUnitario = Number(updateDto.preco_unitario || item.preco_unitario || 0);
       updateDto['preco_total'] = quantidade * precoUnitario;
     }
 
@@ -172,10 +172,10 @@ export class ListaService {
       where: { listaId },
     });
 
-    const totalEstimado = itens.reduce((sum, item) => sum + (item.preco_total || 0), 0);
+    const totalEstimado = itens.reduce((sum, item) => sum + (Number(item.preco_total) || 0), 0);
     const totalGasto = itens
       .filter((item) => item.comprado)
-      .reduce((sum, item) => sum + (item.preco_total || 0), 0);
+      .reduce((sum, item) => sum + (Number(item.preco_total) || 0), 0);
 
     await this.listaRepository.update(
       { id: listaId },

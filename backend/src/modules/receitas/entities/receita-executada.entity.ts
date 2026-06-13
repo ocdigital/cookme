@@ -23,7 +23,7 @@ export class ReceitaExecutada {
     @Index()
     receita_id: string;
 
-    @Column({ type: 'timestamp' })
+    @CreateDateColumn({ name: 'data_execucao' })
     data_execucao: Date;
 
     // Quantas porções fez (pode ser diferente do padrão da receita)

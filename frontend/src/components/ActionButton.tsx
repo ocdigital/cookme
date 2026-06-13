@@ -24,7 +24,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 }) => {
   return (
     <button
-      className={`p-2 rounded-lg transition-colors ${variantStyles[variant]}`}
+      className={`p-1 rounded-md transition-colors ${variantStyles[variant]}`}
       title={title}
       {...props}
     >

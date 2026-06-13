@@ -97,6 +97,7 @@ async function seedReceitas(): Promise<void> {
         tags_preparo: ['tradicional', 'basico'],
         categoria_receita: 'almoco',
         origem: 'catalogo',
+        ingredientes_chave: ['arroz', 'feijao', 'alho', 'oleo', 'cebola', 'sal'],
         ingredientes: [
           { produto: 'Arroz Branco', quantidade: 2, unidade: 'un', observacao: 'xícaras' },
           { produto: 'Feijão Preto', quantidade: 1, unidade: 'un', observacao: 'xícara' },
@@ -121,6 +122,7 @@ async function seedReceitas(): Promise<void> {
         tags_preparo: ['rapido', 'saudavel'],
         categoria_receita: 'almoco',
         origem: 'catalogo',
+        ingredientes_chave: ['frango', 'batata', 'cenoura', 'cebola', 'alho', 'oleo', 'sal'],
         ingredientes: [
           { produto: 'Frango - Peito', quantidade: 400, unidade: 'g' },
           { produto: 'Batata', quantidade: 2, unidade: 'un', observacao: 'médias' },
@@ -147,6 +149,7 @@ async function seedReceitas(): Promise<void> {
         tags_preparo: ['rapido', 'pratico'],
         categoria_receita: 'almoco',
         origem: 'catalogo',
+        ingredientes_chave: ['espaguete', 'macarrao', 'tomate', 'alho', 'oleo', 'queijo', 'sal'],
         ingredientes: [
           { produto: 'Massa Espaguete', quantidade: 300, unidade: 'g' },
           { produto: 'Molho de Tomate', quantidade: 1, unidade: 'un', observacao: 'lata' },
@@ -173,11 +176,78 @@ async function seedReceitas(): Promise<void> {
         tags_preparo: ['rapido', 'cafe-manha'],
         categoria_receita: 'cafe-manha',
         origem: 'catalogo',
+        ingredientes_chave: ['ovo', 'ovos', 'oleo', 'sal', 'queijo'],
         ingredientes: [
           { produto: 'Ovo', quantidade: 3, unidade: 'un' },
           { produto: 'Óleo de Soja', quantidade: 1, unidade: 'ml', observacao: 'colher de chá' },
           { produto: 'Sal', quantidade: 1, unidade: 'g', observacao: 'a gosto' },
           { produto: 'Queijo Mussarela', quantidade: 30, unidade: 'g', opcional: true },
+        ],
+      },
+      {
+        nome: 'Frango Grelhado com Brócolis',
+        descricao: 'Receita fitness clássica: peito de frango grelhado com brócolis no vapor, rico em proteína e baixo em carboidratos',
+        modo_preparo: `1. Tempere o peito de frango com sal, pimenta e alho picado
+2. Grelhe em frigideira antiaderente por 6-8 minutos de cada lado
+3. Cozinhe o brócolis no vapor por 5 minutos (deve ficar al dente)
+4. Tempere o brócolis com azeite e sal
+5. Sirva o frango fatiado sobre o brócolis`,
+        tempo_preparo: 25,
+        rendimento_porcoes: 1,
+        dificuldade: 'facil',
+        tags_dieta: ['fitness', 'low-carb', 'proteico', 'sem-gluten'],
+        tags_preparo: ['rapido', 'saudavel', 'grelhado'],
+        categoria_receita: 'almoco',
+        origem: 'catalogo',
+        ingredientes_chave: ['frango', 'brocolis', 'alho', 'sal'],
+        ingredientes: [
+          { produto: 'Frango - Peito', quantidade: 200, unidade: 'g' },
+          { produto: 'Alho', quantidade: 2, unidade: 'dente' },
+          { produto: 'Sal', quantidade: 1, unidade: 'g', observacao: 'a gosto' },
+        ],
+      },
+      {
+        nome: 'Omelete Proteico com Queijo',
+        descricao: 'Omelete rico em proteínas, perfeito para café da manhã ou pós-treino',
+        modo_preparo: `1. Bata 3 ovos inteiros com 2 claras, sal e pimenta
+2. Aqueça frigideira antiaderente com spray de óleo
+3. Despeje os ovos e deixe firmar por 2 minutos
+4. Adicione queijo ralado no centro
+5. Dobre ao meio e sirva imediatamente`,
+        tempo_preparo: 10,
+        rendimento_porcoes: 1,
+        dificuldade: 'facil',
+        tags_dieta: ['fitness', 'proteico', 'low-carb', 'sem-gluten'],
+        tags_preparo: ['rapido', 'cafe-manha', 'pos-treino'],
+        categoria_receita: 'cafe-manha',
+        origem: 'catalogo',
+        ingredientes_chave: ['ovo', 'ovos', 'queijo', 'sal'],
+        ingredientes: [
+          { produto: 'Ovo', quantidade: 3, unidade: 'un' },
+          { produto: 'Queijo Mussarela', quantidade: 30, unidade: 'g' },
+          { produto: 'Sal', quantidade: 1, unidade: 'g', observacao: 'a gosto' },
+        ],
+      },
+      {
+        nome: 'Batata Doce com Frango Desfiado',
+        descricao: 'Combinação pré-treino perfeita: carboidrato de baixo índice glicêmico com proteína magra',
+        modo_preparo: `1. Cozinhe a batata doce em cubos por 20 minutos até amaciar
+2. Cozinhe o peito de frango em água com sal por 25 minutos
+3. Desfie o frango ainda quente com dois garfos
+4. Tempere o frango com alho, sal e cebolinha
+5. Monte o prato: batata doce ao lado do frango desfiado`,
+        tempo_preparo: 40,
+        rendimento_porcoes: 2,
+        dificuldade: 'facil',
+        tags_dieta: ['fitness', 'proteico', 'sem-gluten', 'hiperproteico'],
+        tags_preparo: ['pre-treino', 'pos-treino', 'saudavel'],
+        categoria_receita: 'almoco',
+        origem: 'catalogo',
+        ingredientes_chave: ['frango', 'alho', 'sal'],
+        ingredientes: [
+          { produto: 'Frango - Peito', quantidade: 300, unidade: 'g' },
+          { produto: 'Alho', quantidade: 3, unidade: 'dente' },
+          { produto: 'Sal', quantidade: 1, unidade: 'g', observacao: 'a gosto' },
         ],
       },
       {
@@ -196,6 +266,7 @@ async function seedReceitas(): Promise<void> {
         tags_preparo: ['saudavel', 'reconfortante'],
         categoria_receita: 'jantar',
         origem: 'catalogo',
+        ingredientes_chave: ['batata', 'cenoura', 'tomate', 'cebola', 'alho', 'oleo', 'sal'],
         ingredientes: [
           { produto: 'Batata', quantidade: 3, unidade: 'un' },
           { produto: 'Cenoura', quantidade: 2, unidade: 'un' },
@@ -230,8 +301,8 @@ async function seedReceitas(): Promise<void> {
         `INSERT INTO receitas (
           id, nome, descricao, modo_preparo, tempo_preparo, rendimento_porcoes,
           dificuldade, tags_dieta, tags_preparo, categoria_receita, origem,
-          criado_em, atualizado_em
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())`,
+          ingredientes_chave, criado_em, atualizado_em
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
         [
           receitaId,
           receitaData.nome,
@@ -244,6 +315,7 @@ async function seedReceitas(): Promise<void> {
           receitaData.tags_preparo,
           receitaData.categoria_receita,
           receitaData.origem,
+          (receitaData as any).ingredientes_chave || null,
         ],
       );
 

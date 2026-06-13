@@ -1,16 +1,33 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import * as Google from 'expo-auth-session/providers/google';
+import * as AuthSession from 'expo-auth-session';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import Constants from 'expo-constants';
+import { maybeCompleteAuthSession } from 'expo-web-browser';
 import api from '../services/api';
 import { User, AuthResponse } from '../types';
+
+maybeCompleteAuthSession();
+
+// IDs do Google OAuth — preencher no Google Cloud Console
+// https://console.cloud.google.com → APIs & Services → Credentials
+const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<User>;
   register: (nome: string, email: string, password: string) => Promise<User>;
+  loginWithGoogle: () => Promise<void>;
+  loginWithApple: () => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (data: Partial<User>) => void;
   isSignedIn: boolean;
+  isAppleAvailable: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,11 +36,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAppleAvailable, setIsAppleAvailable] = useState(false);
 
-  // Bootstrap - check for existing token
+  // Expo Go: proxy fixo — registrar no Google Cloud Console como redirect autorizado
+  // Build nativo: usa scheme cookme://
+  const isExpoGo = Constants.appOwnership === 'expo';
+  const redirectUri = isExpoGo
+    ? 'https://auth.expo.io/@eduocdigital/cookme-mobile'
+    : AuthSession.makeRedirectUri({ scheme: 'cookme' });
+
+  const [_googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    redirectUri,
+  });
+
   useEffect(() => {
     bootstrapAsync();
+    AppleAuthentication.isAvailableAsync().then(setIsAppleAvailable).catch(() => {});
   }, []);
+
+  // Handle Google OAuth response
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const auth = googleResponse.authentication as any;
+      const idToken = auth?.id_token || auth?.idToken;
+      if (idToken) handleSocialAuthResponse(() => api.post('/auth/google-login', { idToken }));
+    }
+  }, [googleResponse]);
+
+  const handleSocialAuthResponse = async (apiFn: () => Promise<any>) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiFn();
+      const { access_token, refresh_token, user: userData } = response.data;
+      if (!access_token || !userData) throw new Error('Resposta inválida do servidor');
+      await SecureStore.setItemAsync('accessToken', access_token);
+      if (refresh_token) await SecureStore.setItemAsync('refreshToken', refresh_token);
+      setUser(userData);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Falha no login social';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const bootstrapAsync = async () => {
     try {
@@ -50,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, rememberMe = true) => {
     try {
       setLoading(true);
       setError(null);
@@ -70,7 +130,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       await SecureStore.setItemAsync('accessToken', accessToken);
-      await SecureStore.setItemAsync('refreshToken', refreshToken);
+      if (rememberMe && refreshToken) {
+        await SecureStore.setItemAsync('refreshToken', refreshToken);
+      } else {
+        await SecureStore.deleteItemAsync('refreshToken');
+      }
 
       setUser(userData);
       return userData;
@@ -117,6 +181,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    const result = await promptGoogleAsync();
+    if (result.type === 'cancel' || result.type === 'dismiss') return;
+    if (result.type === 'error') throw new Error('Erro ao abrir login Google');
+    // Response handled by useEffect above
+  }, [promptGoogleAsync]);
+
+  const loginWithApple = useCallback(async () => {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+    const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+      .filter(Boolean).join(' ') || undefined;
+    await handleSocialAuthResponse(() =>
+      api.post('/auth/apple-login', {
+        identityToken: credential.identityToken,
+        fullName,
+      })
+    );
+  }, []);
+
+  const updateUser = useCallback((data: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...data } : prev);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await SecureStore.deleteItemAsync('accessToken');
@@ -133,8 +225,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error,
     login,
     register,
+    loginWithGoogle,
+    loginWithApple,
     logout,
+    updateUser,
     isSignedIn: !!user,
+    isAppleAvailable,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

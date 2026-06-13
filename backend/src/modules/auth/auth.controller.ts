@@ -70,6 +70,16 @@ export class AuthController {
   }
 
   @Public()
+  @Post('apple-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Fazer login via Apple Sign In' })
+  @ApiResponse({ status: 200, description: 'Login com Apple realizado com sucesso', type: AuthResponseDto })
+  @ApiResponse({ status: 401, description: 'Token Apple inválido' })
+  async appleLogin(@Body() body: { identityToken: string; fullName?: string }): Promise<AuthResponseDto> {
+    return this.authService.appleLogin(body.identityToken, body.fullName);
+  }
+
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renovar access token usando refresh token' })

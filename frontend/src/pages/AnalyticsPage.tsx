@@ -59,7 +59,7 @@ export const AnalyticsPage: React.FC = () => {
     <div className="space-y-2">
       {/* Header */}
       <header className="-mt-1">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white tracking-tight">Analytics</h1>
+        <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Analytics</h1>
       </header>
 
       {/* Loading State */}

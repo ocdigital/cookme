@@ -1,14 +1,18 @@
 import {
   Controller,
   Get,
+  Query,
   UseGuards,
   Req,
   Logger,
   HttpCode,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RecipeSuggestionService, SuggestionResult } from '../services/recipe-suggestion.service';
+import { RecipeSuggestionService, SuggestionResult, ReceitaParaMimResult, ReceitaDesafioResult } from '../services/recipe-suggestion.service';
 
+@ApiTags('Receitas')
+@ApiBearerAuth()
 @Controller('receitas/sugestoes')
 @UseGuards(JwtAuthGuard)
 export class RecipeSuggestionController {
@@ -62,6 +66,23 @@ export class RecipeSuggestionController {
       this.logger.error('Erro ao sugerir receitas:', error);
       throw error;
     }
+  }
+
+  @Get('para-mim')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Receitas personalizadas com score baseado no perfil aprendido' })
+  async paraMim(
+    @Req() req: any,
+    @Query('modo_alimentar') modoAlimentar?: string,
+  ): Promise<ReceitaParaMimResult[]> {
+    return this.recipeSuggestionService.paraMim(req.user.id, modoAlimentar);
+  }
+
+  @Get('desafios')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Receitas que você nunca fez e falta poucos ingredientes' })
+  async desafios(@Req() req: any): Promise<ReceitaDesafioResult[]> {
+    return this.recipeSuggestionService.desafios(req.user.id);
   }
 
   /**

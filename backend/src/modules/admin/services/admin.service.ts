@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Produto } from '@modules/produtos/entities/produto.entity';
 import { Usuario } from '@modules/usuarios/entities/usuario.entity';
 import { Receita } from '@modules/receitas/entities/receita.entity';
 import { Compra } from '@modules/compras/entities/compra.entity';
+import { ProductKnowledgeBase } from '@modules/product-classification/entities/product-knowledge-base.entity';
 import { ListProductsQueryDto } from '../dto/list-products-query.dto';
 import { ListProductsResponseDto, ProductListDto } from '../dto/product-list.dto';
 
@@ -19,7 +21,112 @@ export class AdminService {
     private readonly receitaRepository: Repository<Receita>,
     @InjectRepository(Compra)
     private readonly compraRepository: Repository<Compra>,
+    @InjectRepository(ProductKnowledgeBase)
+    private readonly knowledgeBaseRepository: Repository<ProductKnowledgeBase>,
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
   ) {}
+
+  async getDataCounts(): Promise<Record<string, number>> {
+    const run = (sql: string) =>
+      this.dataSource.query(sql).then((r: any[]) => Number(r[0]?.count ?? 0));
+
+    const [usuarios, receitas, produtos, compras, inventario, notificacoes, listas] =
+      await Promise.all([
+        run(`SELECT COUNT(*) FROM usuarios WHERE role != 'admin'`),
+        run(`SELECT COUNT(*) FROM receitas`),
+        run(`SELECT COUNT(*) FROM produtos`),
+        run(`SELECT COUNT(*) FROM compras`),
+        run(`SELECT COUNT(*) FROM inventario`),
+        run(`SELECT COUNT(*) FROM notificacoes`),
+        run(`SELECT COUNT(*) FROM listas`),
+      ]);
+
+    return { usuarios, receitas, produtos, compras, inventario, notificacoes, listas };
+  }
+
+  async limparDados(entidade: string): Promise<{ deletados: number }> {
+    const q = this.dataSource.createQueryRunner();
+    await q.connect();
+    await q.startTransaction();
+
+    try {
+      let deletados = 0;
+
+      switch (entidade) {
+        case 'usuarios':
+          await q.query(`DELETE FROM compra_itens WHERE compra_id IN (SELECT id FROM compras WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin'))`);
+          await q.query(`DELETE FROM compras WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          await q.query(`DELETE FROM inventario WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          await q.query(`DELETE FROM itens_listas WHERE lista_id IN (SELECT id FROM listas WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin'))`);
+          await q.query(`DELETE FROM listas WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          await q.query(`DELETE FROM notificacoes_usuario WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          await q.query(`DELETE FROM notificacoes WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          await q.query(`DELETE FROM preferencias WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          await q.query(`DELETE FROM receita_favoritas WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          await q.query(`DELETE FROM receita_recomendacoes WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          await q.query(`DELETE FROM receitas_executadas WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          await q.query(`DELETE FROM planejamento_semanal WHERE usuario_id IN (SELECT id FROM usuarios WHERE role != 'admin')`);
+          const rUsuarios = await q.query(`DELETE FROM usuarios WHERE role != 'admin' RETURNING id`);
+          deletados = rUsuarios.length;
+          break;
+
+        case 'receitas':
+          await q.query(`DELETE FROM receita_ingredientes`);
+          await q.query(`DELETE FROM receita_favoritas`);
+          await q.query(`DELETE FROM receita_recomendacoes`);
+          await q.query(`DELETE FROM receitas_executadas`);
+          const rReceitas = await q.query(`DELETE FROM receitas RETURNING id`);
+          deletados = rReceitas.length;
+          break;
+
+        case 'produtos':
+          await q.query(`DELETE FROM product_knowledge_base`);
+          await q.query(`DELETE FROM product_validations`);
+          await q.query(`DELETE FROM ai_classification_logs`);
+          await q.query(`DELETE FROM receita_ingredientes`);
+          await q.query(`DELETE FROM compra_itens`);
+          await q.query(`DELETE FROM inventario`);
+          const rProdutos = await q.query(`DELETE FROM produtos RETURNING id`);
+          deletados = rProdutos.length;
+          break;
+
+        case 'compras':
+          await q.query(`DELETE FROM compra_itens`);
+          const rCompras = await q.query(`DELETE FROM compras RETURNING id`);
+          deletados = rCompras.length;
+          break;
+
+        case 'inventario':
+          const rInv = await q.query(`DELETE FROM inventario RETURNING id`);
+          deletados = rInv.length;
+          break;
+
+        case 'notificacoes':
+          await q.query(`DELETE FROM notificacoes_usuario`);
+          const rNotif = await q.query(`DELETE FROM notificacoes RETURNING id`);
+          deletados = rNotif.length;
+          break;
+
+        case 'listas':
+          await q.query(`DELETE FROM itens_listas`);
+          const rListas = await q.query(`DELETE FROM listas RETURNING id`);
+          deletados = rListas.length;
+          break;
+
+        default:
+          throw new BadRequestException(`Entidade desconhecida: ${entidade}`);
+      }
+
+      await q.commitTransaction();
+      return { deletados };
+    } catch (err) {
+      await q.rollbackTransaction();
+      throw err;
+    } finally {
+      await q.release();
+    }
+  }
 
   /**
    * Lista produtos com paginação, filtros e busca
@@ -51,6 +158,24 @@ export class AdminService {
       qb.andWhere('produto.marca_id = :marcaId', {
         marcaId: query.marcaId,
       });
+    }
+
+    if (query.origem) {
+      qb.andWhere('produto.origem = :origem', { origem: query.origem });
+    }
+
+    if (query.verificado !== undefined && query.verificado !== '') {
+      qb.andWhere('produto.verificado = :verificado', { verificado: query.verificado === 'true' });
+    }
+
+    if (query.ingredienteFilter) {
+      if (query.ingredienteFilter === 'ingrediente') {
+        qb.andWhere('produto.ingrediente_receita = true');
+      } else if (query.ingredienteFilter === 'nao_ingrediente') {
+        qb.andWhere('produto.ingrediente_receita = false');
+      } else if (query.ingredienteFilter === 'sem_classificacao') {
+        qb.andWhere('produto.ingrediente_receita IS NULL');
+      }
     }
 
     // Aplicar ordenação
@@ -111,6 +236,7 @@ export class AdminService {
         vezes_usada,
         qualidade,
         popularidade,
+        ingrediente_receita: produto.ingrediente_receita,
       };
     });
 
@@ -317,6 +443,37 @@ export class AdminService {
     };
   }
 
+  async listCompras(page = 1, limit = 20, search?: string) {
+    const qb = this.compraRepository
+      .createQueryBuilder('compra')
+      .leftJoinAndSelect('compra.itens', 'item')
+      .leftJoinAndSelect('item.produto', 'produto')
+      .leftJoin('compra.usuario', 'usuario')
+      .addSelect(['usuario.id', 'usuario.nome', 'usuario.email'])
+      .orderBy('compra.criado_em', 'DESC');
+
+    if (search) {
+      qb.andWhere('compra.local_compra ILIKE :s', { s: `%${search}%` });
+    }
+
+    const total = await qb.getCount();
+    const compras = await qb.skip((page - 1) * limit).take(limit).getMany();
+
+    return {
+      data: compras,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getCompraById(id: string) {
+    return this.compraRepository.findOne({
+      where: { id },
+      relations: ['itens', 'itens.produto', 'itens.produto.marca', 'itens.produto.categoria', 'usuario'],
+    });
+  }
+
   /**
    * Obter estatísticas gerais do dashboard
    */
@@ -417,16 +574,22 @@ export class AdminService {
       .select([
         'receita.id',
         'receita.nome',
+        'receita.descricao',
         'receita.categoria_receita',
         'receita.dificuldade',
         'receita.tempo_preparo',
+        'receita.rendimento_porcoes',
         'receita.avaliacao_media',
         'receita.vezes_executada',
         'receita.denuncias',
         'receita.status_moderacao',
         'receita.imagem_url',
+        'receita.tags_dieta',
+        'receita.modo_preparo',
         'receita.criado_em',
-      ]);
+      ])
+      .leftJoinAndSelect('receita.ingredientes', 'ingrediente')
+      .leftJoinAndSelect('ingrediente.produto', 'iproduto');
 
     // Aplicar filtros
     if (filters?.search) {
@@ -473,6 +636,19 @@ export class AdminService {
     };
   }
 
+  async listCategorias(): Promise<{ id: string; nome: string }[]> {
+    const rows = await this.produtoRepository
+      .createQueryBuilder('produto')
+      .innerJoin('produto.categoria', 'categoria')
+      .select('categoria.id', 'id')
+      .addSelect('categoria.nome', 'nome')
+      .groupBy('categoria.id')
+      .addGroupBy('categoria.nome')
+      .orderBy('categoria.nome', 'ASC')
+      .getRawMany();
+    return rows;
+  }
+
   /**
    * Atualizar status de moderação de uma receita
    */
@@ -492,5 +668,76 @@ export class AdminService {
     await this.receitaRepository.save(receita);
 
     return receita;
+  }
+
+  /**
+   * Retorna produtos da knowledge base que precisam de revisão:
+   * - confidence < 0.75
+   * - canonical_ingredient nulo
+   * - ingrediente_receita nulo
+   */
+  async getFilaRevisao(limit = 50): Promise<any[]> {
+    return this.knowledgeBaseRepository
+      .createQueryBuilder('kb')
+      .where(
+        'kb.confidence_score < :threshold OR kb.canonical_ingredient IS NULL OR kb.ingrediente_receita IS NULL',
+        { threshold: 0.75 },
+      )
+      .orderBy('kb.confidence_score', 'ASC')
+      .take(limit)
+      .getMany();
+  }
+
+  /**
+   * Corrige classificação de um produto na knowledge base
+   */
+  async corrigirClassificacao(
+    id: string,
+    body: { ingrediente_receita?: boolean; canonical_name?: string },
+  ): Promise<ProductKnowledgeBase> {
+    const kb = await this.knowledgeBaseRepository.findOne({ where: { id } });
+
+    if (!kb) {
+      throw new BadRequestException(`Produto com ID ${id} não encontrado na knowledge base`);
+    }
+
+    if (body.ingrediente_receita !== undefined) {
+      kb.ingrediente_receita = body.ingrediente_receita;
+    }
+
+    if (body.canonical_name !== undefined) {
+      kb.canonical_ingredient = body.canonical_name;
+    }
+
+    return this.knowledgeBaseRepository.save(kb);
+  }
+
+  async updateProdutoClassificacao(
+    id: string,
+    ingrediente_receita: boolean,
+  ): Promise<{ id: string; nome: string; ingrediente_receita: boolean }> {
+    const produto = await this.produtoRepository.findOne({ where: { id } });
+    if (!produto) {
+      throw new BadRequestException(`Produto ${id} não encontrado`);
+    }
+    produto.ingrediente_receita = ingrediente_receita;
+    const saved = await this.produtoRepository.save(produto);
+    return { id: saved.id, nome: saved.nome, ingrediente_receita: saved.ingrediente_receita };
+  }
+
+  async resetarSenhaUsuario(usuarioId: string): Promise<{ senha_temporaria: string }> {
+    const usuario = await this.usuarioRepository.findOne({ where: { id: usuarioId } });
+    if (!usuario) throw new NotFoundException('Usuário não encontrado');
+
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    const senha_temporaria = Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+
+    const hash = await bcrypt.hash(senha_temporaria, 10);
+    await this.usuarioRepository.update(usuarioId, {
+      senha: hash,
+      deve_trocar_senha: true,
+    });
+
+    return { senha_temporaria };
   }
 }

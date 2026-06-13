@@ -58,7 +58,7 @@ export class ScraperController {
     @Body() iniciarConsultaDto: IniciarConsultaDto,
   ): Promise<ScraperSessionResponse> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const userId = req.user.sub;
+    const userId = req.user.id;
     return this.scraperService.iniciarConsulta(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       userId,
@@ -170,7 +170,7 @@ export class ScraperController {
   })
   async listarConsultas(@Request() req): Promise<ScraperSessionResponse[]> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const userId = req.user.sub;
+    const userId = req.user.id;
     return this.scraperService.listarSessoes(userId);
   }
 
@@ -188,7 +188,7 @@ export class ScraperController {
   @ApiResponse({ status: 401, description: 'Não autenticado' })
   async limparHistorico(@Request() req): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const userId = req.user.sub;
+    const userId = req.user.id;
     await this.scraperService.limparHistoricoUsuario(userId);
   }
 }

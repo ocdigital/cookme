@@ -8,6 +8,8 @@ export interface Receita {
   ingredientes: string[];
   modo_preparo: string;
   rendimento: string;
+  imagem_url?: string;
+  is_nova?: boolean;
 }
 
 export interface ReceitasResponse {
@@ -18,10 +20,11 @@ export interface ReceitasResponse {
 }
 
 class RecipeGeneratorService {
-  async gerarReceitas(ingredientes: string[]): Promise<Receita[]> {
+  async gerarReceitas(ingredientes: string[], forcarIA = false): Promise<Receita[]> {
     try {
       const response = await api.post<ReceitasResponse>('/receitas/gerar', {
         ingredientes,
+        forcar_ia: forcarIA,
       });
 
       return response.data.receitas || [];

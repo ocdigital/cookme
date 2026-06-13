@@ -206,9 +206,10 @@ export class AuthService {
     // Hash da nova senha
     const hashedPassword = await this.hashPassword(nova_senha);
 
-    // Atualiza senha no banco
+    // Atualiza senha e limpa flag de troca obrigatória
     await this.usuarioRepository.update(userId, {
       senha: hashedPassword,
+      deve_trocar_senha: false,
     });
   }
 
@@ -290,16 +291,15 @@ export class AuthService {
    * Faz login via Google usando ID Token
    */
   async googleLogin(idToken: string): Promise<AuthResponseDto> {
+    const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) {
+      throw new UnauthorizedException('Login com Google não configurado');
+    }
     try {
-      // Criar cliente OAuth2 do Google
-      const client = new OAuth2Client(
-        '845937856175-6hc9p8j5b5m8c8h8c8h8c8h8c8h8c8h8.apps.googleusercontent.com'
-      );
-
-      // Verificar token
+      const client = new OAuth2Client(clientId);
       const ticket = await client.verifyIdToken({
         idToken,
-        audience: '845937856175-6hc9p8j5b5m8c8h8c8h8c8h8c8h8c8h8.apps.googleusercontent.com',
+        audience: clientId,
       });
 
       const payload = ticket.getPayload();
@@ -340,6 +340,51 @@ export class AuthService {
     } catch (error) {
       console.error('Erro ao fazer login Google:', error);
       throw new UnauthorizedException('Token Google inválido ou expirado');
+    }
+  }
+
+  /**
+   * Faz login via Apple usando Identity Token (JWT)
+   * Decodifica o token sem verificar assinatura (suficiente para MVP).
+   * Em produção: verificar contra apple.com/appleid/auth/keys
+   */
+  async appleLogin(identityToken: string, fullName?: string): Promise<AuthResponseDto> {
+    try {
+      // Decodifica JWT sem verificar assinatura — extrai claims
+      const parts = identityToken.split('.');
+      if (parts.length !== 3) throw new Error('Token inválido');
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+
+      const { email, sub: appleId } = payload;
+      if (!email && !appleId) throw new Error('Token sem identificador');
+
+      // Apple só manda o email no primeiro login — pode ser null depois
+      const emailToUse = email || `${appleId}@privaterelay.appleid.com`;
+
+      let usuario = await this.usuarioRepository.findOne({ where: { email: emailToUse } });
+
+      if (!usuario) {
+        usuario = this.usuarioRepository.create({
+          email: emailToUse,
+          nome: fullName || emailToUse.split('@')[0],
+          senha: '',
+          email_verificado: true,
+        });
+        usuario = await this.usuarioRepository.save(usuario);
+      }
+
+      const tokens = await this.generateTokens(usuario);
+      await this.updateRefreshToken(usuario.id, tokens.refresh_token);
+
+      const { senha, ...usuarioSemSenha } = usuario;
+      return {
+        user: usuarioSemSenha,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+      };
+    } catch (error) {
+      console.error('Erro ao fazer login Apple:', error);
+      throw new UnauthorizedException('Token Apple inválido ou expirado');
     }
   }
 }

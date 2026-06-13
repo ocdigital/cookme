@@ -45,27 +45,32 @@ export class ComprasController {
 
   @Get()
   @ApiOperation({ summary: 'Listar compras do usuário' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Limite de resultados' })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de compras',
-    type: [Compra],
-  })
+  @ApiResponse({ status: 200, description: 'Lista de compras', type: [Compra] })
   async findAll(
     @CurrentUser() user: Usuario,
     @Query('limit') limit?: number,
+    @Query('mes') mes?: number,
+    @Query('ano') ano?: number,
   ): Promise<Compra[]> {
-    return this.comprasService.findAll(user.id, limit);
+    return this.comprasService.findAll(user.id, limit, mes ? Number(mes) : undefined, ano ? Number(ano) : undefined);
   }
 
   @Get('stats')
   @ApiOperation({ summary: 'Estatísticas de compras do usuário' })
-  @ApiResponse({
-    status: 200,
-    description: 'Estatísticas calculadas',
-  })
+  @ApiResponse({ status: 200, description: 'Estatísticas calculadas' })
   async getStats(@CurrentUser() user: Usuario) {
     return this.comprasService.getStats(user.id);
+  }
+
+  @Get('resumo-mes')
+  @ApiOperation({ summary: 'Resumo de gastos de um mês específico' })
+  @ApiResponse({ status: 200, description: 'Gastos do mês' })
+  async resumoMes(
+    @CurrentUser() user: Usuario,
+    @Query('mes') mes?: number,
+    @Query('ano') ano?: number,
+  ) {
+    return this.comprasService.resumoMes(user.id, mes ? Number(mes) : undefined, ano ? Number(ano) : undefined);
   }
 
   @Post('ocr-cupom')

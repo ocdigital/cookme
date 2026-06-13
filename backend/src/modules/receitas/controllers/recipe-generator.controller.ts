@@ -1,27 +1,54 @@
 import { Controller, Post, Body, UseGuards, HttpCode } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
 import { Usuario } from '@modules/usuarios/entities/usuario.entity';
 import { RecipeGeneratorService } from '../services/recipe-generator.service';
+import { InventarioService } from '@modules/inventario/inventario.service';
+import { PushNotificationService } from '@modules/notificacoes/services/push-notification.service';
 
 @ApiTags('Receitas')
 @Controller('receitas/gerar')
 export class RecipeGeneratorController {
-  constructor(private readonly recipeGeneratorService: RecipeGeneratorService) {}
+  constructor(
+    private readonly recipeGeneratorService: RecipeGeneratorService,
+    private readonly inventarioService: InventarioService,
+    private readonly push: PushNotificationService,
+  ) {}
 
   @Post()
+  @Throttle({ ia: { ttl: 60000, limit: 10 } })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Gerar receitas baseado em ingredientes' })
   async gerar(
     @CurrentUser() user: Usuario,
-    @Body() body: { ingredientes: string[] }
+    @Body() body: { ingredientes?: string[]; forcar_ia?: boolean }
   ) {
+    const disponiveis = await this.inventarioService.ingredientesDisponiveis(user.id);
+    const ingredientes = (body.ingredientes?.length ?? 0) > 0
+      ? body.ingredientes!.filter((ing) => {
+          const ingNorm = ing.toLowerCase();
+          return disponiveis.some((d) => d.toLowerCase().includes(ingNorm) || ingNorm.includes(d.toLowerCase()));
+        })
+      : disponiveis;
+
+    const forcarIA = body.forcar_ia === true;
     const receitas = await this.recipeGeneratorService.gerarReceitas(
-      body.ingredientes
+      ingredientes.length > 0 ? ingredientes : disponiveis,
+      forcarIA,
     );
+
+    if (receitas.length > 0) {
+      this.push.enviarParaUsuario(
+        user.id,
+        '👨‍🍳 Receitas prontas!',
+        `Encontramos ${receitas.length} receita${receitas.length > 1 ? 's' : ''} com o que você tem em casa.`,
+        { tipo: 'receitas_geradas', rota: '/(app)/(tabs)/receitas' },
+      ).catch(() => {});
+    }
 
     return {
       usuario_id: user.id,
