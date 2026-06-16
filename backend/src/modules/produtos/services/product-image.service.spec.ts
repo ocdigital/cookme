@@ -49,7 +49,7 @@ describe('ProductImageService', () => {
 
       const result = await service.fetchAndSaveProductImage(produtoId);
 
-      expect(result.imagem_url).toBe(imageUrl);
+      expect(result!.imagem_url).toBe(imageUrl);
       expect(produtoRepository.save).toHaveBeenCalled();
     });
 
@@ -67,7 +67,7 @@ describe('ProductImageService', () => {
 
       const result = await service.fetchAndSaveProductImage(produtoId);
 
-      expect(result.imagem_url).toBe(cachedImageUrl);
+      expect(result!.imagem_url).toBe(cachedImageUrl);
       expect(produtoRepository.save).not.toHaveBeenCalled();
     });
 
@@ -102,7 +102,7 @@ describe('ProductImageService', () => {
 
       const result = await service.fetchAndSaveProductImage(produtoId);
 
-      expect(result.imagem_url).toBe(imageUrl);
+      expect(result!.imagem_url).toBe(imageUrl);
     });
   });
 
