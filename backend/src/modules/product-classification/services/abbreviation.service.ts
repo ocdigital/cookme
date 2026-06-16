@@ -295,14 +295,14 @@ export class AbbreviationService implements OnModuleInit {
   }
 
   private async seedIfEmpty() {
-    const count = await this.repo.count();
-    if (count > 0) return;
-
     this.logger.log('Populando tabela de abreviações com seed inicial...');
     const entities = SEED_ABBREVIATIONS.map(([abbr, expanded, is_ingredient, categoria]) =>
       this.repo.create({ abbr, expanded, is_ingredient, categoria, source: 'seed' }),
     );
-    await this.repo.save(entities, { chunk: 50 });
+    await this.repo.upsert(
+      entities.map(e => ({ abbr: e.abbr, expanded: e.expanded, is_ingredient: e.is_ingredient, categoria: e.categoria, source: e.source })),
+      { conflictPaths: ['abbr'], skipUpdateIfNoValuesChanged: true },
+    );
     this.logger.log(`${entities.length} abreviações inseridas.`);
   }
 
