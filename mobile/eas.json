@@ -15,7 +15,7 @@
         "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://192.168.86.9:3000/api"
+        "EXPO_PUBLIC_API_URL": "https://api.cookme.com.br/api"
       }
     },
     "preview": {
@@ -24,7 +24,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://192.168.86.9:3000/api"
+        "EXPO_PUBLIC_API_URL": "https://api.cookme.com.br/api"
       }
     },
     "production": {
