@@ -4,6 +4,27 @@ Features implementadas mas desativadas por falta de dados ou maturidade. Reativa
 
 ---
 
+## Offline First — Cache + Fila de Mutações
+
+**Status:** Planejado — ver plano completo em [`docs/OFFLINE_PLAN.md`](docs/OFFLINE_PLAN.md)  
+**Estimativa:** 3–4 semanas em 4 sprints independentes  
+**Stack:** TanStack Query + MMKV + Zustand persist + NetInfo
+
+### Resumo
+
+App hoje é 100% online. Sem internet = tela em branco. Plano cobre:
+- Cache persistido com TTL por tipo de dado (receitas 10min, receita individual 24h, etc.)
+- Fila de mutações offline (favoritar, marcar feito, editar lista) → sync ao reconectar
+- Banner global de status offline
+- Botões bloqueados com aviso para funções que precisam de servidor (OCR, IA)
+
+### Gatilho para iniciar
+
+Quando houver janela de 3–4 semanas sem features novas prioritárias.
+Pode ser feito em sprints: Sprint 1 (fundação) não quebra nada e já traz valor.
+
+---
+
 ## GBrain — Memória e Busca Vetorial para Agentes IA
 
 **Status:** Avaliar quando banco tiver 10.000+ receitas e matching atual mostrar limitação  
