@@ -8,6 +8,10 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ModoAlimentarProvider } from '@/contexts/ModoAlimentarContext';
 import { inicializarNotificacoes } from '@/services/notifications';
 import * as Sentry from '@sentry/react-native';
+import { QueryProvider } from '@/providers/QueryProvider';
+import { NetworkProvider } from '@/providers/NetworkProvider';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { useMutationQueueSync } from '@/hooks/useOfflineMutation';
 
 Sentry.init({
   dsn: 'https://45db6b759cff9374c6e76b2e9c585d3c@o4504663060578304.ingest.us.sentry.io/4511559245758464',
@@ -28,6 +32,8 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { isSignedIn, loading } = useAuth();
+  // Processa fila de mutações offline quando reconectar
+  useMutationQueueSync();
 
   useEffect(() => {
     if (!loading) {
@@ -74,13 +80,18 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#F5A623' }}>
       <SafeAreaProvider>
-        <ThemeProvider value={AppTheme}>
-          <AuthProvider>
-            <ModoAlimentarProvider>
-              <RootLayoutContent />
-            </ModoAlimentarProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <NetworkProvider>
+            <ThemeProvider value={AppTheme}>
+              <AuthProvider>
+                <ModoAlimentarProvider>
+                  <RootLayoutContent />
+                  <OfflineBanner />
+                </ModoAlimentarProvider>
+              </AuthProvider>
+            </ThemeProvider>
+          </NetworkProvider>
+        </QueryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
