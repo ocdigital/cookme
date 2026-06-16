@@ -1,11 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { ComprasService } from './compras.service';
 import { Compra } from './entities/compra.entity';
 import { CompraItem } from './entities/compra-item.entity';
 import { Produto } from '../produtos/entities/produto.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
 import { ProductClassificationService } from '../product-classification/services/product-classification.service';
+import { OcrAliasService } from '../product-classification/services/ocr-alias.service';
+import { ProductImageService } from '../produtos/services/product-image.service';
 import { Repository } from 'typeorm';
 
 describe('ComprasService', () => {
@@ -20,6 +23,7 @@ describe('ComprasService', () => {
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
+    update: jest.fn().mockResolvedValue({}),
     query: jest.fn(),
   });
 
@@ -47,6 +51,32 @@ describe('ComprasService', () => {
           provide: ProductClassificationService,
           useValue: {
             classificarEmBatch: jest.fn().mockResolvedValue({}),
+          },
+        },
+        {
+          provide: OcrAliasService,
+          useValue: {
+            resolverAlias: jest.fn().mockImplementation((nome: string) => Promise.resolve(nome)),
+            resolverNomeCanônico: jest.fn().mockImplementation((nome: string) => Promise.resolve(nome)),
+          },
+        },
+        {
+          provide: ProductImageService,
+          useValue: {
+            fetchAndSaveProductImage: jest.fn().mockResolvedValue(null),
+          },
+        },
+        {
+          provide: DataSource,
+          useValue: {
+            createQueryRunner: jest.fn().mockReturnValue({
+              connect: jest.fn(),
+              startTransaction: jest.fn(),
+              commitTransaction: jest.fn(),
+              rollbackTransaction: jest.fn(),
+              release: jest.fn(),
+              manager: { save: jest.fn(), findOne: jest.fn() },
+            }),
           },
         },
       ],
