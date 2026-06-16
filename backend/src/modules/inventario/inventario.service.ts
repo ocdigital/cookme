@@ -640,7 +640,7 @@ export class InventarioService {
          LEFT JOIN product_knowledge_base pkb ON pkb.product_name ILIKE p.nome
          WHERE inv.usuario_id = $1
            AND inv.esgotado = false
-           AND p.ingrediente_receita = true`,
+           AND p.ingrediente_receita IS NOT FALSE`,
         [usuarioId],
       );
 

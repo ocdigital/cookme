@@ -99,8 +99,9 @@ export class Produto {
     verificado: boolean;
 
     // Flag: pode ser usado como ingrediente em receitas
-    @Column({ default: false })
-    ingrediente_receita: boolean;
+    // NULL = não classificado ainda (passa pelo filtro), false = explicitamente não-ingrediente
+    @Column({ nullable: true, default: null })
+    ingrediente_receita: boolean | null;
 
     // Classificação IA: confiança da classificação (0-100)
     @Column({ type: 'int', nullable: true, default: null })

@@ -722,7 +722,7 @@ export class AdminService {
     }
     produto.ingrediente_receita = ingrediente_receita;
     const saved = await this.produtoRepository.save(produto);
-    return { id: saved.id, nome: saved.nome, ingrediente_receita: saved.ingrediente_receita };
+    return { id: saved.id, nome: saved.nome, ingrediente_receita: saved.ingrediente_receita ?? false };
   }
 
   async resetarSenhaUsuario(usuarioId: string): Promise<{ senha_temporaria: string }> {
