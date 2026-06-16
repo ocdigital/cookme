@@ -296,13 +296,16 @@ export class AbbreviationService implements OnModuleInit {
 
   private async seedIfEmpty() {
     this.logger.log('Populando tabela de abreviações com seed inicial...');
-    const entities = SEED_ABBREVIATIONS.map(([abbr, expanded, is_ingredient, categoria]) =>
-      this.repo.create({ abbr, expanded, is_ingredient, categoria, source: 'seed' }),
-    );
-    await this.repo.upsert(
-      entities.map(e => ({ abbr: e.abbr, expanded: e.expanded, is_ingredient: e.is_ingredient, categoria: e.categoria, source: e.source })),
-      { conflictPaths: ['abbr'], skipUpdateIfNoValuesChanged: true },
-    );
+    const seen = new Set<string>();
+    const unique = SEED_ABBREVIATIONS.filter(([abbr]) => {
+      if (seen.has(abbr)) return false;
+      seen.add(abbr);
+      return true;
+    });
+    const rows = unique.map(([abbr, expanded, is_ingredient, categoria]) => ({
+      abbr, expanded, is_ingredient, categoria, source: 'seed',
+    }));
+    await this.repo.upsert(rows, { conflictPaths: ['abbr'], skipUpdateIfNoValuesChanged: true });
     this.logger.log(`${entities.length} abreviações inseridas.`);
   }
 
