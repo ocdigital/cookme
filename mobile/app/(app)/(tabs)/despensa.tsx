@@ -18,6 +18,9 @@ import ScreenTutorial from '@/components/ScreenTutorial';
 import { useScreenTutorial } from '@/hooks/useScreenTutorial';
 import { queryKeys } from '@/lib/queryKeys';
 import { STALE_TIMES, GC_TIMES } from '@/lib/queryClient';
+import { useNetworkStatus } from '@/providers/NetworkProvider';
+import { useMutationQueueStore } from '@/stores/mutationQueue.store';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 
 interface Produto {
   id: string;
@@ -184,6 +187,9 @@ export default function DespensaScreen() {
   const [addNome, setAddNome] = useState('');
   const [adicionando, setAdicionando] = useState(false);
   const insets = useSafeAreaInsets();
+  const { isConnected, isInternetReachable } = useNetworkStatus();
+  const isOnline = isConnected && isInternetReachable;
+  const { enqueue } = useMutationQueueStore();
 
   const { showTutorial, dismissTutorial } = useScreenTutorial('despensa');
 
@@ -259,6 +265,16 @@ export default function DespensaScreen() {
     // Optimistic update
     const prev = queryClient.getQueryData<Produto[]>(queryKeys.inventario()) ?? [];
     queryClient.setQueryData<Produto[]>(queryKeys.inventario(), prev.map(x => x.id === id ? { ...x, esgotado } : x));
+    if (!isOnline) {
+      // Offline: enfileirar para sync quando reconectar
+      enqueue({
+        method: 'patch',
+        url: `/inventario/${id}/esgotado`,
+        data: { esgotado },
+        invalidateKeys: [Array.from(queryKeys.inventario())],
+      });
+      return;
+    }
     try {
       await api.patch(`/inventario/${id}/esgotado`, { esgotado });
     } catch {
@@ -409,6 +425,8 @@ export default function DespensaScreen() {
           <Text style={styles.navChipTxt}>Compras</Text>
         </TouchableOpacity>
       </View>
+
+      <OfflineIndicator queryKey={Array.from(queryKeys.inventario())} />
 
       {loading ? (
         <View style={styles.centered}><ActivityIndicator size="large" color={C.green[500]} /></View>

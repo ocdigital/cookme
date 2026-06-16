@@ -3,10 +3,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import planejamentoService, { PlanejamentoItem } from '@/services/planejamento.service';
 import { queryKeys } from '@/lib/queryKeys';
 import { STALE_TIMES, GC_TIMES } from '@/lib/queryClient';
+import { useNetworkStatus } from '@/providers/NetworkProvider';
+import { useMutationQueueStore } from '@/stores/mutationQueue.store';
 
 export function usePlanejamento(semana: number) {
   const queryClient = useQueryClient();
   const key = queryKeys.planejamentoSemana(semana);
+  const { isConnected, isInternetReachable } = useNetworkStatus();
+  const isOnline = isConnected && isInternetReachable;
+  const { enqueue } = useMutationQueueStore();
 
   const { data, isFetching: loading, error } = useQuery({
     queryKey: key,
@@ -50,12 +55,27 @@ export function usePlanejamento(semana: number) {
   }, [queryClient]);
 
   const marcarFeita = useCallback(async (id: string, avaliacao?: number) => {
+    if (!isOnline) {
+      // Offline: aplicar update otimista e enfileirar para sync
+      queryClient.setQueryData<PlanejamentoItem[]>(key, (prev = []) =>
+        prev.map(i => (i.id === id ? { ...i, feita: true } : i)),
+      );
+      enqueue({
+        method: 'post',
+        url: `/planejamento/${id}/feita`,
+        data: avaliacao !== undefined ? { avaliacao } : {},
+        invalidateKeys: [Array.from(key).map(String)],
+      });
+      // Retornar item otimista — sem acesso ao item real offline
+      const prev = queryClient.getQueryData<PlanejamentoItem[]>(key) ?? [];
+      return prev.find(i => i.id === id) ?? ({ id, feita: true } as unknown as PlanejamentoItem);
+    }
     const updated = await planejamentoService.marcarFeita(id, avaliacao);
     queryClient.setQueryData<PlanejamentoItem[]>(key, (prev = []) =>
       prev.map(i => (i.id === id ? updated : i)),
     );
     return updated;
-  }, [queryClient, key]);
+  }, [queryClient, key, isOnline, enqueue]);
 
   const limparDia = useCallback(async (sem: number, dia: number, tipo?: 'almoco' | 'jantar') => {
     await planejamentoService.limparDia(sem, dia, tipo);

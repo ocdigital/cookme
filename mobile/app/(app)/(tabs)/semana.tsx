@@ -12,6 +12,8 @@ import api from '@/services/api';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 import ScreenTutorial from '@/components/ScreenTutorial';
 import { useScreenTutorial } from '@/hooks/useScreenTutorial';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { queryKeys } from '@/lib/queryKeys';
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -431,6 +433,8 @@ export default function SemanaScreen() {
         />
       </TouchableOpacity>
       */}
+
+      <OfflineIndicator queryKey={Array.from(queryKeys.planejamentoSemana(semanaAtiva))} />
 
       {/* Tabs de semana */}
       <View style={styles.semanasTabs}>

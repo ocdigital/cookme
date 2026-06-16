@@ -17,6 +17,9 @@ import ScreenTutorial from '@/components/ScreenTutorial';
 import { useScreenTutorial } from '@/hooks/useScreenTutorial';
 import { queryKeys } from '@/lib/queryKeys';
 import { STALE_TIMES, GC_TIMES } from '@/lib/queryClient';
+import { useNetworkStatus } from '@/providers/NetworkProvider';
+import { useMutationQueueStore } from '@/stores/mutationQueue.store';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -123,6 +126,9 @@ export default function ReceitasScreen() {
   const [comprando, setComprando] = useState<string | null>(null);
   const { gerarReceitas } = useRecipeGenerator();
   const { showTutorial, dismissTutorial } = useScreenTutorial('receitas');
+  const { isConnected, isInternetReachable } = useNetworkStatus();
+  const isOnline = isConnected && isInternetReachable;
+  const { enqueue } = useMutationQueueStore();
 
   // Sheet de ingredientes (compartilhado entre "Fiz essa!" e "Faltando")
   const [sheet, setSheet] = useState<{ receita: ReceitaDisponivel; modo: 'fiz' | 'faltando' } | null>(null);
@@ -179,6 +185,15 @@ export default function ReceitasScreen() {
       queryKeys.receitasFavoritas(),
       isFav ? prevFav.filter(r => r.id !== receitaId) : [...prevFav, { id: receitaId }],
     );
+    if (!isOnline) {
+      // Offline: enfileirar para sync quando reconectar
+      enqueue({
+        method: 'post',
+        url: `/receitas/${receitaId}/favoritar`,
+        invalidateKeys: [Array.from(queryKeys.receitasFavoritas())],
+      });
+      return;
+    }
     try {
       await api.post(`/receitas/${receitaId}/favoritar`);
     } catch {
@@ -198,6 +213,10 @@ export default function ReceitasScreen() {
   };
 
   const handleGerar = async () => {
+    if (!isOnline) {
+      Alert.alert('Sem conexão', 'Esta ação requer conexão com a internet para gerar receitas com IA.');
+      return;
+    }
     try {
       setGerando(true);
       await gerarReceitas([], true);
@@ -227,9 +246,18 @@ export default function ReceitasScreen() {
   };
 
   const abrirFiz = async (receita: ReceitaDisponivel) => {
-    try {
-      await api.post(`/receitas/${receita.id}/executar`);
-    } catch { /* silencioso — registra em background */ }
+    if (!isOnline) {
+      // Offline: enfileirar o registro de execução para sync quando reconectar
+      enqueue({
+        method: 'post',
+        url: `/receitas/${receita.id}/executar`,
+        invalidateKeys: [Array.from(queryKeys.receitasDisponiveis(modoAlimentar))],
+      });
+    } else {
+      try {
+        await api.post(`/receitas/${receita.id}/executar`);
+      } catch { /* silencioso — registra em background */ }
+    }
     setSheet({ receita, modo: 'fiz' });
   };
 
@@ -254,6 +282,19 @@ export default function ReceitasScreen() {
   const parciais = receitas.filter(r => !r.disponivel && !r.tem_protagonista && !urgentesIds.has(r.id));
   const modoInfo = MODO_INFO[modoAlimentar];
 
+  // Timestamp da última atualização dos dados de receitas
+  const queryState = queryClient.getQueryState(queryKeys.receitasDisponiveis(modoAlimentar));
+  const dataAtualizada = queryState?.dataUpdatedAt
+    ? (() => {
+        const diff = Date.now() - queryState.dataUpdatedAt;
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'agora';
+        if (mins < 60) return `${mins}min atrás`;
+        const hrs = Math.floor(mins / 60);
+        return `${hrs}h atrás`;
+      })()
+    : null;
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -265,7 +306,11 @@ export default function ReceitasScreen() {
           <Text style={styles.headerSub}>IA Culinária</Text>
           <Text style={styles.headerTitle}>Receitas</Text>
         </View>
-        <TouchableOpacity style={styles.btnGerar} onPress={handleGerar} disabled={gerando}>
+        <TouchableOpacity
+          style={[styles.btnGerar, !isOnline && { opacity: 0.5 }]}
+          onPress={handleGerar}
+          disabled={gerando}
+        >
           {gerando
             ? <ActivityIndicator size="small" color={C.ink[0]} />
             : <>
@@ -313,6 +358,8 @@ export default function ReceitasScreen() {
         </TouchableOpacity>
       </View>
 
+      <OfflineIndicator queryKey={Array.from(queryKeys.receitasDisponiveis(modoAlimentar))} />
+
       {loading ? (
         <View style={styles.centered}><ActivityIndicator size="large" color={C.green[500]} /></View>
       ) : receitas.length === 0 ? (
@@ -324,6 +371,7 @@ export default function ReceitasScreen() {
             <MaterialCommunityIcons name="fridge-outline" size={16} color={C.green[600]} />
             <Text style={styles.resumoText}>
               {totalIngredientes} ingredientes · {disponiveis.length + comProtagonista.length} receitas sugeridas
+              {dataAtualizada ? ` · ${dataAtualizada}` : ''}
             </Text>
             <TouchableOpacity onPress={() => queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) })}>
               <MaterialCommunityIcons name="refresh" size={16} color={C.ink[400]} />
