@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, ActivityIndicator, Image, ImageBackground, AppState,
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModoAlimentar, MODO_CORES } from '@/contexts/ModoAlimentarContext';
 import api from '@/services/api';
@@ -15,8 +16,10 @@ import { colors as C, radius, typography as T, shadows } from '@/constants/theme
 import ScreenTutorial from '@/components/ScreenTutorial';
 import { useScreenTutorial } from '@/hooks/useScreenTutorial';
 import { OnboardingAprendizadoModal } from '@/components/OnboardingAprendizadoModal';
-import { DesafioCard } from '@/components/DesafioCard';
+import { DesafioCard, ReceitaDesafio } from '@/components/DesafioCard';
 import * as SecureStore from 'expo-secure-store';
+import { queryKeys } from '@/lib/queryKeys';
+import { STALE_TIMES, GC_TIMES } from '@/lib/queryClient';
 
 // ─── tipos ────────────────────────────────────────────────────────────────────
 
@@ -34,10 +37,6 @@ interface ReceitaSimples {
   usa_vencendo?: string[];
 }
 
-interface ReceitaDesafio extends ReceitaSimples {
-  ingredientes_faltando: string[];
-  total_ingredientes: number;
-}
 
 function ehSexta() {
   return new Date().getDay() === 5;
@@ -390,23 +389,11 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<Stats>({ alimentos: 0, listas: 0 });
-  const [receitaDoDia, setReceitaDoDia] = useState<ReceitaSimples | null>(null);
-  const [tipoRefeicao, setTipoRefeicao] = useState<string>('almoco');
-  const [sugestoes, setSugestoes] = useState<ReceitaSimples[]>([]);
-  const [urgentes, setUrgentes] = useState<ReceitaSimples[]>([]);
-  const [maisFeita, setMaisFeita] = useState<ReceitaSimples | null>(null);
-const { modoAlimentar, setModoAlimentar: setModoCtx } = useModoAlimentar();
-  const [naoLidas, setNaoLidas] = useState(0);
-  const [favoritosIds, setFavoritosIds] = useState<Set<string>>(new Set());
-  const [escolhidos, setEscolhidos] = useState<ReceitaSimples[]>([]);
-  const [sextou, setSextou] = useState<ReceitaSimples[]>([]);
-  const [recentes, setRecentes] = useState<ReceitaSimples[]>([]);
-  const [desafios, setDesafios] = useState<ReceitaDesafio[]>([]);
+  const queryClient = useQueryClient();
+  const { modoAlimentar, setModoAlimentar: setModoCtx } = useModoAlimentar();
   const { showTutorial, dismissTutorial } = useScreenTutorial('home');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [tipoRefeicao, setTipoRefeicao] = useState<string>('almoco');
 
   useEffect(() => {
     SecureStore.getItemAsync('onboarding_aprendizado_seen').then(val => {
@@ -419,137 +406,175 @@ const { modoAlimentar, setModoAlimentar: setModoCtx } = useModoAlimentar();
     await SecureStore.setItemAsync('onboarding_aprendizado_seen', '1').catch(() => {});
   };
 
-  useFocusEffect(
-    React.useCallback(() => { carregar(); }, [])
+  // ─── Queries ──────────────────────────────────────────────────────────────────
+
+  const { data: inventarioData, isFetching: loadingInv } = useQuery({
+    queryKey: queryKeys.inventario(),
+    queryFn: () => api.get('/inventario').then(r => r.data?.produtos || r.data?.data || []),
+    staleTime: STALE_TIMES.inventario,
+    gcTime: GC_TIMES.inventario,
+  });
+
+  const { data: listasData } = useQuery({
+    queryKey: queryKeys.listas(),
+    queryFn: () => api.get('/listas').then(r => r.data?.listas || r.data || []),
+    staleTime: STALE_TIMES.listas,
+    gcTime: GC_TIMES.listas,
+  });
+
+  const { data: planejamentoHoje } = useQuery({
+    queryKey: queryKeys.planejamentoHoje(),
+    queryFn: () => api.get('/planejamento/hoje').then(r => r.data?.item ?? null),
+    staleTime: STALE_TIMES.planejamento,
+    gcTime: GC_TIMES.planejamento,
+  });
+
+  const { data: receitasData, isFetching: loadingReceitas } = useQuery({
+    queryKey: queryKeys.receitasDisponiveis(modoAlimentar),
+    queryFn: async () => {
+      const r = await api.get('/receitas/disponiveis');
+      const modoApi = r.data?.modo_alimentar;
+      if (modoApi) setModoCtx(modoApi);
+      return r.data;
+    },
+    staleTime: STALE_TIMES.receitas_lista,
+    gcTime: GC_TIMES.receitas_lista,
+  });
+
+  const { data: maisfeitaData } = useQuery({
+    queryKey: queryKeys.receitaMaisFeita(),
+    queryFn: () => api.get('/receitas/mais-feita-hoje').then(r => r.data?.receita || r.data || null),
+    staleTime: STALE_TIMES.receitas_lista,
+    gcTime: GC_TIMES.receitas_lista,
+  });
+
+  const { data: favoritasData } = useQuery({
+    queryKey: queryKeys.receitasFavoritas(),
+    queryFn: () => api.get('/receitas/favoritas').then(r => r.data as { id: string }[]),
+    staleTime: STALE_TIMES.favoritas,
+    gcTime: GC_TIMES.favoritas,
+  });
+
+  const { data: paraMimData } = useQuery({
+    queryKey: queryKeys.receitasSugestoesParaMim(),
+    queryFn: () => api.get('/receitas/sugestoes/para-mim', {
+      params: { modo_alimentar: modoAlimentar !== 'normal' ? modoAlimentar : undefined },
+    }).then(r => r.data || []),
+    staleTime: STALE_TIMES.receitas_lista,
+    gcTime: GC_TIMES.receitas_lista,
+  });
+
+  const { data: desafiosData } = useQuery({
+    queryKey: queryKeys.receitasDesafios(),
+    queryFn: () => api.get('/receitas/sugestoes/desafios').then(r => r.data || []),
+    staleTime: STALE_TIMES.receitas_lista,
+    gcTime: GC_TIMES.receitas_lista,
+  });
+
+  const { data: notifData } = useQuery({
+    queryKey: queryKeys.notificacoesContagem(),
+    queryFn: () => api.get('/notificacoes-usuario/nao-lidas/contagem').then(r => r.data?.total ?? 0),
+    staleTime: STALE_TIMES.notificacoes,
+    gcTime: GC_TIMES.notificacoes,
+  });
+
+  // Recentes: endpoint pode não existir (404 ignorado)
+  const { data: recentesData } = useQuery({
+    queryKey: queryKeys.receitasExecutadasRecentes(),
+    queryFn: () => api.get('/receitas/executadas/recentes').then(r => {
+      const lista: any[] = r.data?.receitas || r.data || [];
+      return lista.slice(0, 6).map((e: any) => e.receita || e) as ReceitaSimples[];
+    }),
+    staleTime: STALE_TIMES.historico,
+    gcTime: GC_TIMES.historico,
+    retry: false,
+  });
+
+  // Sextou — só carrega na sexta
+  const { data: sextouData } = useQuery({
+    queryKey: ['receitas', 'sextou'],
+    queryFn: () => api.get('/receitas/disponiveis', {
+      params: { tags: 'petisco,pizza,boteco,churrasco', limit: 6 },
+    }).then(r => (r.data?.receitas || r.data || []).slice(0, 6) as ReceitaSimples[]),
+    enabled: ehSexta(),
+    staleTime: STALE_TIMES.receitas_lista,
+    gcTime: GC_TIMES.receitas_lista,
+  });
+
+  // Derivações a partir dos dados
+  const loading = loadingInv || loadingReceitas;
+  const naoLidas: number = notifData ?? 0;
+  const maisFeita: ReceitaSimples | null = maisfeitaData?.id ? maisfeitaData : null;
+  const escolhidos: ReceitaSimples[] = paraMimData ?? [];
+  const desafios: ReceitaDesafio[] = desafiosData ?? [];
+  const recentes: ReceitaSimples[] = recentesData ?? [];
+  const sextou: ReceitaSimples[] = sextouData ?? [];
+
+  const receitaDoDia = useMemo(() => planejamentoHoje?.receita ?? null, [planejamentoHoje]);
+
+  useEffect(() => {
+    if (planejamentoHoje?.tipo_refeicao) setTipoRefeicao(planejamentoHoje.tipo_refeicao);
+  }, [planejamentoHoje]);
+
+  const todasReceitas: any[] = receitasData?.receitas || [];
+  const urgentes: ReceitaSimples[] = useMemo(() =>
+    todasReceitas
+      .filter((r: any) => r.usa_vencendo && r.usa_vencendo.length > 0)
+      .sort((a: any, b: any) => (b.cobertura || 0) - (a.cobertura || 0))
+      .slice(0, 6),
+  [todasReceitas]);
+
+  const sugestoes: ReceitaSimples[] = useMemo(() =>
+    [...todasReceitas]
+      .sort((a: any, b: any) => {
+        if (a.disponivel && !b.disponivel) return -1;
+        if (!a.disponivel && b.disponivel) return 1;
+        return (b.cobertura || 0) - (a.cobertura || 0);
+      })
+      .slice(0, 5),
+  [todasReceitas]);
+
+  const stats: Stats = useMemo(() => ({
+    alimentos: (inventarioData ?? []).filter((p: any) => p.ingrediente_receita !== false).length,
+    listas: (listasData ?? []).filter((l: any) => l.status === 'ativa').length,
+  }), [inventarioData, listasData]);
+
+  const favoritosIds = useMemo(
+    () => new Set((favoritasData ?? []).map((r: { id: string }) => r.id)),
+    [favoritasData],
   );
 
-  // Recarrega quando app volta do background
+  // Invalida queries ao focar
+  useFocusEffect(useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.planejamentoHoje() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.notificacoesContagem() });
+  }, [modoAlimentar]));
+
+  // Invalida quando app volta do background
   const appState = useRef(AppState.currentState);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
       if (appState.current.match(/inactive|background/) && next === 'active') {
-        carregar();
+        queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.planejamentoHoje() });
       }
       appState.current = next;
     });
     return () => sub.remove();
-  }, []);
-
-  const carregar = async () => {
-    try {
-      const [inventario, listas, planejamento, receitas, popular, favoritas] = await Promise.allSettled([
-        api.get('/inventario'),
-        api.get('/listas'),
-        api.get('/planejamento/hoje'),
-        api.get('/receitas/disponiveis'),
-        api.get('/receitas/mais-feita-hoje'),
-        api.get('/receitas/favoritas'),
-      ]);
-
-      const produtos = inventario.status === 'fulfilled'
-        ? (inventario.value.data?.produtos || inventario.value.data?.data || []) : [];
-      const listasData = listas.status === 'fulfilled'
-        ? (listas.value.data?.listas || listas.value.data || []) : [];
-
-      setStats({
-        alimentos: produtos.filter((p: any) => p.ingrediente_receita !== false).length,
-        listas: listasData.filter((l: any) => l.status === 'ativa').length,
-      });
-
-      if (planejamento.status === 'fulfilled') {
-        const item = planejamento.value.data?.item;
-        if (item?.receita) {
-          setReceitaDoDia(item.receita);
-          setTipoRefeicao(item.tipo_refeicao || 'almoco');
-        }
-      }
-
-      if (receitas.status === 'fulfilled') {
-        const modoApi = receitas.value.data?.modo_alimentar;
-      if (modoApi) setModoCtx(modoApi);
-        const lista: any[] = receitas.value.data?.receitas || receitas.value.data || [];
-
-        // Urgentes: usam ingredientes vencendo (independente de disponível)
-        const comVencimento = lista
-          .filter((r: any) => r.usa_vencendo && r.usa_vencendo.length > 0)
-          .sort((a: any, b: any) => (b.cobertura || 0) - (a.cobertura || 0))
-          .slice(0, 6);
-        setUrgentes(comVencimento);
-
-        // Sugestões gerais: disponíveis primeiro, depois por cobertura
-        const ordenadas = [...lista].sort((a: any, b: any) => {
-          if (a.disponivel && !b.disponivel) return -1;
-          if (!a.disponivel && b.disponivel) return 1;
-          return (b.cobertura || 0) - (a.cobertura || 0);
-        });
-        setSugestoes(ordenadas.slice(0, 5));
-      }
-
-      if (popular.status === 'fulfilled') {
-        const r = popular.value.data?.receita || popular.value.data;
-        if (r?.id) setMaisFeita(r);
-      }
-
-      if (favoritas.status === 'fulfilled') {
-        const ids = (favoritas.value.data as { id: string }[]).map((r) => r.id);
-        setFavoritosIds(new Set(ids));
-      }
-
-      // Escolhido para você — score personalizado
-      try {
-        const paraMim = await api.get('/receitas/sugestoes/para-mim', {
-          params: { modo_alimentar: modoAlimentar !== 'normal' ? modoAlimentar : undefined },
-        });
-        setEscolhidos(paraMim.data || []);
-      } catch {}
-
-      // Recentes — últimas receitas executadas
-      try {
-        const exec = await api.get('/receitas/executadas/recentes');
-        const lista: any[] = exec.data?.receitas || exec.data || [];
-        setRecentes(lista.slice(0, 6).map((e: any) => e.receita || e));
-      } catch {}
-
-      // Sextou — só na sexta, busca receitas com tags de petisco/pizza/buteco
-      if (ehSexta()) {
-        try {
-          const sex = await api.get('/receitas/disponiveis', {
-            params: { tags: 'petisco,pizza,boteco,churrasco', limit: 6 },
-          });
-          const lista: any[] = sex.data?.receitas || sex.data || [];
-          setSextou(lista.slice(0, 6));
-        } catch {}
-      }
-
-      // Desafios — receitas nunca feitas com 40-75% de cobertura
-      try {
-        const desafiosRes = await api.get('/receitas/sugestoes/desafios');
-        setDesafios(desafiosRes.data || []);
-      } catch {}
-
-      // Contagem de notificações não lidas
-      try {
-        const notif = await api.get('/notificacoes-usuario/nao-lidas/contagem');
-        setNaoLidas(notif.data?.total ?? 0);
-      } catch {}
-    } catch {}
-    finally { setLoading(false); }
-  };
+  }, [modoAlimentar]);
 
   const toggleFavorito = async (receitaId: string) => {
-    setFavoritosIds((prev) => {
-      const next = new Set(prev);
-      next.has(receitaId) ? next.delete(receitaId) : next.add(receitaId);
-      return next;
-    });
+    const prev = queryClient.getQueryData<{ id: string }[]>(queryKeys.receitasFavoritas()) ?? [];
+    const isFav = prev.some(r => r.id === receitaId);
+    queryClient.setQueryData<{ id: string }[]>(
+      queryKeys.receitasFavoritas(),
+      isFav ? prev.filter(r => r.id !== receitaId) : [...prev, { id: receitaId }],
+    );
     try {
       await api.post(`/receitas/${receitaId}/favoritar`);
     } catch {
-      setFavoritosIds((prev) => {
-        const next = new Set(prev);
-        next.has(receitaId) ? next.delete(receitaId) : next.add(receitaId);
-        return next;
-      });
+      queryClient.setQueryData(queryKeys.receitasFavoritas(), prev);
     }
   };
 

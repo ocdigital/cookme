@@ -8,9 +8,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 import ScreenWrapper from '@/components/ScreenWrapper';
+import { queryKeys } from '@/lib/queryKeys';
+import { STALE_TIMES, GC_TIMES } from '@/lib/queryClient';
 
 interface Receita {
   id: string;
@@ -79,10 +82,8 @@ export default function ReceitaDetalheScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [receita, setReceita] = useState<Receita | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [executando, setExecutando] = useState(false);
-  const [favoritado, setFavoritado] = useState(false);
   const [togglingFav, setTogglingFav] = useState(false);
 
   // Foto
@@ -92,8 +93,6 @@ export default function ReceitaDetalheScreen() {
   const [enviandoFoto, setEnviandoFoto] = useState(false);
 
   // Avaliação
-  const [minhaNotaAtual, setMinhaNotaAtual] = useState(0);
-  const [meuComentarioAtual, setMeuComentarioAtual] = useState('');
   const [modalAvaliacao, setModalAvaliacao] = useState(false);
   const [notaSelecionada, setNotaSelecionada] = useState(0);
   const [textoComentario, setTextoComentario] = useState('');
@@ -105,69 +104,60 @@ export default function ReceitaDetalheScreen() {
   const [confirmandoFiz, setConfirmandoFiz] = useState(false);
   const [mostrarExtras, setMostrarExtras] = useState(false);
 
-  // Comentários
-  const [comentarios, setComentarios] = useState<Comentario[]>([]);
-  const [loadingComentarios, setLoadingComentarios] = useState(false);
+  // Dados de navegação (passados via params) como placeholder inicial
+  const dadosNavegacao: Receita | null = dados ? (() => { try { const p = JSON.parse(dados as string); return p?.id === id ? p : null; } catch { return null; } })() : null;
 
-  useEffect(() => {
-    if (!id) return;
-    if (dados) {
-      try {
-        const parsed = JSON.parse(dados as string);
-        if (parsed?.id === id) {
-          setReceita(parsed);
-          setLoading(false);
-          carregarExtras(id);
-          return;
-        }
-      } catch {}
-    }
-    carregarReceita();
-  }, [id]);
-
-  const carregarReceita = async () => {
-    try {
-      setLoading(true);
+  const { data: receita, isLoading: loading } = useQuery({
+    queryKey: queryKeys.receitaDetalhe(id ?? ''),
+    queryFn: async () => {
       const res = await api.get(`/receitas/${id}`);
-      setReceita(res.data?.receita || res.data);
-      carregarExtras(id!);
-    } catch {
-      Alert.alert('Erro', 'Não foi possível carregar a receita');
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  };
+      return (res.data?.receita || res.data) as Receita;
+    },
+    enabled: !!id,
+    staleTime: STALE_TIMES.receita_individual,
+    gcTime: GC_TIMES.receita_individual,
+    // Usa dados de navegação como placeholder enquanto busca
+    placeholderData: dadosNavegacao ?? undefined,
+  });
+
+  // Avaliação + comentários + favorito
+  const { data: extrasData, isLoading: loadingComentarios, refetch: refetchExtras } = useQuery({
+    queryKey: queryKeys.receitaAvaliacao(id ?? ''),
+    queryFn: async () => {
+      const [avalRes, comRes, favRes] = await Promise.all([
+        api.get(`/receitas/${id}/minha-avaliacao`),
+        api.get(`/receitas/${id}/comentarios`),
+        api.get(`/receitas/${id}/favoritado`),
+      ]);
+      return {
+        minhaNotaAtual: avalRes.data?.nota ?? 0,
+        meuComentarioAtual: avalRes.data?.comentario ?? '',
+        comentarios: (comRes.data || []) as Comentario[],
+        favoritado: favRes.data?.favoritado ?? false,
+      };
+    },
+    enabled: !!id,
+    staleTime: STALE_TIMES.receita_individual,
+    gcTime: GC_TIMES.receita_individual,
+  });
+
+  const minhaNotaAtual = extrasData?.minhaNotaAtual ?? 0;
+  const meuComentarioAtual = extrasData?.meuComentarioAtual ?? '';
+  const comentarios: Comentario[] = extrasData?.comentarios ?? [];
+  const favoritado = extrasData?.favoritado ?? false;
 
   const toggleFavorito = async () => {
     if (!receita || togglingFav) return;
     try {
       setTogglingFav(true);
-      const res = await api.post(`/receitas/${receita.id}/favoritar`);
-      setFavoritado(res.data.favoritado);
+      await api.post(`/receitas/${receita.id}/favoritar`);
+      refetchExtras();
+      // Invalida também a lista de favoritas global
+      queryClient.invalidateQueries({ queryKey: queryKeys.receitasFavoritas() });
     } catch {
       Alert.alert('Erro', 'Não foi possível atualizar favoritos');
     } finally {
       setTogglingFav(false);
-    }
-  };
-
-  const carregarExtras = async (receitaId: string) => {
-    try {
-      setLoadingComentarios(true);
-      const [avalRes, comRes, favRes] = await Promise.all([
-        api.get(`/receitas/${receitaId}/minha-avaliacao`),
-        api.get(`/receitas/${receitaId}/comentarios`),
-        api.get(`/receitas/${receitaId}/favoritado`),
-      ]);
-      setMinhaNotaAtual(avalRes.data?.nota ?? 0);
-      setMeuComentarioAtual(avalRes.data?.comentario ?? '');
-      setComentarios(comRes.data || []);
-      setFavoritado(favRes.data?.favoritado ?? false);
-    } catch {
-      // silencioso
-    } finally {
-      setLoadingComentarios(false);
     }
   };
 
@@ -184,15 +174,13 @@ export default function ReceitaDetalheScreen() {
     }
     try {
       setEnviandoAvaliacao(true);
-      const res = await api.post(`/receitas/${receita!.id}/avaliar`, {
+      await api.post(`/receitas/${receita!.id}/avaliar`, {
         nota: notaSelecionada,
         comentario: textoComentario.trim() || undefined,
       });
-      setMinhaNotaAtual(notaSelecionada);
-      setMeuComentarioAtual(textoComentario.trim());
-      setReceita(prev => prev ? { ...prev, avaliacao_media: res.data.avaliacao_media } : prev);
       setModalAvaliacao(false);
-      await carregarExtras(receita!.id);
+      refetchExtras();
+      queryClient.invalidateQueries({ queryKey: queryKeys.receitaDetalhe(id ?? '') });
       Alert.alert('Obrigado! ⭐', 'Sua avaliação foi registrada.');
     } catch {
       Alert.alert('Erro', 'Não foi possível enviar a avaliação');

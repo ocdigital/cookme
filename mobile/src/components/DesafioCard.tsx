@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 
-interface ReceitaDesafio {
+export interface ReceitaDesafio {
   id: string;
   nome?: string;
   titulo?: string;

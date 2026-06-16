@@ -8,12 +8,15 @@ import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { useModoAlimentar } from '@/contexts/ModoAlimentarContext';
 import { useRecipeGenerator } from '@/hooks/useRecipeGenerator';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 import ScreenTutorial from '@/components/ScreenTutorial';
 import { useScreenTutorial } from '@/hooks/useScreenTutorial';
+import { queryKeys } from '@/lib/queryKeys';
+import { STALE_TIMES, GC_TIMES } from '@/lib/queryClient';
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -115,13 +118,8 @@ export default function ReceitasScreen() {
   const insets = useSafeAreaInsets();
 
   const { modoAlimentar, setModoAlimentar: setModoCtx } = useModoAlimentar();
-  const [receitas, setReceitas] = useState<ReceitaDisponivel[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [gerando, setGerando] = useState(false);
-  const [totalIngredientes, setTotalIngredientes] = useState(0);
-  const [ingredientesVencendo, setIngredientesVencendo] = useState<string[]>([]);
-  const [favoritosIds, setFavoritosIds] = useState<Set<string>>(new Set());
-  const [quaseReceitas, setQuaseReceitas] = useState<QuaseReceita[]>([]);
   const [comprando, setComprando] = useState<string | null>(null);
   const { gerarReceitas } = useRecipeGenerator();
   const { showTutorial, dismissTutorial } = useScreenTutorial('receitas');
@@ -129,56 +127,62 @@ export default function ReceitasScreen() {
   // Sheet de ingredientes (compartilhado entre "Fiz essa!" e "Faltando")
   const [sheet, setSheet] = useState<{ receita: ReceitaDisponivel; modo: 'fiz' | 'faltando' } | null>(null);
 
-  useFocusEffect(useCallback(() => { carregarReceitas(); carregarFavoritos(); carregarQuaseReceitas(); }, []));
+  // ─── Queries ──────────────────────────────────────────────────────────────────
 
-  const carregarReceitas = async () => {
-    try {
-      setLoading(true);
+  const { data: receitasData, isFetching: loading } = useQuery({
+    queryKey: queryKeys.receitasDisponiveis(modoAlimentar),
+    queryFn: async () => {
       const res = await api.get('/receitas/disponiveis');
-      setReceitas(res.data.receitas || []);
       const modoApi = res.data.modo_alimentar as ModoAlimentar;
       if (modoApi) setModoCtx(modoApi);
-      setTotalIngredientes(res.data.ingredientes_ativos || 0);
-      setIngredientesVencendo(res.data.ingredientes_vencendo || []);
-    } catch {
-      // silencioso — pode ser inventário vazio
-    } finally {
-      setLoading(false);
-    }
-  };
+      return res.data;
+    },
+    staleTime: STALE_TIMES.receitas_lista,
+    gcTime: GC_TIMES.receitas_lista,
+  });
 
-  const carregarQuaseReceitas = async () => {
-    try {
-      const res = await api.get('/receitas/quase-possiveis');
-      setQuaseReceitas(res.data?.receitas || []);
-    } catch {
-      // silencioso
-    }
-  };
+  const { data: quaseData } = useQuery({
+    queryKey: ['receitas', 'quase-possiveis'],
+    queryFn: () => api.get('/receitas/quase-possiveis').then(r => r.data?.receitas ?? []),
+    staleTime: STALE_TIMES.receitas_lista,
+    gcTime: GC_TIMES.receitas_lista,
+  });
 
-  const carregarFavoritos = async () => {
-    try {
-      const res = await api.get('/receitas/favoritas');
-      setFavoritosIds(new Set((res.data as { id: string }[]).map((r) => r.id)));
-    } catch { /* silencioso */ }
-  };
+  const { data: favoritasData } = useQuery({
+    queryKey: queryKeys.receitasFavoritas(),
+    queryFn: () => api.get('/receitas/favoritas').then(r => r.data as { id: string }[]),
+    staleTime: STALE_TIMES.favoritas,
+    gcTime: GC_TIMES.favoritas,
+  });
+
+  const receitas: ReceitaDisponivel[] = receitasData?.receitas ?? [];
+  const totalIngredientes: number = receitasData?.ingredientes_ativos ?? 0;
+  const ingredientesVencendo: string[] = receitasData?.ingredientes_vencendo ?? [];
+  const quaseReceitas: QuaseReceita[] = quaseData ?? [];
+  const favoritosIds = useMemo(
+    () => new Set((favoritasData ?? []).map(r => r.id)),
+    [favoritasData],
+  );
+
+  // Recarrega ao focar na tela (invalida cache, não reseta state)
+  useFocusEffect(useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.receitasFavoritas() });
+    queryClient.invalidateQueries({ queryKey: ['receitas', 'quase-possiveis'] });
+  }, [modoAlimentar]));
 
   const toggleFavorito = async (receitaId: string) => {
-    // Optimistic update
-    setFavoritosIds((prev) => {
-      const next = new Set(prev);
-      next.has(receitaId) ? next.delete(receitaId) : next.add(receitaId);
-      return next;
-    });
+    // Optimistic update na cache
+    const prevFav = queryClient.getQueryData<{ id: string }[]>(queryKeys.receitasFavoritas()) ?? [];
+    const isFav = prevFav.some(r => r.id === receitaId);
+    queryClient.setQueryData<{ id: string }[]>(
+      queryKeys.receitasFavoritas(),
+      isFav ? prevFav.filter(r => r.id !== receitaId) : [...prevFav, { id: receitaId }],
+    );
     try {
       await api.post(`/receitas/${receitaId}/favoritar`);
     } catch {
-      // Reverter em caso de erro
-      setFavoritosIds((prev) => {
-        const next = new Set(prev);
-        next.has(receitaId) ? next.delete(receitaId) : next.add(receitaId);
-        return next;
-      });
+      queryClient.setQueryData(queryKeys.receitasFavoritas(), prevFav);
     }
   };
 
@@ -187,20 +191,17 @@ export default function ReceitasScreen() {
     setModoCtx(novoModo);
     try {
       await api.patch('/usuarios/preferencias', { modo_alimentar: novoModo });
-      await carregarReceitas();
+      queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(novoModo) });
     } catch {
-      setModoCtx(modoAlimentar); // reverter
+      setModoCtx(modoAlimentar);
     }
   };
 
   const handleGerar = async () => {
     try {
       setGerando(true);
-      // Envia lista vazia — o backend busca os ingredientes do inventário do usuário
-      // usando nome_display limpo e filtrando esgotados automaticamente
-      // forcar_ia=true garante que a IA gera receitas novas com os ingredientes atuais
       await gerarReceitas([], true);
-      await carregarReceitas();
+      queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
     } catch {
       Alert.alert('Erro', 'Falha ao gerar receitas');
     } finally {
@@ -238,7 +239,7 @@ export default function ReceitasScreen() {
 
   const fecharSheet = async () => {
     setSheet(null);
-    await carregarReceitas();
+    queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
   };
 
   // Quase Lá! = tem protagonista (usuário JÁ TEM o ingrediente principal, faltam complementos)
@@ -324,7 +325,7 @@ export default function ReceitasScreen() {
             <Text style={styles.resumoText}>
               {totalIngredientes} ingredientes · {disponiveis.length + comProtagonista.length} receitas sugeridas
             </Text>
-            <TouchableOpacity onPress={carregarReceitas}>
+            <TouchableOpacity onPress={() => queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) })}>
               <MaterialCommunityIcons name="refresh" size={16} color={C.ink[400]} />
             </TouchableOpacity>
           </View>
