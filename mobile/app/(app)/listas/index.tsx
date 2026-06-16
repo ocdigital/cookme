@@ -16,6 +16,9 @@ import ScreenTutorial from '@/components/ScreenTutorial';
 import { useScreenTutorial } from '@/hooks/useScreenTutorial';
 import api from '@/services/api';
 import listaService from '@/services/lista.service';
+import { useNetworkStatus } from '@/providers/NetworkProvider';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { queryKeys } from '@/lib/queryKeys';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,6 +61,8 @@ export default function ListasScreen() {
   const navigation = useNavigation<DrawerNavigationProp<any>>();
   const { listas, loading, criarLista, carregarListas, carregarLista, deletarLista, duplicarLista } = useListas();
   const { showTutorial, dismissTutorial } = useScreenTutorial('listas');
+  const { isConnected, isInternetReachable } = useNetworkStatus();
+  const isOnline = isConnected && isInternetReachable;
 
   // ── Modal flow ──
   const [step, setStep] = useState<ModalStep>('closed');
@@ -90,6 +95,10 @@ export default function ListasScreen() {
 
   const handleCriarEmBranco = async () => {
     if (!titulo.trim()) { Alert.alert('Erro', 'Nome da lista é obrigatório'); return; }
+    if (!isOnline) {
+      Alert.alert('Sem conexão', 'Esta ação requer conexão com a internet.');
+      return;
+    }
     try {
       setCriando(true);
       await criarLista(titulo.trim(), descricao.trim() || undefined);
@@ -165,6 +174,10 @@ export default function ListasScreen() {
   };
 
   const handleCriarImportada = async () => {
+    if (!isOnline) {
+      Alert.alert('Sem conexão', 'Esta ação requer conexão com a internet.');
+      return;
+    }
     const tituloFinal = titulo.trim() || `Lista de compras de ${new Date().toLocaleDateString('pt-BR', { month: 'long' })}`;
     const incluidos = itens.filter(i => i.incluido);
     if (incluidos.length === 0) { Alert.alert('Aviso', 'Selecione pelo menos um item'); return; }
@@ -463,6 +476,8 @@ export default function ListasScreen() {
           <MaterialCommunityIcons name="plus" size={22} color={C.ink[0]} />
         </TouchableOpacity>
       </View>
+
+      <OfflineIndicator queryKey={Array.from(queryKeys.listas())} />
 
       {loading && listas.length === 0 ? (
         <View style={styles.centered}><ActivityIndicator size="large" color={C.green[500]} /></View>

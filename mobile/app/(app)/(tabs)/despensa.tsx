@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Alert, RefreshControl, Modal, TextInput, Platform, AppState, Vibration,
@@ -10,11 +10,17 @@ import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/services/api';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 import ScreenTutorial from '@/components/ScreenTutorial';
 import { useScreenTutorial } from '@/hooks/useScreenTutorial';
+import { queryKeys } from '@/lib/queryKeys';
+import { STALE_TIMES, GC_TIMES } from '@/lib/queryClient';
+import { useNetworkStatus } from '@/providers/NetworkProvider';
+import { useMutationQueueStore } from '@/stores/mutationQueue.store';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 
 interface Produto {
   id: string;
@@ -170,9 +176,7 @@ export default function DespensaScreen() {
   const router = useRouter();
   const navigation = useNavigation<DrawerNavigationProp<any>>();
   const { user } = useAuth();
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
   const [editando, setEditando] = useState<Produto | null>(null);
   const [importando, setImportando] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult>(null);
@@ -183,6 +187,9 @@ export default function DespensaScreen() {
   const [addNome, setAddNome] = useState('');
   const [adicionando, setAdicionando] = useState(false);
   const insets = useSafeAreaInsets();
+  const { isConnected, isInternetReachable } = useNetworkStatus();
+  const isOnline = isConnected && isInternetReachable;
+  const { enqueue } = useMutationQueueStore();
 
   const { showTutorial, dismissTutorial } = useScreenTutorial('despensa');
 
@@ -195,40 +202,43 @@ export default function DespensaScreen() {
   const [barcodeUrl, setBarcodeUrl] = useState('');
   const [webViewReady, setWebViewReady] = useState(false);
 
-  useFocusEffect(React.useCallback(() => { carregarInventario(); }, []));
+  // ─── Query principal ──────────────────────────────────────────────────────────
+  const { data: inventarioData, isFetching: loading, refetch } = useQuery({
+    queryKey: queryKeys.inventario(),
+    queryFn: async () => {
+      const response = await api.get('/inventario');
+      const lista = response.data?.produtos || response.data?.data || [];
+      const arr: Produto[] = Array.isArray(lista) ? lista : [];
+      arr.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+      return arr;
+    },
+    staleTime: STALE_TIMES.inventario,
+    gcTime: GC_TIMES.inventario,
+  });
 
-  // Recarrega quando app volta do background (ex: usuário deixou aberto e voltou no dia seguinte)
+  const produtos: Produto[] = inventarioData ?? [];
+
+  const invalidateInventario = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.inventario() });
+  }, [queryClient]);
+
+  // Recarrega ao focar
+  useFocusEffect(useCallback(() => { invalidateInventario(); }, []));
+
+  // Recarrega quando app volta do background
   const appState = useRef(AppState.currentState);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
       if (appState.current.match(/inactive|background/) && next === 'active') {
-        carregarInventario();
+        invalidateInventario();
       }
       appState.current = next;
     });
     return () => sub.remove();
-  }, []);
-
-  const carregarInventario = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/inventario');
-      const lista = response.data?.produtos || response.data?.data || [];
-      const arr: Produto[] = Array.isArray(lista) ? lista : [];
-      // Ordena: vencidos e urgentes primeiro, depois por dias para vencer
-      arr.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
-      setProdutos(arr);
-    } catch (err: any) {
-      Alert.alert('Erro', err?.response?.data?.message || 'Falha ao carregar despensa');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [invalidateInventario]);
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await carregarInventario();
-    setRefreshing(false);
+    await refetch();
   };
 
   const removerProduto = (id: string) => {
@@ -237,10 +247,13 @@ export default function DespensaScreen() {
       {
         text: 'Remover', style: 'destructive',
         onPress: async () => {
+          // Optimistic update
+          const prev = queryClient.getQueryData<Produto[]>(queryKeys.inventario()) ?? [];
+          queryClient.setQueryData<Produto[]>(queryKeys.inventario(), prev.filter(x => x.id !== id));
           try {
             await api.delete(`/inventario/${id}`);
-            setProdutos(p => p.filter(x => x.id !== id));
           } catch {
+            queryClient.setQueryData(queryKeys.inventario(), prev);
             Alert.alert('Erro', 'Falha ao remover produto');
           }
         },
@@ -249,11 +262,23 @@ export default function DespensaScreen() {
   };
 
   const marcarEsgotado = async (id: string, esgotado: boolean) => {
-    setProdutos(p => p.map(x => x.id === id ? { ...x, esgotado } : x));
+    // Optimistic update
+    const prev = queryClient.getQueryData<Produto[]>(queryKeys.inventario()) ?? [];
+    queryClient.setQueryData<Produto[]>(queryKeys.inventario(), prev.map(x => x.id === id ? { ...x, esgotado } : x));
+    if (!isOnline) {
+      // Offline: enfileirar para sync quando reconectar
+      enqueue({
+        method: 'patch',
+        url: `/inventario/${id}/esgotado`,
+        data: { esgotado },
+        invalidateKeys: [Array.from(queryKeys.inventario())],
+      });
+      return;
+    }
     try {
       await api.patch(`/inventario/${id}/esgotado`, { esgotado });
     } catch {
-      setProdutos(p => p.map(x => x.id === id ? { ...x, esgotado: !esgotado } : x));
+      queryClient.setQueryData(queryKeys.inventario(), prev);
       Alert.alert('Erro', 'Falha ao atualizar ingrediente');
     }
   };
@@ -268,7 +293,8 @@ export default function DespensaScreen() {
     setSalvandoNome(true);
     try {
       await api.patch(`/inventario/${editandoNome.id}/nome`, { nome: novoNome.trim() });
-      setProdutos(p => p.map(x => x.id === editandoNome.id ? { ...x, nome: novoNome.trim() } : x));
+      const prev = queryClient.getQueryData<Produto[]>(queryKeys.inventario()) ?? [];
+      queryClient.setQueryData<Produto[]>(queryKeys.inventario(), prev.map(x => x.id === editandoNome.id ? { ...x, nome: novoNome.trim() } : x));
       setEditandoNome(null);
     } catch {
       Alert.alert('Erro', 'Falha ao salvar nome');
@@ -314,7 +340,7 @@ export default function DespensaScreen() {
       const result: ImportResult = response.data;
       setImportResult(result);
       if ((result?.importados?.length ?? 0) > 0) {
-        await carregarInventario();
+        invalidateInventario();
       }
     } catch (err: any) {
       Alert.alert('Erro', err?.response?.data?.message || 'Falha ao importar ingredientes');
@@ -324,12 +350,13 @@ export default function DespensaScreen() {
   };
 
   const salvarValidade = async (id: string, data: string) => {
-    setProdutos(p => p.map(x => x.id === id ? { ...x, data_validade: data } : x));
+    const prev = queryClient.getQueryData<Produto[]>(queryKeys.inventario()) ?? [];
+    queryClient.setQueryData<Produto[]>(queryKeys.inventario(), prev.map(x => x.id === id ? { ...x, data_validade: data } : x));
     try {
       await api.put(`/inventario/${id}`, { data_validade: data });
     } catch {
+      queryClient.setQueryData(queryKeys.inventario(), prev);
       Alert.alert('Erro', 'Falha ao salvar data de validade');
-      await carregarInventario();
     }
   };
 
@@ -348,7 +375,7 @@ export default function DespensaScreen() {
         unidade: 'un',
       });
       setAddModalVisible(false);
-      await carregarInventario();
+      invalidateInventario();
     } catch (err: any) {
       Alert.alert('Erro', err?.response?.data?.message || 'Falha ao adicionar ingrediente');
     } finally {
@@ -399,6 +426,8 @@ export default function DespensaScreen() {
         </TouchableOpacity>
       </View>
 
+      <OfflineIndicator queryKey={Array.from(queryKeys.inventario())} />
+
       {loading ? (
         <View style={styles.centered}><ActivityIndicator size="large" color={C.green[500]} /></View>
       ) : produtos.length === 0 ? (
@@ -422,7 +451,7 @@ export default function DespensaScreen() {
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green[500]} />}
+          refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} tintColor={C.green[500]} />}
           ListHeaderComponent={() => (
             <>
               {/* Card de geração de receitas */}

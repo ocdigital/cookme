@@ -12,6 +12,8 @@ import api from '@/services/api';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 import ScreenTutorial from '@/components/ScreenTutorial';
 import { useScreenTutorial } from '@/hooks/useScreenTutorial';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { queryKeys } from '@/lib/queryKeys';
 
 // ─── tipos ───────────────────────────────────────────────────────────────────
 
@@ -242,10 +244,10 @@ function ModalDetalheReceita({
 export default function SemanaScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { items, loading, carregarSemana, definirReceita, gerarAleatoria, marcarFeita } = usePlanejamento();
+  const [semanaAtiva, setSemanaAtiva] = useState(1);
+  const { items, loading, carregarSemana, definirReceita, gerarAleatoria, marcarFeita } = usePlanejamento(semanaAtiva);
   const { showTutorial, dismissTutorial } = useScreenTutorial('semana');
 
-  const [semanaAtiva, setSemanaAtiva] = useState(1);
   const [receitas, setReceitas] = useState<ReceitaSimples[]>([]);
   const [loadingReceitas, setLoadingReceitas] = useState(false);
 
@@ -284,7 +286,6 @@ export default function SemanaScreen() {
 
   const trocarSemana = (n: number) => {
     setSemanaAtiva(n);
-    carregarSemana(n);
   };
 
   const abrirModalEscolher = async (dia: number, tipo: 'almoco' | 'jantar') => {
@@ -304,7 +305,6 @@ export default function SemanaScreen() {
     const { semana, dia, tipo } = modalEscolher;
     setModalEscolher(null);
     await definirReceita(semana, dia, tipo, r.id);
-    await carregarSemana(semana);
   };
 
   const limparSlot = async () => {
@@ -312,7 +312,6 @@ export default function SemanaScreen() {
     const { semana, dia, tipo } = modalEscolher;
     setModalEscolher(null);
     await definirReceita(semana, dia, tipo, null);
-    await carregarSemana(semana);
   };
 
   const abrirDetalhe = (dia: number, tipo: 'almoco' | 'jantar') => {
@@ -434,6 +433,8 @@ export default function SemanaScreen() {
         />
       </TouchableOpacity>
       */}
+
+      <OfflineIndicator queryKey={Array.from(queryKeys.planejamentoSemana(semanaAtiva))} />
 
       {/* Tabs de semana */}
       <View style={styles.semanasTabs}>
