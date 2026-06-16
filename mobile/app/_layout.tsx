@@ -7,6 +7,14 @@ import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ModoAlimentarProvider } from '@/contexts/ModoAlimentarContext';
 import { inicializarNotificacoes } from '@/services/notifications';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://45db6b759cff9374c6e76b2e9c585d3c@o4504663060578304.ingest.us.sentry.io/4511559245758464',
+  debug: false,
+  environment: process.env.EXPO_PUBLIC_ENV || 'development',
+  tracesSampleRate: 0.2,
+});
 
 const AppTheme = {
   ...DefaultTheme,

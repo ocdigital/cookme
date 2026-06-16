@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import * as Sentry from '@sentry/react-native';
 
 // Use fixed IP for celular real na mesma rede WiFi
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.86.9:3000/api';
@@ -44,6 +45,19 @@ api.interceptors.response.use(
       data: error.response?.data,
       message: error.message,
       url: error.config?.url,
+    });
+
+    Sentry.withScope((scope) => {
+      scope.setTag('api.url', error.config?.url || 'unknown');
+      scope.setTag('api.method', error.config?.method || 'unknown');
+      scope.setExtra('status', error.response?.status);
+      scope.setExtra('response', error.response?.data);
+      scope.setExtra('baseURL', error.config?.baseURL);
+      if (!error.response) {
+        // Network error — sem resposta do servidor
+        scope.setTag('error.type', 'network');
+      }
+      Sentry.captureException(error);
     });
     const originalRequest = error.config as any;
 
