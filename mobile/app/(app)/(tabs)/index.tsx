@@ -481,7 +481,7 @@ export default function HomeScreen() {
   // Recentes: endpoint pode não existir (404 ignorado)
   const { data: recentesData } = useQuery({
     queryKey: queryKeys.receitasExecutadasRecentes(),
-    queryFn: () => api.get('/receitas/executadas/recentes').then(r => {
+    queryFn: () => api.get('/receitas/executadas').then(r => {
       const lista: any[] = r.data?.receitas || r.data || [];
       return lista.slice(0, 6).map((e: any) => e.receita || e) as ReceitaSimples[];
     }),

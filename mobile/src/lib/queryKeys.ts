@@ -10,7 +10,7 @@ export const queryKeys = {
   receitaMaisFeita: () => ['receitas', 'mais-feita-hoje'] as const,
   receitasSugestoesParaMim: (sexo?: string) => ['receitas', 'sugestoes', 'para-mim', sexo ?? ''] as const,
   receitasDesafios: () => ['receitas', 'sugestoes', 'desafios'] as const,
-  receitasExecutadasRecentes: () => ['receitas', 'executadas', 'recentes'] as const,
+  receitasExecutadasRecentes: () => ['receitas', 'executadas'] as const,
   receitaAvaliacao: (id: string) => ['receitas', 'avaliacao', id] as const,
 
   // Inventário / Despensa
