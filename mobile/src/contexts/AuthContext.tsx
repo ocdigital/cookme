@@ -13,9 +13,9 @@ maybeCompleteAuthSession();
 
 // IDs do Google OAuth — preencher no Google Cloud Console
 // https://console.cloud.google.com → APIs & Services → Credentials
-const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
-const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
+const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || undefined;
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || undefined;
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || undefined;
 
 interface AuthContextType {
   user: User | null;
@@ -49,10 +49,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     : AuthSession.makeRedirectUri({ scheme: 'cookme' });
 
   const [_googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID,
     webClientId: GOOGLE_WEB_CLIENT_ID,
     redirectUri,
+    responseType: 'id_token',
+    usePKCE: false,
   });
 
   useEffect(() => {
@@ -63,8 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Handle Google OAuth response
   useEffect(() => {
     if (googleResponse?.type === 'success') {
+      const params = googleResponse.params as any;
       const auth = googleResponse.authentication as any;
-      const idToken = auth?.id_token || auth?.idToken;
+      const idToken = params?.id_token || auth?.id_token || auth?.idToken;
       if (idToken) handleSocialAuthResponse(() => api.post('/auth/google-login', { idToken }));
     }
   }, [googleResponse]);
