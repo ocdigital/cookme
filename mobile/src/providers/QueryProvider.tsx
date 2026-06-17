@@ -10,7 +10,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       persistOptions={{
         persister,
         maxAge: 1000 * 60 * 60 * 24 * 7, // cache persiste até 7 dias no disco
-        buster: '1',                        // incrementar para limpar cache após breaking changes
+        buster: '2',                        // incrementar para limpar cache após breaking changes
       }}
     >
       {children}

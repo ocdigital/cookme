@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 
 export type ModoAlimentar = 'normal' | 'fitness' | 'vegetariano' | 'vegano';
@@ -29,6 +30,8 @@ export function ModoAlimentarProvider({ children }: { children: React.ReactNode 
 
   const carregarPreferencias = useCallback(async () => {
     try {
+      const token = await SecureStore.getItemAsync('accessToken');
+      if (!token) return;
       const res = await api.get('/usuarios/preferencias');
       const modo = res.data?.modo_alimentar as ModoAlimentar;
       if (modo) setModoInterno(modo);
