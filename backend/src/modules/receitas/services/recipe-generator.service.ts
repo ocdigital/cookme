@@ -167,15 +167,27 @@ export class RecipeGeneratorService {
     if (receitas.length === 0) return 0;
 
     let salvas = 0;
+    let descartadas = 0;
     await Promise.allSettled(
       receitas.map(async (r) => {
+        // Validação determinística obrigatória antes de salvar
+        const det = this.validationService.validarDeterministico({
+          titulo: r.titulo,
+          ingredientes: r.ingredientes,
+          modo_preparo: r.modo_preparo,
+        });
+        if (!det.ok) {
+          this.logger.warn(`🚫 Descartando "${r.titulo}": ${det.motivo}`);
+          descartadas++;
+          return;
+        }
         if (!r.imagem_url) r.imagem_url = await this.buscarImagemReceita(r.titulo);
         await this.receitaBancoService.salvarReceitaGerada(r);
         salvas++;
       }),
     );
 
-    this.logger.log(`✅ ${salvas} receitas ${modo} salvas`);
+    this.logger.log(`✅ ${salvas} receitas ${modo} salvas, ${descartadas} descartadas`);
     return salvas;
   }
 
@@ -209,15 +221,21 @@ export class RecipeGeneratorService {
   async reescreverModoPreparo(titulo: string, ingredientes: string[], modoOriginal: string): Promise<string> {
     if (!this.geminiModel) return modoOriginal;
     try {
-      const prompt = `Você é um chef que escreve receitas originais. Reescreva o modo de preparo abaixo com suas próprias palavras, mantendo os mesmos passos e técnicas mas sem copiar o texto original. Use linguagem clara e amigável.
+      const prompt = `Você é um chef que reescreve receitas. Reescreva o modo de preparo abaixo com suas próprias palavras.
+
+REGRAS OBRIGATÓRIAS:
+1. Use APENAS os ingredientes listados abaixo — NUNCA mencione ingredientes que não estão na lista
+2. Mantenha os mesmos passos e técnicas do original
+3. Use linguagem clara e amigável
+4. NÃO adicione ingredientes, temperos ou itens extras
 
 Receita: ${titulo}
-Ingredientes: ${ingredientes.slice(0, 10).join(', ')}
+Ingredientes disponíveis (USE APENAS ESTES): ${ingredientes.slice(0, 15).join(', ')}
 
-Modo de preparo original (NÃO copiar):
+Modo de preparo original (reescrever sem copiar):
 ${modoOriginal}
 
-Retorne APENAS o modo de preparo reescrito, sem título, sem comentários extras.`;
+Retorne APENAS o modo de preparo reescrito, sem título, sem comentários.`;
 
       const result = await this.geminiModel.generateContent(prompt);
       const reescrito = result.response.text().trim();
