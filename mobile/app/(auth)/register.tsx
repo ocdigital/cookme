@@ -37,6 +37,7 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await registerUser(name, email, password);
+      router.replace('/(auth)/onboarding' as any);
     } catch (error: any) {
       Alert.alert('Erro', error.message || 'Falha ao criar conta');
     } finally {

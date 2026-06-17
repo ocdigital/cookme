@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { maybeCompleteAuthSession } from 'expo-web-browser';
 import api from '../services/api';
@@ -27,6 +28,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
   isSignedIn: boolean;
+  isNewUser: boolean;
   isAppleAvailable: boolean;
 }
 
@@ -37,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAppleAvailable, setIsAppleAvailable] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   // Expo Go: proxy fixo — registrar no Google Cloud Console como redirect autorizado
   // Build nativo: usa scheme cookme://
@@ -169,7 +172,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await SecureStore.setItemAsync('accessToken', accessToken);
       await SecureStore.setItemAsync('refreshToken', refreshToken);
+      await AsyncStorage.setItem('isNewUser', '1');
 
+      setIsNewUser(true);
       setUser(userData);
       return userData;
     } catch (err: any) {
@@ -230,6 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     updateUser,
     isSignedIn: !!user,
+    isNewUser,
     isAppleAvailable,
   };
 
