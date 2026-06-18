@@ -1,6 +1,9 @@
 import { Controller, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@common/enums/user-role.enum';
 import { ModeracaoService } from '@modules/receitas/services/moderacao.service';
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
@@ -13,7 +16,8 @@ class RejeitarFotoDto {
 
 @ApiTags('Admin — Moderação')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller('admin/moderacao')
 export class ModeracaoAdminController {
   constructor(private readonly moderacaoService: ModeracaoService) {}

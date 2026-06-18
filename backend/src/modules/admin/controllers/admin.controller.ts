@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Patch, Delete, Query, Body, Param, UseInterceptors, HttpCode, HttpStatus, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Query, Body, Param, UseInterceptors, HttpCode, HttpStatus, Logger, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Roles } from '@common/decorators/roles.decorator';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { UserRole } from '@common/enums/user-role.enum';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AdminService } from '../services/admin.service';
 import { ReceitaSeederService } from '../services/receita-seeder.service';
@@ -30,6 +33,8 @@ import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
+@UseGuards(RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller('admin')
 export class AdminController {
   private readonly logger = new Logger(AdminController.name);

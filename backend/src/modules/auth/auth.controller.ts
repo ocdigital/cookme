@@ -21,6 +21,7 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 import { Public } from '@common/decorators/public.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -29,6 +30,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @Throttle({ global: { ttl: 3600000, limit: 10 } })
   @ApiOperation({ summary: 'Registrar novo usuário' })
   @ApiResponse({
     status: 201,
@@ -44,6 +46,7 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ global: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Fazer login' })
   @ApiResponse({
     status: 200,
@@ -58,6 +61,7 @@ export class AuthController {
   @Public()
   @Post('google-login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ global: { ttl: 60000, limit: 10 } })
   @ApiOperation({ summary: 'Fazer login via Google' })
   @ApiResponse({
     status: 200,
