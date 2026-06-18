@@ -8,7 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, loginWithGoogle, loginWithApple, isAppleAvailable } = useAuth();
+  const { login, loginWithGoogle, loginWithApple, isAppleAvailable, isGoogleAvailable } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -75,6 +75,7 @@ export default function LoginScreen() {
           <View style={styles.body}>
             {/* Social Buttons */}
             <View style={styles.socialGroup}>
+              {isGoogleAvailable && (
               <TouchableOpacity
                 style={[styles.socialBtn, styles.googleBtn, loading && styles.btnDisabled]}
                 onPress={handleGoogle}
@@ -83,6 +84,7 @@ export default function LoginScreen() {
                 <Text style={styles.googleIcon}>G</Text>
                 <Text style={styles.googleText}>Continuar com Google</Text>
               </TouchableOpacity>
+              )}
 
               {isAppleAvailable && (
                 <TouchableOpacity

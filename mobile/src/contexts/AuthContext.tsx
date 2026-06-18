@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
@@ -25,6 +26,7 @@ interface AuthContextType {
   register: (nome: string, email: string, password: string) => Promise<User>;
   loginWithGoogle: () => Promise<void>;
   loginWithApple: () => Promise<void>;
+  isGoogleAvailable: boolean;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
   isSignedIn: boolean;
@@ -48,10 +50,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ? 'https://auth.expo.io/@eduocdigital/cookme-mobile'
     : AuthSession.makeRedirectUri({ scheme: 'cookme' });
 
+  const googleAvailable = Platform.OS === 'android'
+    ? !!(GOOGLE_ANDROID_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID)
+    : Platform.OS === 'ios'
+    ? !!(GOOGLE_IOS_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID)
+    : !!GOOGLE_WEB_CLIENT_ID;
+
   const [_googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID,
-    iosClientId: GOOGLE_IOS_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID ?? 'placeholder',
+    iosClientId: GOOGLE_IOS_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID ?? 'placeholder',
+    webClientId: GOOGLE_WEB_CLIENT_ID ?? 'placeholder',
     redirectUri,
     responseType: 'id_token',
     usePKCE: false,
@@ -240,6 +248,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isSignedIn: !!user,
     isNewUser,
     isAppleAvailable,
+    isGoogleAvailable: googleAvailable,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
