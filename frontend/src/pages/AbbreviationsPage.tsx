@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Hash, Plus, Edit2, Trash2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { Card, CardTitle, CardContent } from '../components/Card';
+import { Card, CardContent } from '../components/Card';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SearchInput } from '../components/SearchInput';
 import { FilterSelect } from '../components/FilterSelect';
-import { ActionButton } from '../components/ActionButton';
 import { StatsBar } from '../components/StatsBar';
 import { AnimatedModal } from '../components/AnimatedModal';
 import { TablePagination } from '../components/TablePagination';
@@ -75,12 +74,13 @@ export const AbbreviationsPage: React.FC = () => {
 
   useEffect(() => { load(); }, [currentPage, searchTerm, tipoFilter]);
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
     setCurrentPage(1);
   };
 
-  const handleFilter = (val: string) => {
+  const handleFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
     setTipoFilter(val as typeof tipoFilter);
     setCurrentPage(1);
   };
@@ -198,19 +198,21 @@ export const AbbreviationsPage: React.FC = () => {
             <RefreshCw size={13} />
             Recarregar cache
           </button>
-          <ActionButton
-            label="Nova Abreviação"
-            icon={<Plus size={14} />}
+          <button
             onClick={() => setIsCreateModalOpen(true)}
-          />
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary rounded-lg hover:bg-primary/90"
+          >
+            <Plus size={14} />
+            Nova Abreviação
+          </button>
         </div>
       </div>
 
       <StatsBar
         items={[
-          { label: 'Total', value: total, color: 'blue' },
-          { label: 'Ingredientes', value: ingredienteCount, color: 'green' },
-          { label: 'Não ingredientes', value: naoIngredienteCount, color: 'red' },
+          { label: 'Total', value: total, icon: <Hash size={14} /> },
+          { label: 'Ingredientes', value: ingredienteCount, icon: <Hash size={14} /> },
+          { label: 'Não ingredientes', value: naoIngredienteCount, icon: <Hash size={14} /> },
         ]}
       />
 
@@ -311,7 +313,8 @@ export const AbbreviationsPage: React.FC = () => {
               <TablePagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={setCurrentPage}
+                onPrevious={() => setCurrentPage(p => Math.max(1, p - 1))}
+                onNext={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               />
             </div>
           )}
@@ -458,13 +461,13 @@ export const AbbreviationsPage: React.FC = () => {
       {/* Delete confirm */}
       <ConfirmDialog
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onCancel={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
-        loading={deleteLoading}
+        isLoading={deleteLoading}
         title="Remover Abreviação"
-        message={`Remover "${entryToDelete?.abbr}" → "${entryToDelete?.expanded}"?`}
-        confirmLabel="Remover"
-        confirmVariant="danger"
+        description={`Remover "${entryToDelete?.abbr}" → "${entryToDelete?.expanded}"?`}
+        confirmText="Remover"
+        isDangerous
       />
     </div>
   );

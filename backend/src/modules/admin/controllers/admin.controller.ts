@@ -401,6 +401,14 @@ export class AdminController {
     return this.adminService.atualizarModeracaoReceita(id, status);
   }
 
+  @Patch('receitas/:id')
+  async atualizarReceita(
+    @Param('id') id: string,
+    @Body() data: { imagem_url?: string },
+  ) {
+    return this.adminService.atualizarReceita(id, data);
+  }
+
   @Get('dashboard/stats')
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(180) // 3 minutos

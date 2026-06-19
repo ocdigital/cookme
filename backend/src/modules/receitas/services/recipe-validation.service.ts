@@ -1,33 +1,71 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 
 export interface ValidationResult {
-  score: number;
+  score: number | null;
   issues: string[];
   status: 'ok' | 'em_revisao' | 'descartar';
 }
 
-// Ingredientes-protagonistas: receita com esse nome no título DEVE ter o ingrediente na lista
 const PROTAGONISTAS: Record<string, string[]> = {
-  'lagosta':      ['lagosta'],
-  'camarão':      ['camarão', 'camarao'],
-  'salmão':       ['salmão', 'salmao'],
-  'frango':       ['frango'],
-  'carne':        ['carne', 'patinho', 'alcatra', 'maminha', 'picanha', 'acém', 'acem'],
-  'peixe':        ['peixe', 'tilápia', 'tilapia', 'atum', 'bacalhau', 'merluza', 'corvina'],
-  'abobrinha':    ['abobrinha'],
-  'bacon':        ['bacon'],
-  'queijo':       ['queijo', 'mussarela', 'parmesão', 'parmesao', 'ricota'],
-  'cogumelo':     ['cogumelo', 'champignon', 'shiitake'],
-  'berinjela':    ['berinjela'],
-  'espinafre':    ['espinafre'],
-  'brócolis':     ['brócolis', 'brocolis'],
-  'lentilha':     ['lentilha'],
-  'grão-de-bico': ['grão-de-bico', 'grao-de-bico', 'grão de bico'],
+  'lagosta':        ['lagosta'],
+  'camarao':        ['camarao', 'camarão'],
+  'salmao':         ['salmao', 'salmão'],
+  'atum':           ['atum'],
+  'bacalhau':       ['bacalhau'],
+  'sardinha':       ['sardinha'],
+  'tilapia':        ['tilapia', 'tilápia'],
+  'corvina':        ['corvina'],
+  'merluza':        ['merluza'],
+  'frango':         ['frango', 'peito de frango', 'coxa', 'sobrecoxa', 'file de frango'],
+  'carne':          ['carne', 'patinho', 'alcatra', 'maminha', 'picanha', 'acem', 'musculo', 'contrafile', 'bife'],
+  'porco':          ['porco', 'suino', 'lombo', 'pernil', 'costelinha', 'bacon', 'linguica'],
+  'peixe':          ['peixe', 'tilapia', 'atum', 'bacalhau', 'merluza', 'corvina', 'sardinha'],
+  'costela':        ['costela'],
+  'linguica':       ['linguica', 'calabresa', 'paio', 'linguiça'],
+  'bacon':          ['bacon'],
+  'ovo':            ['ovo', 'ovos'],
+  'camaroes':       ['camarao', 'camarão'],
+  'queijo':         ['queijo', 'mussarela', 'parmesao', 'ricota', 'cottage', 'provolone', 'gruyere', 'brie'],
+  'requeijao':      ['requeijao', 'requeijão'],
+  'ricota':         ['ricota'],
+  'mussarela':      ['mussarela', 'mozarela', 'mozzarella'],
+  'abobrinha':      ['abobrinha'],
+  'berinjela':      ['berinjela'],
+  'brocolis':       ['brocolis', 'brócolis'],
+  'espinafre':      ['espinafre'],
+  'cogumelo':       ['cogumelo', 'champignon', 'shiitake', 'shimeji', 'portobello'],
+  'abobora':        ['abobora', 'abóbora', 'jerimum', 'moranga'],
+  'couve':          ['couve'],
+  'couve-flor':     ['couve-flor', 'couve flor'],
+  'cenoura':        ['cenoura'],
+  'batata':         ['batata', 'batata-doce', 'batata doce'],
+  'mandioca':       ['mandioca', 'aipim', 'macaxeira'],
+  'lentilha':       ['lentilha'],
+  'grao-de-bico':   ['grao-de-bico', 'grao de bico', 'grão-de-bico'],
+  'feijao':         ['feijao', 'feijão'],
+  'quiabo':         ['quiabo'],
+  'milho':          ['milho'],
+  'palmito':        ['palmito'],
+  'alcachofra':     ['alcachofra'],
+  'macarrao':       ['macarrao', 'espaguete', 'penne', 'fusilli', 'fettuccine', 'lasanha'],
+  'arroz':          ['arroz'],
+  'quinoa':         ['quinoa'],
+  'tapioca':        ['tapioca'],
+  'chocolate':      ['chocolate'],
+  'morango':        ['morango'],
+  'limao':          ['limao', 'limão'],
+  'abacaxi':        ['abacaxi'],
+  'coco':           ['coco', 'leite de coco'],
+  'banana':         ['banana'],
+  'manga':          ['manga'],
+  'fricasse':       ['frango', 'creme de leite', 'requeijao'],
+  'feijoada':       ['feijao', 'feijão', 'feijao preto', 'carne seca', 'linguica'],
+  'lasanha':        ['massa', 'molho', 'mussarela'],
+  'coxinha':        ['frango', 'massa', 'farinha'],
 };
 
-// Palavras absurdas que indicam receita corrompida
 const TERMOS_INVALIDOS = [
   'imao para lavar',
   'cafezinho de sal',
@@ -39,17 +77,16 @@ const TERMOS_INVALIDOS = [
 @Injectable()
 export class RecipeValidationService {
   private readonly logger = new Logger('RecipeValidationService');
-  private geminiModel: any;
+  private anthropic: Anthropic | null = null;
 
   constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+    const apiKey = this.configService.get<string>('CLAUDE_API_KEY') ||
+                   this.configService.get<string>('ANTHROPIC_API_KEY');
     if (apiKey) {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      this.geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      this.anthropic = new Anthropic({ apiKey });
     }
   }
 
-  // Validação determinística — rápida, sem IA, bloqueia os casos óbvios
   validarDeterministico(receita: {
     titulo: string;
     ingredientes: string[];
@@ -61,24 +98,20 @@ export class RecipeValidationService {
     ).join(' ');
     const modoNorm = receita.modo_preparo.toLowerCase();
 
-    // 1. Ingredientes mínimos
     if (receita.ingredientes.length < 2) {
       return { ok: false, motivo: 'Menos de 2 ingredientes' };
     }
 
-    // 2. Modo de preparo mínimo
     if (receita.modo_preparo.trim().length < 50) {
       return { ok: false, motivo: 'Modo de preparo muito curto' };
     }
 
-    // 3. Termos absurdos/corrompidos
     for (const termo of TERMOS_INVALIDOS) {
       if (ingredientesNorm.includes(termo) || modoNorm.includes(termo)) {
         return { ok: false, motivo: `Ingrediente inválido detectado: "${termo}"` };
       }
     }
 
-    // 4. Ingrediente protagonista ausente
     for (const [palavra, sinonimos] of Object.entries(PROTAGONISTAS)) {
       if (tituloNorm.includes(palavra)) {
         const temProtagonista = sinonimos.some(s => ingredientesNorm.includes(s));
@@ -100,18 +133,17 @@ export class RecipeValidationService {
     rendimento: string;
   }): Promise<ValidationResult> {
 
-    // Validação determinística primeiro — bloqueia lixo óbvio sem chamar IA
     const det = this.validarDeterministico(receita);
     if (!det.ok) {
       this.logger.warn(`"${receita.titulo}" bloqueado na validação determinística: ${det.motivo}`);
       return { score: 0, issues: [det.motivo!], status: 'descartar' };
     }
 
-    if (!this.geminiModel) {
-      return { score: 75, issues: [], status: 'ok' };
+    if (!this.anthropic) {
+      return { score: null, issues: ['haiku_indisponivel'], status: 'em_revisao' };
     }
 
-    const prompt = `Você é um chef experiente avaliando uma receita. Analise criticamente e seja rigoroso:
+    const prompt = `Você é um chef experiente avaliando uma receita brasileira. Analise criticamente e seja rigoroso:
 
 Receita: ${receita.titulo}
 Ingredientes: ${receita.ingredientes.slice(0, 15).join(', ')}
@@ -128,7 +160,7 @@ Critérios de avaliação:
 
 DESCARTE IMEDIATO se:
 - Receita tem nome de ingrediente principal mas ele não está na lista
-- Ingredientes absurdos ou sem sentido (ex: "cafezinho de sal", medidas incoerentes)
+- Ingredientes absurdos ou sem sentido
 - Modo de preparo pede ingredientes ausentes da lista
 
 Retorne APENAS JSON válido:
@@ -138,15 +170,19 @@ Retorne APENAS JSON válido:
 }`;
 
     try {
-      const result = await this.geminiModel.generateContent(prompt);
-      const text = result.response.text().trim();
+      const msg = await this.anthropic.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 600,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const text = (msg.content[0] as any).text.trim();
       const json = text.replace(/```json\n?|\n?```/g, '').trim();
       const parsed = JSON.parse(json);
 
       const score = Math.max(0, Math.min(100, parseInt(parsed.score) || 0));
       const issues: string[] = Array.isArray(parsed.issues) ? parsed.issues : [];
 
-      // Limiar mais alto: só 'ok' acima de 70
       let status: 'ok' | 'em_revisao' | 'descartar';
       if (score >= 70) status = 'ok';
       else if (score >= 50) status = 'em_revisao';
@@ -156,7 +192,7 @@ Retorne APENAS JSON válido:
       return { score, issues, status };
     } catch (err: any) {
       this.logger.warn(`Falha na validação de "${receita.titulo}": ${err.message}`);
-      return { score: 75, issues: [], status: 'ok' };
+      return { score: null, issues: ['erro_api_haiku'], status: 'em_revisao' };
     }
   }
 }

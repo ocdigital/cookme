@@ -127,17 +127,27 @@ export class TudoGostosoScraperService {
   }
 
   private async buscarUrls(query: string, limite: number): Promise<string[]> {
-    const searchUrl = `${this.BASE_URL}/busca/?q=${encodeURIComponent(query)}`;
+    const todas = new Set<string>();
+    const paginas = Math.ceil(limite / 20) + 1; // cada página tem ~20 resultados
 
-    try {
-      const html = await this.fetchComAxios(searchUrl);
-      const urls = this.extrairUrlsReceitas(html);
-      if (urls.length > 0) return urls.slice(0, limite);
-    } catch (err: any) {
-      this.logger.debug(`Axios search failed: ${err.message} — tentando Puppeteer`);
+    for (let p = 1; p <= paginas && todas.size < limite; p++) {
+      const searchUrl = `${this.BASE_URL}/busca/?q=${encodeURIComponent(query)}&page=${p}`;
+      try {
+        const html = await this.fetchComAxios(searchUrl);
+        const urls = this.extrairUrlsReceitas(html);
+        if (urls.length === 0) break; // sem mais páginas
+        urls.forEach(u => todas.add(u));
+      } catch (err: any) {
+        this.logger.debug(`Axios page ${p} failed: ${err.message}`);
+        if (p === 1) {
+          const fallback = await this.buscarUrlsComPuppeteer(query, limite);
+          fallback.forEach(u => todas.add(u));
+        }
+        break;
+      }
     }
 
-    return this.buscarUrlsComPuppeteer(query, limite);
+    return Array.from(todas).slice(0, limite);
   }
 
   private extrairUrlsReceitas(html: string): string[] {
@@ -190,6 +200,9 @@ export class TudoGostosoScraperService {
   }
 
   private parsarJsonLd(html: string, url: string): ReceitaGerada | null {
+    const ogImage = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)?.[1] ||
+                    html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i)?.[1];
+
     const scriptRegex = /<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
     let match;
 
@@ -200,7 +213,7 @@ export class TudoGostosoScraperService {
 
         for (const schema of schemas) {
           if (schema['@type'] === 'Recipe') {
-            const receita = this.schemaParaReceita(schema, url);
+            const receita = this.schemaParaReceita(schema, url, ogImage);
             if (receita) return receita;
           }
         }
@@ -236,7 +249,7 @@ export class TudoGostosoScraperService {
     return result;
   }
 
-  private schemaParaReceita(schema: any, url: string): ReceitaGerada | null {
+  private schemaParaReceita(schema: any, url: string, ogImage?: string): ReceitaGerada | null {
     const titulo = this.decodeHtml(schema.name || schema.headline);
     if (!titulo) return null;
 
@@ -259,7 +272,7 @@ export class TudoGostosoScraperService {
 
     const tempoMinutos = this.parseDuration(schema.totalTime || schema.cookTime || schema.prepTime);
     const porcoes = this.parseYield(schema.recipeYield);
-    const imagem = this.extrairImagem(schema.image);
+    const imagem = this.extrairImagem(schema.image) || ogImage;
     const avaliacao = schema.aggregateRating?.ratingValue
       ? parseFloat(schema.aggregateRating.ratingValue)
       : undefined;
@@ -272,7 +285,7 @@ export class TudoGostosoScraperService {
       ingredientes,
       modo_preparo: modoPreparo,
       rendimento: `${porcoes} porções`,
-      imagem_url: undefined,
+      imagem_url: imagem || undefined,
       url_fonte: url,
       site_origem: 'TudoGostoso',
       avaliacao,

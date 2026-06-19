@@ -214,18 +214,50 @@ export default function ReceitasScreen() {
 
   const handleGerar = async () => {
     if (!isOnline) {
-      Alert.alert('Sem conexão', 'Esta ação requer conexão com a internet para gerar receitas com IA.');
+      Alert.alert('Sem conexão', 'Esta ação requer conexão com a internet.');
       return;
     }
-    try {
-      setGerando(true);
-      await gerarReceitas([], true);
-      queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
-    } catch {
-      Alert.alert('Erro', 'Falha ao gerar receitas');
-    } finally {
-      setGerando(false);
-    }
+    Alert.alert(
+      'Buscar receitas',
+      'Como quer buscar?',
+      [
+        {
+          text: 'Baixar novas (grátis)',
+          onPress: async () => {
+            try {
+              setGerando(true);
+              const invRes = await api.get('/inventario');
+              const ingredientes: string[] = (invRes.data ?? []).map((i: any) =>
+                i.produto?.nome_display || i.produto?.nome || ''
+              ).filter(Boolean);
+              const res = await api.post('/receitas/buscar-novas', { ingredientes });
+              const novas = res.data?.novas ?? 0;
+              queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
+              Alert.alert('Pronto!', novas > 0 ? `${novas} nova(s) receita(s) encontrada(s)!` : 'Nenhuma receita nova no momento. Tente mais tarde.');
+            } catch {
+              Alert.alert('Erro', 'Falha ao buscar novas receitas');
+            } finally {
+              setGerando(false);
+            }
+          },
+        },
+        {
+          text: 'Gerar com IA',
+          onPress: async () => {
+            try {
+              setGerando(true);
+              await gerarReceitas([], true);
+              queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
+            } catch {
+              Alert.alert('Erro', 'Falha ao gerar receitas');
+            } finally {
+              setGerando(false);
+            }
+          },
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ],
+    );
   };
 
   const comprarFaltando = async (receita: QuaseReceita) => {

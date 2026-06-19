@@ -70,42 +70,147 @@ export class RecipeSearchService {
   }
 
   async buscarReceitasFitness(quantidade = 20): Promise<ReceitaGerada[]> {
-    const CATEGORIA_FITNESS = 'https://www.tudogostoso.com.br/categorias/1340-fitness';
-    const receitas = await this.tudoGostoso.buscarReceitasPorCategoria(CATEGORIA_FITNESS, quantidade);
-    return receitas.map((r) => ({ ...r, tags_dieta: ['fitness'] }));
+    const todas: ReceitaGerada[] = [];
+    const titulosVistos = new Set<string>();
+
+    const FONTES = [
+      () => this.tudoGostoso.buscarReceitasPorCategoria('https://www.tudogostoso.com.br/categorias/1340-fitness', Math.ceil(quantidade * 0.6)),
+      () => this.tudoGostoso.buscarReceitasPorKeyword('receita fitness low carb', Math.ceil(quantidade * 0.3)),
+      () => this.tudoGostoso.buscarReceitasPorKeyword('receita saudavel proteina', Math.ceil(quantidade * 0.3)),
+      () => this.receiteria.buscarReceitas(['frango', 'atum', 'aveia'], Math.ceil(quantidade * 0.3)),
+    ];
+
+    for (const fonte of FONTES) {
+      if (todas.length >= quantidade) break;
+      try {
+        const receitas = await fonte();
+        for (const r of receitas) {
+          const chave = r.titulo.toLowerCase().trim();
+          if (!titulosVistos.has(chave)) { titulosVistos.add(chave); todas.push(r); }
+        }
+      } catch { /* continua */ }
+    }
+
+    return todas.slice(0, quantidade).map((r) => ({ ...r, tags_dieta: ['fitness'] }));
   }
 
   async buscarReceitasVegetarianas(quantidade = 30): Promise<ReceitaGerada[]> {
-    const receitas = await this.tudoGostoso.buscarReceitasPorKeyword('receita vegetariana', quantidade);
-    return receitas.map((r) => ({ ...r, tags_dieta: ['vegetariano'] }));
+    const todas: ReceitaGerada[] = [];
+    const titulosVistos = new Set<string>();
+
+    const KEYWORDS = ['receita vegetariana', 'prato vegetariano', 'quiche vegetariana', 'arroz vegetariano', 'macarrao vegetariano'];
+    for (const kw of KEYWORDS) {
+      if (todas.length >= quantidade) break;
+      try {
+        const receitas = await this.tudoGostoso.buscarReceitasPorKeyword(kw, Math.ceil(quantidade / KEYWORDS.length) + 5);
+        for (const r of receitas) {
+          const chave = r.titulo.toLowerCase().trim();
+          if (!titulosVistos.has(chave)) { titulosVistos.add(chave); todas.push(r); }
+        }
+      } catch { /* continua */ }
+    }
+
+    // Complementa com Receiteria
+    if (todas.length < quantidade) {
+      try {
+        const re = await this.receiteria.buscarReceitas(['legumes', 'tofu', 'queijo'], quantidade - todas.length + 5);
+        for (const r of re) {
+          const chave = r.titulo.toLowerCase().trim();
+          if (!titulosVistos.has(chave)) { titulosVistos.add(chave); todas.push(r); }
+        }
+      } catch { /* continua */ }
+    }
+
+    return todas.slice(0, quantidade).map((r) => ({ ...r, tags_dieta: ['vegetariano'] }));
   }
 
   async buscarReceitasVeganas(quantidade = 20): Promise<ReceitaGerada[]> {
-    const receitas = await this.tudoGostoso.buscarReceitasPorKeyword('receita vegana', quantidade);
-    return receitas.map((r) => ({ ...r, tags_dieta: ['vegano', 'vegetariano'] }));
-  }
-
-  // Receitas normais: keywords variadas para diversidade sem sobrecarregar Puppeteer
-  async buscarReceitasNormais(quantidade = 40): Promise<ReceitaGerada[]> {
-    const KEYWORDS = [
-      { kw: 'frango grelhado',    qtd: 8 },
-      { kw: 'carne assada',       qtd: 8 },
-      { kw: 'macarrão ao molho',  qtd: 6 },
-      { kw: 'peixe grelhado',     qtd: 6 },
-      { kw: 'sopa caldo',         qtd: 6 },
-      { kw: 'arroz feijão',       qtd: 6 },
-    ];
-
     const todas: ReceitaGerada[] = [];
-    for (const { kw, qtd } of KEYWORDS) {
+    const titulosVistos = new Set<string>();
+
+    const KEYWORDS = ['receita vegana', 'prato vegano', 'sobremesa vegana', 'bolo vegano'];
+    for (const kw of KEYWORDS) {
       if (todas.length >= quantidade) break;
       try {
-        const receitas = await this.tudoGostoso.buscarReceitasPorKeyword(kw, qtd);
-        todas.push(...receitas);
+        const receitas = await this.tudoGostoso.buscarReceitasPorKeyword(kw, Math.ceil(quantidade / KEYWORDS.length) + 5);
+        for (const r of receitas) {
+          const chave = r.titulo.toLowerCase().trim();
+          if (!titulosVistos.has(chave)) { titulosVistos.add(chave); todas.push(r); }
+        }
+      } catch { /* continua */ }
+    }
+
+    if (todas.length < quantidade) {
+      try {
+        const re = await this.receiteria.buscarReceitas(['grão-de-bico', 'lentilha', 'tofu'], quantidade - todas.length + 5);
+        for (const r of re) {
+          const chave = r.titulo.toLowerCase().trim();
+          if (!titulosVistos.has(chave)) { titulosVistos.add(chave); todas.push(r); }
+        }
+      } catch { /* continua */ }
+    }
+
+    return todas.slice(0, quantidade).map((r) => ({ ...r, tags_dieta: ['vegano', 'vegetariano'] }));
+  }
+
+  // Receitas normais: categorias + keywords para máxima diversidade
+  async buscarReceitasNormais(quantidade = 40): Promise<ReceitaGerada[]> {
+    const todas: ReceitaGerada[] = [];
+    const titulosVistos = new Set<string>();
+
+    const adicionar = (receitas: ReceitaGerada[]) => {
+      for (const r of receitas) {
+        const chave = r.titulo.toLowerCase().trim();
+        if (!titulosVistos.has(chave)) { titulosVistos.add(chave); todas.push(r); }
+      }
+    };
+
+    // 1. Categorias do TudoGostoso (centenas de receitas cada)
+    const CATEGORIAS = [
+      'https://www.tudogostoso.com.br/categorias/2-carnes',
+      'https://www.tudogostoso.com.br/categorias/3-aves',
+      'https://www.tudogostoso.com.br/categorias/4-peixes-e-frutos-do-mar',
+      'https://www.tudogostoso.com.br/categorias/8-massas',
+      'https://www.tudogostoso.com.br/categorias/10-sopas-e-caldos',
+      'https://www.tudogostoso.com.br/categorias/12-arroz-e-risoto',
+      'https://www.tudogostoso.com.br/categorias/14-saladas',
+    ];
+
+    const porCategoria = Math.ceil(quantidade / CATEGORIAS.length) + 5;
+    for (const url of CATEGORIAS) {
+      if (todas.length >= quantidade) break;
+      try {
+        const receitas = await this.tudoGostoso.buscarReceitasPorCategoria(url, porCategoria);
+        adicionar(receitas);
+        this.logger.log(`Categoria ${url.split('/').pop()}: ${receitas.length} receitas`);
       } catch (err: any) {
-        this.logger.warn(`Keyword "${kw}" falhou: ${err.message}`);
+        this.logger.warn(`Categoria falhou ${url}: ${err.message}`);
       }
     }
+
+    // 2. Keywords complementares se ainda não atingiu quantidade
+    const KEYWORDS = [
+      'frango grelhado', 'carne assada', 'macarrão ao molho', 'peixe grelhado',
+      'bife acebolado', 'lasanha', 'strogonoff frango', 'costela assada',
+      'camarão alho', 'torta frango', 'carne moida', 'risoto frango',
+    ];
+
+    for (const kw of KEYWORDS) {
+      if (todas.length >= quantidade) break;
+      try {
+        const receitas = await this.tudoGostoso.buscarReceitasPorKeyword(kw, 8);
+        adicionar(receitas);
+      } catch { /* continua */ }
+    }
+
+    // 3. Receiteria como fonte extra
+    if (todas.length < quantidade) {
+      try {
+        const re = await this.receiteria.buscarReceitas(['frango', 'carne', 'peixe'], quantidade - todas.length + 10);
+        adicionar(re);
+      } catch { /* continua */ }
+    }
+
     return todas.slice(0, quantidade);
   }
 

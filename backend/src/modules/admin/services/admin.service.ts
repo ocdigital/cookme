@@ -670,6 +670,14 @@ export class AdminService {
     return receita;
   }
 
+  async atualizarReceita(receitaId: string, data: { imagem_url?: string }) {
+    const receita = await this.receitaRepository.findOne({ where: { id: receitaId } });
+    if (!receita) throw new Error(`Receita ${receitaId} não encontrada`);
+    if (data.imagem_url !== undefined) receita.imagem_url = data.imagem_url;
+    await this.receitaRepository.save(receita);
+    return receita;
+  }
+
   /**
    * Retorna produtos da knowledge base que precisam de revisão:
    * - confidence < 0.75

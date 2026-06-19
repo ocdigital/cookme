@@ -29,6 +29,7 @@ import { RecipeValidationService } from './services/recipe-validation.service';
 import { IngredientNormalizerService } from './services/ingredient-normalizer.service';
 import { ModeracaoService } from './services/moderacao.service';
 import { AvaliacaoService } from './services/avaliacao.service';
+import { RecipeCleanupJob } from './jobs/recipe-cleanup.job';
 import { AprendizadoService } from './services/aprendizado.service';
 import { ReceitaClassificacaoService } from './services/receita-classificacao.service';
 import { PreferenciaAprendida } from '../usuarios/entities/preferencia-aprendida.entity';
@@ -73,6 +74,7 @@ import { PushNotificationService } from '../notificacoes/services/push-notificat
     AvaliacaoService,
     AprendizadoService,
     ReceitaClassificacaoService,
+    RecipeCleanupJob,
   ],
   controllers: [
     ReceitasUsuarioController, ModeracaoUsuarioController,

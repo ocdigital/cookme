@@ -21,6 +21,7 @@ import {
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ReceitasService } from './receitas.service';
 import { IAReceitasService } from './services/ia-receitas.service';
+import { RecipeCrawlerService } from './services/recipe-crawler.service';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
@@ -37,6 +38,7 @@ export class ReceitasController {
   constructor(
     private readonly receitasService: ReceitasService,
     private readonly iaReceitasService: IAReceitasService,
+    private readonly crawlerService: RecipeCrawlerService,
   ) {}
 
   @Post()
@@ -210,6 +212,16 @@ export class ReceitasController {
     @Body() executarDto: ExecutarReceitaDto,
   ): Promise<ReceitaExecutada> {
     return this.receitasService.executar(id, user.id, executarDto);
+  }
+
+  @Post('buscar-novas')
+  @ApiOperation({ summary: 'Scrapa sites com ingredientes do usuário e salva novas receitas no banco' })
+  @ApiResponse({ status: 201, description: 'Novas receitas encontradas/baixadas' })
+  async buscarNovas(
+    @Body() body: { ingredientes: string[] },
+  ): Promise<{ novas: number; ingredientes: string[] }> {
+    const resultado = await this.crawlerService.crawlearManual(body.ingredientes);
+    return { novas: resultado.totalSalvas, ingredientes: resultado.ingredientes };
   }
 
   @Delete(':id')

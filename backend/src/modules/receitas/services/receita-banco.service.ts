@@ -311,14 +311,13 @@ export class ReceitaBancoService {
     // Verifica duplicata pelo título normalizado
     const existente = await this.receitaRepo
       .createQueryBuilder('r')
-      .where('LOWER(unaccent(r.nome)) = :titulo', { titulo: tituloNorm })
+      .where('LOWER(unaccent(r.nome)) = LOWER(unaccent(:titulo))', { titulo: receita.titulo })
       .getOne()
-      .catch(() =>
-        // fallback sem unaccent se extensão não instalada
-        this.receitaRepo.findOne({
-          where: { nome: receita.titulo },
-        }),
-      );
+      .catch(async () => {
+        // fallback sem unaccent: busca por título normalizado JS
+        const todos = await this.receitaRepo.find({ select: ['id', 'nome'] });
+        return todos.find((r) => this.normalizar(r.nome) === tituloNorm) ?? null;
+      });
 
     if (existente) {
       this.logger.log(`Receita "${receita.titulo}" já existe no banco (id: ${existente.id})`);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Eye, AlertTriangle, Flame, Star, Sparkles } from 'lucide-react';
+import { Trash2, Eye, AlertTriangle, Flame, Star, Sparkles, ImageIcon, Check, X } from 'lucide-react';
 import { Card, CardTitle, CardContent } from '../components/Card';
 import { AnimatedModal } from '../components/AnimatedModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -62,6 +62,9 @@ export const RecipesPage: React.FC = () => {
   const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [gerandoIA, setGerandoIA] = useState(false);
+  const [editandoImagem, setEditandoImagem] = useState(false);
+  const [novaImagemUrl, setNovaImagemUrl] = useState('');
+  const [salvandoImagem, setSalvandoImagem] = useState(false);
 
   useEffect(() => {
     loadRecipes();
@@ -149,6 +152,27 @@ export const RecipesPage: React.FC = () => {
   const handleViewDetails = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
     setIsDetailsModalOpen(true);
+  };
+
+  const handleEditarImagem = (recipe: Recipe) => {
+    setNovaImagemUrl(recipe.imagem_url || '');
+    setEditandoImagem(true);
+  };
+
+  const handleSalvarImagem = async () => {
+    if (!selectedRecipe) return;
+    setSalvandoImagem(true);
+    try {
+      await adminService.atualizarReceita(selectedRecipe.id, { imagem_url: novaImagemUrl });
+      setSelectedRecipe({ ...selectedRecipe, imagem_url: novaImagemUrl });
+      setEditandoImagem(false);
+      toast.success('Imagem atualizada!');
+      loadRecipes();
+    } catch {
+      toast.error('Erro ao salvar imagem');
+    } finally {
+      setSalvandoImagem(false);
+    }
   };
 
   const handleGerarIA = async () => {
@@ -357,17 +381,56 @@ export const RecipesPage: React.FC = () => {
         {selectedRecipe && (
           <div className="space-y-3">
             {/* Imagem */}
-            {selectedRecipe.imagem_url ? (
-              <img
-                src={selectedRecipe.imagem_url}
-                alt={selectedRecipe.nome}
-                className="w-full h-48 object-cover rounded-lg"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-            ) : (
-              <div className="w-full h-48 rounded-lg bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center gap-2">
-                <span className="text-4xl">🍽️</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500">Sem imagem</span>
+            <div className="relative group">
+              {selectedRecipe.imagem_url ? (
+                <img
+                  src={editandoImagem && novaImagemUrl ? novaImagemUrl : selectedRecipe.imagem_url}
+                  alt={selectedRecipe.nome}
+                  className="w-full h-48 object-cover rounded-lg"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <div className="w-full h-48 rounded-lg bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center gap-2">
+                  <span className="text-4xl">🍽️</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">Sem imagem</span>
+                </div>
+              )}
+              {!editandoImagem && (
+                <button
+                  onClick={() => handleEditarImagem(selectedRecipe)}
+                  className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Editar imagem"
+                >
+                  <ImageIcon size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Editor de imagem */}
+            {editandoImagem && (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="url"
+                  value={novaImagemUrl}
+                  onChange={(e) => setNovaImagemUrl(e.target.value)}
+                  placeholder="Cole a URL da imagem..."
+                  className="flex-1 text-xs px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  onClick={handleSalvarImagem}
+                  disabled={salvandoImagem}
+                  className="p-2 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white rounded-lg transition-colors"
+                  title="Salvar"
+                >
+                  <Check size={14} />
+                </button>
+                <button
+                  onClick={() => setEditandoImagem(false)}
+                  className="p-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                  title="Cancelar"
+                >
+                  <X size={14} />
+                </button>
               </div>
             )}
 
