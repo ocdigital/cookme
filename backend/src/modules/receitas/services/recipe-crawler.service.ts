@@ -1,26 +1,37 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Receita } from '../entities/receita.entity';
-import { Produto } from '../../produtos/entities/produto.entity';
 import { ReceitaBancoService } from './receita-banco.service';
 import { TudoGostosoScraperService } from './tudogostoso-scraper.service';
-import { ReceiteriaCrawlerService } from './receiteria-scraper.service';
 import { RecipeGeneratorService } from './recipe-generator.service';
 import { IngredientNormalizerService } from './ingredient-normalizer.service';
 
-const MIN_RECEITAS_POR_INGREDIENTE = 10;
-const MAX_INGREDIENTES_POR_CICLO = 15;
-const RECEITAS_POR_SITE = 5;
-// Ingredientes base para bootstrap quando banco vazio (sem produtos cadastrados ainda)
-const INGREDIENTES_BASE = [
-  'frango', 'carne', 'arroz', 'feijao', 'ovo', 'batata', 'macarrao',
-  'peixe', 'camarao', 'cebola', 'alho', 'tomate', 'queijo', 'leite',
-  'mandioca', 'bisteca', 'linguica', 'abobrinha', 'cenoura', 'brocolis',
-  'carne moida', 'frango assado', 'arroz integral', 'feijao preto',
-  'bife', 'sopa', 'strogonoff', 'torta salgada', 'moqueca', 'risoto',
-  'lasanha', 'quiche', 'farofa', 'caldo', 'refogado de legumes',
+const MAX_RECEITAS_POR_CICLO = 20;
+// Categorias TudoGostoso em rotação — crawler pega 2 por hora, independente de inventário
+const CATEGORIAS_ROTACAO = [
+  { url: 'https://www.tudogostoso.com.br/categorias/2-carnes', tag: undefined },
+  { url: 'https://www.tudogostoso.com.br/categorias/3-aves', tag: undefined },
+  { url: 'https://www.tudogostoso.com.br/categorias/4-peixes-e-frutos-do-mar', tag: undefined },
+  { url: 'https://www.tudogostoso.com.br/categorias/8-massas', tag: undefined },
+  { url: 'https://www.tudogostoso.com.br/categorias/10-sopas-e-caldos', tag: undefined },
+  { url: 'https://www.tudogostoso.com.br/categorias/12-arroz-e-risoto', tag: undefined },
+  { url: 'https://www.tudogostoso.com.br/categorias/14-saladas', tag: undefined },
+  { url: 'https://www.tudogostoso.com.br/categorias/1340-fitness', tag: 'fitness' as const },
+  { url: 'https://www.tudogostoso.com.br/categorias/1340-fitness', tag: 'fitness' as const },
+];
+// Keywords extras rotacionadas alternando com categorias
+const KEYWORDS_ROTACAO = [
+  { q: 'receita vegetariana', tag: 'vegetariano' as const },
+  { q: 'receita vegana', tag: 'vegano' as const },
+  { q: 'receita fitness low carb', tag: 'fitness' as const },
+  { q: 'frango grelhado', tag: undefined },
+  { q: 'carne assada', tag: undefined },
+  { q: 'macarrão ao molho', tag: undefined },
+  { q: 'peixe grelhado', tag: undefined },
+  { q: 'strogonoff frango', tag: undefined },
+  { q: 'sopa legumes', tag: undefined },
+  { q: 'risoto frango', tag: undefined },
+  { q: 'lasanha', tag: undefined },
+  { q: 'torta salgada', tag: undefined },
 ];
 
 @Injectable()
@@ -29,20 +40,18 @@ export class RecipeCrawlerService {
   private isRunning = false;
 
   constructor(
-    @InjectRepository(Receita)
-    private readonly receitaRepo: Repository<Receita>,
-    @InjectRepository(Produto)
-    private readonly produtoRepo: Repository<Produto>,
     private readonly receitaBanco: ReceitaBancoService,
     private readonly tudoGostoso: TudoGostosoScraperService,
-    private readonly receiteria: ReceiteriaCrawlerService,
     private readonly recipeGenerator: RecipeGeneratorService,
     private readonly normalizer: IngredientNormalizerService,
   ) {}
 
+  // Ponteiro de rotação persistido em memória entre ciclos
+  private rotacaoIdx = 0;
+
   /**
-   * Crawl proativo: diariamente às 02:00, identifica ingredientes com poucas receitas
-   * e busca mais em TudoGostoso + Receiteria.
+   * Crawl contínuo: toda hora pega 2 fontes em rotação (categorias + keywords)
+   * e salva receitas novas no banco — independente de inventário de usuários.
    */
   @Cron(CronExpression.EVERY_HOUR)
   async crawlProativo(): Promise<void> {
@@ -52,36 +61,82 @@ export class RecipeCrawlerService {
     }
 
     this.isRunning = true;
-    this.logger.log('🤖 Iniciando crawl proativo de receitas...');
+    const FONTES_TOTAL = CATEGORIAS_ROTACAO.length + KEYWORDS_ROTACAO.length;
+    const idx1 = this.rotacaoIdx % FONTES_TOTAL;
+    const idx2 = (this.rotacaoIdx + 1) % FONTES_TOTAL;
+    this.rotacaoIdx = (this.rotacaoIdx + 2) % FONTES_TOTAL;
+
+    this.logger.log(`🤖 Crawl contínuo — fontes [${idx1}, ${idx2}] de ${FONTES_TOTAL}`);
 
     try {
-      const ingredientesBaixo = await this.identificarIngredientesComPoucasReceitas();
-      if (ingredientesBaixo.length === 0) {
-        this.logger.log('✅ Todos os ingredientes têm receitas suficientes');
-        return;
-      }
-
-      this.logger.log(`📋 ${ingredientesBaixo.length} ingrediente(s) precisam de mais receitas: ${ingredientesBaixo.slice(0, 5).join(', ')}...`);
-
       let totalSalvas = 0;
-      for (const ingrediente of ingredientesBaixo.slice(0, MAX_INGREDIENTES_POR_CICLO)) {
-        const salvas = await this.crawlearIngrediente(ingrediente);
+      for (const idx of [idx1, idx2]) {
+        const salvas = await this.crawlearFonteIdx(idx);
         totalSalvas += salvas;
-        // Pausa entre ingredientes para não sobrecarregar os sites
-        await this.sleep(2000);
+        await this.sleep(3000);
       }
-
       this.logger.log(`✅ Crawl concluído: ${totalSalvas} receitas novas salvas`);
     } catch (err: any) {
-      this.logger.error(`❌ Erro no crawl proativo: ${err.message}`);
+      this.logger.error(`❌ Erro no crawl: ${err.message}`);
     } finally {
       this.isRunning = false;
     }
   }
 
+  private async crawlearFonteIdx(idx: number): Promise<number> {
+    const nCat = CATEGORIAS_ROTACAO.length;
+    if (idx < nCat) {
+      const { url, tag } = CATEGORIAS_ROTACAO[idx];
+      this.logger.log(`📂 Categoria: ${url.split('/').pop()}`);
+      return this.crawlearCategoria(url, tag);
+    } else {
+      const { q, tag } = KEYWORDS_ROTACAO[idx - nCat];
+      this.logger.log(`🔍 Keyword: "${q}"`);
+      return this.crawlearKeyword(q, tag);
+    }
+  }
+
+  private async crawlearCategoria(url: string, tag?: 'fitness' | 'vegetariano' | 'vegano'): Promise<number> {
+    let totalSalvas = 0;
+    try {
+      const receitas = await this.tudoGostoso.buscarReceitasPorCategoria(url, MAX_RECEITAS_POR_CICLO);
+      for (const r of receitas) {
+        try {
+          if (tag) r.tags_dieta = [tag];
+          const enriquecida = await this.recipeGenerator.enriquecerReceita(r);
+          if (!enriquecida) continue;
+          await this.receitaBanco.salvarReceitaGerada(enriquecida);
+          totalSalvas++;
+        } catch { /* duplicata ou erro — ignora */ }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Categoria ${url} falhou: ${err.message}`);
+    }
+    return totalSalvas;
+  }
+
+  private async crawlearKeyword(q: string, tag?: 'fitness' | 'vegetariano' | 'vegano'): Promise<number> {
+    let totalSalvas = 0;
+    try {
+      const receitas = await this.tudoGostoso.buscarReceitasPorKeyword(q, MAX_RECEITAS_POR_CICLO);
+      for (const r of receitas) {
+        try {
+          if (tag) r.tags_dieta = [tag];
+          const enriquecida = await this.recipeGenerator.enriquecerReceita(r);
+          if (!enriquecida) continue;
+          await this.receitaBanco.salvarReceitaGerada(enriquecida);
+          totalSalvas++;
+        } catch { /* duplicata ou erro — ignora */ }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Keyword "${q}" falhou: ${err.message}`);
+    }
+    return totalSalvas;
+  }
+
   /**
-   * Crawl manual — pode ser triggado via API admin.
-   * Aceita lista específica de ingredientes ou usa detecção automática.
+   * Crawl manual — triggado via API (/receitas/buscar-novas).
+   * Se passados ingredientes, busca por keywords deles. Senão, avança rotação.
    */
   async crawlearManual(ingredientes?: string[]): Promise<{ ingredientes: string[]; totalSalvas: number }> {
     if (this.isRunning) {
@@ -89,129 +144,33 @@ export class RecipeCrawlerService {
     }
 
     this.isRunning = true;
-    let alvos: string[];
-
     try {
-      if (ingredientes?.length) {
-        alvos = ingredientes;
-      } else {
-        alvos = await this.identificarIngredientesComPoucasReceitas();
-      }
-
       let totalSalvas = 0;
-      for (const ing of alvos.slice(0, MAX_INGREDIENTES_POR_CICLO)) {
-        totalSalvas += await this.crawlearIngrediente(ing);
-        await this.sleep(1500);
+      const alvos: string[] = [];
+
+      if (ingredientes?.length) {
+        for (const ing of ingredientes.slice(0, 10)) {
+          const termos = this.normalizer.termosParaBusca(ing);
+          const q = termos[0] || ing;
+          alvos.push(q);
+          totalSalvas += await this.crawlearKeyword(q);
+          await this.sleep(1500);
+        }
+      } else {
+        // Sem ingredientes — avança rotação como crawl automático
+        const FONTES_TOTAL = CATEGORIAS_ROTACAO.length + KEYWORDS_ROTACAO.length;
+        for (let i = 0; i < 3; i++) {
+          const idx = (this.rotacaoIdx + i) % FONTES_TOTAL;
+          totalSalvas += await this.crawlearFonteIdx(idx);
+          await this.sleep(2000);
+        }
+        this.rotacaoIdx = (this.rotacaoIdx + 3) % FONTES_TOTAL;
       }
 
-      return { ingredientes: alvos.slice(0, MAX_INGREDIENTES_POR_CICLO), totalSalvas };
+      return { ingredientes: alvos, totalSalvas };
     } finally {
       this.isRunning = false;
     }
-  }
-
-  /**
-   * Identifica produtos marcados como ingrediente que têm poucas receitas no banco.
-   * Se nenhum produto cadastrado ainda, retorna lista base para bootstrap.
-   */
-  private async identificarIngredientesComPoucasReceitas(): Promise<string[]> {
-    const produtos = await this.produtoRepo.find({
-      where: { ingrediente_receita: true },
-      select: ['nome', 'nome_display'] as any,
-      order: { nome: 'ASC' } as any,
-    });
-
-    // Sem produtos cadastrados — checa se precisa de mais receitas e usa lista base
-    if (produtos.length === 0) {
-      const totalReceitas = await this.receitaRepo.count();
-      if (totalReceitas < 300) {
-        this.logger.log(`🌱 Bootstrap: ${totalReceitas} receitas, sem produtos — crawleando lista base`);
-        return [...INGREDIENTES_BASE];
-      }
-      // Banco tem receitas suficientes para usuário começar, aguarda produtos serem cadastrados
-      return [];
-    }
-
-    const receitas = await this.receitaRepo
-      .createQueryBuilder('r')
-      .where('r.ingredientes_chave IS NOT NULL')
-      .andWhere("r.status_moderacao = 'ok'")
-      .select(['r.ingredientes_chave', 'r.nome'])
-      .getMany();
-
-    const contagemPorIngrediente = new Map<string, number>();
-    for (const receita of receitas) {
-      for (const chave of receita.ingredientes_chave || []) {
-        contagemPorIngrediente.set(chave, (contagemPorIngrediente.get(chave) || 0) + 1);
-      }
-    }
-
-    const ingredientesComPoucas: string[] = [];
-    for (const produto of produtos) {
-      const nome = (produto as any).nome_display || produto.nome;
-      const norm = this.normalizer.normalizar(nome);
-      const chave = norm?.nomeCanônico ?? nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
-
-      const quantidade = contagemPorIngrediente.get(chave) || 0;
-      if (quantidade < MIN_RECEITAS_POR_INGREDIENTE) {
-        ingredientesComPoucas.push(nome);
-      }
-    }
-
-    return ingredientesComPoucas;
-  }
-
-  /**
-   * Crawlea um ingrediente específico em todos os sites configurados.
-   */
-  private async crawlearIngrediente(ingrediente: string): Promise<number> {
-    const termos = this.normalizer.termosParaBusca(ingrediente);
-    const termoPrincipal = termos[0];
-
-    this.logger.log(`🔍 Crawleando "${ingrediente}" (termo: "${termoPrincipal}")`);
-
-    let totalSalvas = 0;
-
-    // TudoGostoso
-    try {
-      const receitas = await this.tudoGostoso.buscarReceitasPorKeyword(termoPrincipal, RECEITAS_POR_SITE);
-      for (const r of receitas) {
-        try {
-          const enriquecida = await this.recipeGenerator.enriquecerReceita(r);
-          if (!enriquecida) continue;
-          await this.receitaBanco.salvarReceitaGerada(enriquecida);
-          totalSalvas++;
-        } catch {
-          // Duplicata ou erro — ignora
-        }
-      }
-      this.logger.log(`TudoGostoso: ${receitas.length} receitas para "${termoPrincipal}"`);
-    } catch (err: any) {
-      this.logger.warn(`TudoGostoso falhou para "${termoPrincipal}": ${err.message}`);
-    }
-
-    await this.sleep(1000);
-
-    // Receiteria — usa um dos termos expandidos para diversidade
-    const termoAlternativo = termos[1] || termoPrincipal;
-    try {
-      const receitas = await this.receiteria.buscarPorKeyword(termoAlternativo, RECEITAS_POR_SITE);
-      for (const r of receitas) {
-        try {
-          const enriquecida = await this.recipeGenerator.enriquecerReceita(r);
-          if (!enriquecida) continue;
-          await this.receitaBanco.salvarReceitaGerada(enriquecida);
-          totalSalvas++;
-        } catch {
-          // Duplicata ou erro — ignora
-        }
-      }
-      this.logger.log(`Receiteria: ${receitas.length} receitas para "${termoAlternativo}"`);
-    } catch (err: any) {
-      this.logger.warn(`Receiteria falhou para "${termoAlternativo}": ${err.message}`);
-    }
-
-    return totalSalvas;
   }
 
   private sleep(ms: number): Promise<void> {
