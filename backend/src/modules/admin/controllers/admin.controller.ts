@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Query, Body, Param, UseInterceptors, HttpCode, HttpStatus, Logger, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -462,6 +463,7 @@ export class AdminController {
   }
 
   @Post('receitas/popular-banco')
+  @Throttle({ default: { limit: 2, ttl: 3600000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Popula banco com receitas do TudoGostoso para todos os modos alimentares' })
   async popularBanco(@Body('modos') modos?: string[]) {
@@ -482,6 +484,7 @@ export class AdminController {
   }
 
   @Post('receitas/popular-banco/:modo')
+  @Throttle({ default: { limit: 2, ttl: 3600000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Popula banco com receitas de um modo alimentar específico' })
   async popularBancoModo(@Param('modo') modo: string) {

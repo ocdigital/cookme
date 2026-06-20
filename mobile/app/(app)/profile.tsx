@@ -304,6 +304,7 @@ export default function ProfileScreen() {
                 { icon: 'history', label: 'Receitas feitas', onPress: () => router.push('/(app)/receitas-feitas' as any) },
                 { icon: 'chef-hat', label: 'Minhas receitas', onPress: () => router.push('/(app)/minhas-receitas' as any) },
                 { icon: 'shield-lock-outline', label: 'Privacidade', onPress: () => router.push('/(app)/privacidade' as any) },
+                { icon: 'file-document-outline', label: 'Termos de Uso', onPress: () => router.push('/(app)/termos' as any) },
                 { icon: 'trash-can-outline', label: 'Limpar cache', onPress: handleLimparCache, danger: true },
               ].map((item, i, arr) => (
                 <TouchableOpacity

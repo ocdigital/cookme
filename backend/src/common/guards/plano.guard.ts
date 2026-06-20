@@ -11,6 +11,7 @@ const PLANO_ORDEM: Record<SubscriptionPlan, number> = {
   [SubscriptionPlan.FREE]: 0,
   [SubscriptionPlan.PREMIUM]: 1,
   [SubscriptionPlan.PREMIUM_PLUS]: 2,
+  [SubscriptionPlan.FAMILIA]: 2, // mesma hierarquia que premium_plus
 };
 
 @Injectable()

@@ -24,8 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.cookme.app",
-      "usesCleartextTraffic": true
+      "package": "com.cookme.app"
     },
     "web": {
       "output": "static",
