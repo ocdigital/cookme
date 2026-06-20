@@ -4,6 +4,7 @@ import { ReceitaBancoService } from './receita-banco.service';
 import { TudoGostosoScraperService } from './tudogostoso-scraper.service';
 import { RecipeGeneratorService } from './recipe-generator.service';
 import { IngredientNormalizerService } from './ingredient-normalizer.service';
+import { CronLogService } from '../../admin/services/cron-log.service';
 
 const MAX_RECEITAS_POR_CICLO = 20;
 // Categorias TudoGostoso em rotação — crawler pega 2 por hora, independente de inventário
@@ -44,6 +45,7 @@ export class RecipeCrawlerService {
     private readonly tudoGostoso: TudoGostosoScraperService,
     private readonly recipeGenerator: RecipeGeneratorService,
     private readonly normalizer: IngredientNormalizerService,
+    private readonly cronLog: CronLogService,
   ) {}
 
   // Ponteiro de rotação persistido em memória entre ciclos
@@ -56,28 +58,51 @@ export class RecipeCrawlerService {
   @Cron(CronExpression.EVERY_HOUR)
   async crawlProativo(): Promise<void> {
     if (this.isRunning) {
+      await this.cronLog.registrar({ job: 'crawl-proativo', status: 'skip', detalhe: 'Já em execução' });
       this.logger.warn('Crawler já em execução, pulando ciclo');
       return;
     }
 
     this.isRunning = true;
+    const inicio = Date.now();
     const FONTES_TOTAL = CATEGORIAS_ROTACAO.length + KEYWORDS_ROTACAO.length;
     const idx1 = this.rotacaoIdx % FONTES_TOTAL;
     const idx2 = (this.rotacaoIdx + 1) % FONTES_TOTAL;
     this.rotacaoIdx = (this.rotacaoIdx + 2) % FONTES_TOTAL;
+
+    const fonteNome = (idx: number) => {
+      if (idx < CATEGORIAS_ROTACAO.length) return CATEGORIAS_ROTACAO[idx].url.split('/').pop() ?? `cat-${idx}`;
+      return KEYWORDS_ROTACAO[idx - CATEGORIAS_ROTACAO.length].q;
+    };
+    const detalhes: string[] = [];
 
     this.logger.log(`🤖 Crawl contínuo — fontes [${idx1}, ${idx2}] de ${FONTES_TOTAL}`);
 
     try {
       let totalSalvas = 0;
       for (const idx of [idx1, idx2]) {
+        const nome = fonteNome(idx);
         const salvas = await this.crawlearFonteIdx(idx);
         totalSalvas += salvas;
+        detalhes.push(`${nome}: ${salvas}`);
         await this.sleep(3000);
       }
       this.logger.log(`✅ Crawl concluído: ${totalSalvas} receitas novas salvas`);
+      await this.cronLog.registrar({
+        job: 'crawl-proativo',
+        status: 'ok',
+        receitas_salvas: totalSalvas,
+        detalhe: detalhes.join(' | '),
+        duracao_ms: Date.now() - inicio,
+      });
     } catch (err: any) {
       this.logger.error(`❌ Erro no crawl: ${err.message}`);
+      await this.cronLog.registrar({
+        job: 'crawl-proativo',
+        status: 'erro',
+        detalhe: err.message,
+        duracao_ms: Date.now() - inicio,
+      });
     } finally {
       this.isRunning = false;
     }

@@ -6,6 +6,7 @@ import { Receita } from '../entities/receita.entity';
 import { RecipeGeneratorService } from '../services/recipe-generator.service';
 import { RecipeValidationService } from '../services/recipe-validation.service';
 import { IngredientNormalizerService } from '../services/ingredient-normalizer.service';
+import { CronLogService } from '../../admin/services/cron-log.service';
 
 const MAX_VALIDACOES_POR_DIA = 20;
 
@@ -27,19 +28,36 @@ export class RecipeCleanupJob {
     private readonly generatorService: RecipeGeneratorService,
     private readonly validationService: RecipeValidationService,
     private readonly normalizerService: IngredientNormalizerService,
+    private readonly cronLog: CronLogService,
   ) {}
 
   @Cron('0 4 * * *', { timeZone: 'America/Sao_Paulo' })
   async executar(): Promise<void> {
+    const inicio = Date.now();
     this.logger.log('🧹 Iniciando RecipeCleanupJob...');
-    const report = await this.executarManual();
-    this.logger.log(
-      `✅ Cleanup concluído: ${report.deduplicadas} duplicatas, ` +
-      `${report.chavesReprocessadas} chaves reprocessadas, ` +
-      `${report.imagensRecuperadas} imagens recuperadas, ` +
-      `${report.validacoesEnfileiradas} validações Gemini, ` +
-      `${report.protagonistasAusentes} receitas marcadas em_revisao`,
-    );
+    try {
+      const report = await this.executarManual();
+      const resumo =
+        `deduplicadas:${report.deduplicadas} | chaves:${report.chavesReprocessadas} | ` +
+        `imagens:${report.imagensRecuperadas} | validadas:${report.validacoesEnfileiradas} | ` +
+        `em_revisao:${report.protagonistasAusentes}`;
+      this.logger.log(`✅ Cleanup concluído: ${resumo}`);
+      await this.cronLog.registrar({
+        job: 'recipe-cleanup',
+        status: 'ok',
+        receitas_salvas: report.imagensRecuperadas,
+        detalhe: resumo,
+        duracao_ms: Date.now() - inicio,
+      });
+    } catch (err: any) {
+      this.logger.error(`❌ Cleanup falhou: ${err.message}`);
+      await this.cronLog.registrar({
+        job: 'recipe-cleanup',
+        status: 'erro',
+        detalhe: err.message,
+        duracao_ms: Date.now() - inicio,
+      });
+    }
   }
 
   async executarManual(): Promise<CleanupReport> {

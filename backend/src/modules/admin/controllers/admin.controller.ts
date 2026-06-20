@@ -30,6 +30,7 @@ import { NotificacaoTriggersService } from '../../notificacoes/services/notifica
 import { CreateUsuarioDto } from '../../usuarios/dto/create-usuario.dto';
 import { UpdateUsuarioDto } from '../../usuarios/dto/update-usuario.dto';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
+import { CronLogService } from '../services/cron-log.service';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -56,6 +57,7 @@ export class AdminController {
     @InjectRepository(Produto)
     private readonly produtoRepo: Repository<Produto>,
     private readonly notificacaoTriggers: NotificacaoTriggersService,
+    private readonly cronLogService: CronLogService,
   ) {}
 
   @Get('produtos')
@@ -620,5 +622,11 @@ export class AdminController {
   async crawlearReceitas(@Body('ingredientes') ingredientes?: string[]) {
     const resultado = await this.recipeCrawlerService.crawlearManual(ingredientes);
     return { ok: true, ...resultado };
+  }
+
+  @Get('cron-logs')
+  @ApiOperation({ summary: 'Histórico de execuções dos jobs agendados' })
+  async cronLogs(@Query('limit') limit?: string) {
+    return this.cronLogService.listar(limit ? +limit : 100);
   }
 }

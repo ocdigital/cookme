@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Receita } from './entities/receita.entity';
+import { CronLog } from '../admin/entities/cron-log.entity';
+import { CronLogService } from '../admin/services/cron-log.service';
 import { ReceitaIngrediente } from './entities/receita-ingrediente.entity';
 import { ReceitaExecutada } from './entities/receita-executada.entity';
 import { ReceitaFavorita } from './entities/receita-favorita.entity';
@@ -56,7 +58,7 @@ import { PushNotificationService } from '../notificacoes/services/push-notificat
     TypeOrmModule.forFeature([
       Receita, ReceitaIngrediente, ReceitaExecutada, ReceitaFavorita,
       Produto, Preferencia, Inventario, Usuario, Compra, CompraItem,
-      PreferenciaAprendida,
+      PreferenciaAprendida, CronLog,
     ]),
     ProductClassificationModule,
     NotificacaoModule,
@@ -64,10 +66,12 @@ import { PushNotificationService } from '../notificacoes/services/push-notificat
     ListasModule,
   ],
   providers: [
+    CronLogService,
     ReceitasService, IAReceitasService, MOIEngineService,
     ReceiptOcrService, ProductClassifierService, ReceiptImportService,
     RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService,
     IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, TudoGostosoScraperService,
+
     ReceiteriaCrawlerService, RecipeCrawlerService, RecipeValidationService,
     InventarioService, PushNotificationService,
     ModeracaoService,
@@ -86,7 +90,7 @@ import { PushNotificationService } from '../notificacoes/services/push-notificat
   exports: [
     TypeOrmModule, ReceitasService, ReceiptOcrService, ProductClassifierService,
     ReceiptImportService, RecipeSuggestionService, RecipeExecutionService,
-    RecipeGeneratorService, ReceitaBancoService, IngredientNormalizerService,
+    RecipeGeneratorService, ReceitaBancoService, IngredientNormalizerService, CronLogService,
     ProductClassificationModule, ModeracaoService, ReceitaClassificacaoService,
     RecipeCrawlerService,
   ],
