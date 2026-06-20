@@ -1,6 +1,10 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import * as Sentry from '@sentry/react-native';
+import { EventEmitter } from 'events';
+
+// Emite 'paywall' quando backend retorna 403 com upgrade:true
+export const apiEvents = new EventEmitter();
 
 // Use fixed IP for celular real na mesma rede WiFi
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.86.9:3000/api';
@@ -59,6 +63,18 @@ api.interceptors.response.use(
       }
       Sentry.captureException(error);
     });
+    // 403 com upgrade:true → emite evento para mostrar paywall
+    if (error.response?.status === 403) {
+      const data = error.response.data as any;
+      if (data?.upgrade) {
+        apiEvents.emit('paywall', {
+          feature: data.message || 'Recurso Premium',
+          descricao: data.planoAtual ? `Seu plano atual é ${data.planoAtual}. Faça upgrade para continuar.` : undefined,
+        });
+        return Promise.reject(error);
+      }
+    }
+
     const originalRequest = error.config as any;
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {

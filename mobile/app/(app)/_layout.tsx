@@ -9,7 +9,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModoAlimentar } from '@/contexts/ModoAlimentarContext';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
-import api from '@/services/api';
+import api, { apiEvents } from '@/services/api';
+import PaywallModal from '@/components/PaywallModal';
 
 // ─── Itens do menu ────────────────────────────────────────────────────────────
 
@@ -142,29 +143,47 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function AppLayout() {
+  const [paywall, setPaywall] = useState<{ feature?: string; descricao?: string } | null>(null);
+
+  useEffect(() => {
+    const handler = (data: { feature?: string; descricao?: string }) => setPaywall(data);
+    apiEvents.on('paywall', handler);
+    return () => { apiEvents.off('paywall', handler); };
+  }, []);
+
   return (
-    <Drawer
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
-      screenOptions={{
-        headerShown: false,
-        swipeEnabled: true,
-        drawerType: 'slide',
-      }}
-    >
-      <Drawer.Screen name="(tabs)" />
-      <Drawer.Screen name="receita-ocr/index" />
-      <Drawer.Screen name="validacao/index" />
-      <Drawer.Screen name="receitas-geradas/index" />
-      <Drawer.Screen name="listas/[id]" />
-      <Drawer.Screen name="listas/index" />
-      <Drawer.Screen name="qr-scanner/index" />
-      <Drawer.Screen name="comparacao/index" />
-      <Drawer.Screen name="profile" />
-      <Drawer.Screen name="settings" />
-      <Drawer.Screen name="receita/[id]" />
-      <Drawer.Screen name="nova-receita/index" />
-      <Drawer.Screen name="compras/index" />
-    </Drawer>
+    <>
+      <Drawer
+        drawerContent={(props) => <CustomDrawerContent {...props} />}
+        screenOptions={{
+          headerShown: false,
+          swipeEnabled: true,
+          drawerType: 'slide',
+        }}
+      >
+        <Drawer.Screen name="(tabs)" />
+        <Drawer.Screen name="receita-ocr/index" />
+        <Drawer.Screen name="validacao/index" />
+        <Drawer.Screen name="receitas-geradas/index" />
+        <Drawer.Screen name="listas/[id]" />
+        <Drawer.Screen name="listas/index" />
+        <Drawer.Screen name="qr-scanner/index" />
+        <Drawer.Screen name="comparacao/index" />
+        <Drawer.Screen name="profile" />
+        <Drawer.Screen name="settings" />
+        <Drawer.Screen name="receita/[id]" />
+        <Drawer.Screen name="nova-receita/index" />
+        <Drawer.Screen name="compras/index" />
+        <Drawer.Screen name="planos/index" />
+      </Drawer>
+
+      <PaywallModal
+        visible={paywall !== null}
+        onClose={() => setPaywall(null)}
+        feature={paywall?.feature}
+        descricao={paywall?.descricao}
+      />
+    </>
   );
 }
 

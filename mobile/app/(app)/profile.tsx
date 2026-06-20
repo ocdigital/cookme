@@ -299,6 +299,7 @@ export default function ProfileScreen() {
             <View style={styles.card}>
               <Text style={styles.cardTitulo}>Configurações</Text>
               {[
+                { icon: 'star-circle-outline', label: 'Planos e assinatura', onPress: () => router.push('/(app)/planos' as any) },
                 { icon: 'bell-outline', label: 'Notificações', onPress: () => router.push('/(app)/notificacoes' as any) },
                 { icon: 'heart-outline', label: 'Receitas favoritas', onPress: () => router.push('/(app)/favoritas' as any) },
                 { icon: 'history', label: 'Receitas feitas', onPress: () => router.push('/(app)/receitas-feitas' as any) },
