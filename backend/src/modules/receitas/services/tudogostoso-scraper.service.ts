@@ -320,6 +320,26 @@ export class TudoGostosoScraperService {
     return response.data;
   }
 
+  /**
+   * Busca apenas títulos + URLs sem scraping do conteúdo — para preview antes do usuário importar.
+   * Extrai título do slug da URL (ex: "arroz-com-broccolis" → "Arroz com Brócolis").
+   */
+  async buscarPreviewsUrls(ingredientes: string[], quantidade = 10): Promise<Array<{ titulo: string; url: string; site: string }>> {
+    const principais = ingredientes.filter((i) => {
+      const norm = i.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      return !CONDIMENTOS.has(norm.split(' ')[0]);
+    }).slice(0, 3);
+
+    const keyword = principais.length > 0 ? principais.join(' ') : 'receita facil';
+    const urls = await this.buscarUrls(keyword, quantidade * 2);
+
+    return urls.slice(0, quantidade).map((url) => {
+      const slug = url.split('/receita/').pop()?.replace('.html', '') ?? '';
+      const titulo = slug.replace(/-\d+$/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      return { titulo, url, site: 'tudogostoso.com.br' };
+    });
+  }
+
   private async fetchComPuppeteer(url: string): Promise<string> {
     let browser;
     try {

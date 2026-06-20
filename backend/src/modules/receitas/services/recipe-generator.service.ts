@@ -141,14 +141,14 @@ export class RecipeGeneratorService {
     return resultado;
   }
 
-  async importarReceitaPorUrl(url: string): Promise<{ receita: any; nova: boolean }> {
+  async importarReceitaPorUrl(url: string, proprietarioId?: string): Promise<{ receita: any; nova: boolean }> {
     const scraped = await this.recipeSearchService.scraparUrl(url);
     if (!scraped) throw new Error(`Não foi possível extrair receita de: ${url}`);
 
     const enriquecida = await this.enriquecerReceita(scraped);
     if (!enriquecida) throw new Error(`Receita "${scraped.titulo}" rejeitada pela validação automática`);
-    const salva = await this.receitaBancoService.salvarReceitaGerada(enriquecida);
-    this.logger.log(`Importado "${salva.nome}" de ${url}`);
+    const salva = await this.receitaBancoService.salvarReceitaGerada(enriquecida, proprietarioId);
+    this.logger.log(`Importado "${salva.nome}" de ${url}${proprietarioId ? ` (privado: ${proprietarioId})` : ''}`);
     return { receita: this.receitaBancoService.entidadeParaFormato(salva), nova: true };
   }
 

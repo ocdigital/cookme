@@ -216,6 +216,7 @@ export class ReceitaBancoService {
       .leftJoinAndSelect('ri.produto', 'produto')
       .where('r.ingredientes_chave IS NOT NULL')
       .andWhere("r.status_moderacao = 'ok'")
+      .andWhere('r.autor_id IS NULL')
       .orderBy('r.vezes_executada', 'DESC')
       .addOrderBy('r.avaliacao_media', 'DESC')
       .limit(200)
@@ -305,7 +306,7 @@ export class ReceitaBancoService {
    * Salva uma receita gerada pela IA no banco compartilhado.
    * Evita duplicatas pelo título normalizado.
    */
-  async salvarReceitaGerada(receita: ReceitaGerada): Promise<Receita> {
+  async salvarReceitaGerada(receita: ReceitaGerada, proprietarioId?: string): Promise<Receita> {
     const tituloNorm = this.normalizar(receita.titulo);
 
     // Verifica duplicata pelo título normalizado
@@ -343,10 +344,11 @@ export class ReceitaBancoService {
       origem: (receita as any).url_fonte ? 'internet' : 'ia_gerada',
       url_fonte: (receita as any).url_fonte || null,
       avaliacao_media: (receita as any).avaliacao || 0,
-      status_moderacao: (receita.validation_score != null && receita.validation_score < 75) ? 'em_revisao' : 'ok',
+      status_moderacao: proprietarioId ? 'ok' : ((receita.validation_score != null && receita.validation_score < 75) ? 'em_revisao' : 'ok'),
       validation_score: receita.validation_score ?? null,
       validation_issues: receita.validation_issues?.join(' | ') ?? null,
       tags_dieta: this.classificacao.classificarTags(ingredientesChave, receita.tags_dieta || [], receita.titulo) || undefined,
+      autor_id: proprietarioId ?? null,
     } as any);
 
     const salva = (await this.receitaRepo.save(nova as any)) as Receita;

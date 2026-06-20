@@ -214,6 +214,22 @@ export class RecipeSearchService {
     return todas.slice(0, quantidade);
   }
 
+  /**
+   * Retorna apenas título + URL de receitas encontradas na web — sem scraping de conteúdo.
+   * Usado para mostrar lista de previews ao usuário antes de ele escolher o que importar.
+   */
+  async buscarPreviewsNaWeb(
+    ingredientes: string[],
+    quantidade = 10,
+  ): Promise<Array<{ titulo: string; url: string; site: string }>> {
+    try {
+      return await this.tudoGostoso.buscarPreviewsUrls(ingredientes, quantidade);
+    } catch (err: any) {
+      this.logger.warn(`buscarPreviewsNaWeb falhou: ${err.message}`);
+      return [];
+    }
+  }
+
   async scraparUrl(url: string): Promise<ReceitaGerada | null> {
     if (url.includes('receiteria.com.br')) {
       return this.receiteria.scraparReceita(url);

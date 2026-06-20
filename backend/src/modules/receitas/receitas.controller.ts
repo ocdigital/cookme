@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +23,8 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { ReceitasService } from './receitas.service';
 import { IAReceitasService } from './services/ia-receitas.service';
 import { RecipeCrawlerService } from './services/recipe-crawler.service';
+import { RecipeGeneratorService } from './services/recipe-generator.service';
+import { RecipeSearchService } from './services/recipe-search.service';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Public } from '@common/decorators/public.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
@@ -39,6 +42,8 @@ export class ReceitasController {
     private readonly receitasService: ReceitasService,
     private readonly iaReceitasService: IAReceitasService,
     private readonly crawlerService: RecipeCrawlerService,
+    private readonly recipeGeneratorService: RecipeGeneratorService,
+    private readonly recipeSearchService: RecipeSearchService,
   ) {}
 
   @Post()
@@ -215,13 +220,25 @@ export class ReceitasController {
   }
 
   @Post('buscar-novas')
-  @ApiOperation({ summary: 'Scrapa sites com ingredientes do usuário e salva novas receitas no banco' })
-  @ApiResponse({ status: 201, description: 'Novas receitas encontradas/baixadas' })
+  @ApiOperation({ summary: 'Busca títulos+URLs de receitas na web — retorna previews para o usuário escolher o que importar' })
+  @ApiResponse({ status: 200, description: 'Lista de previews (título, url, site) sem salvar nada' })
   async buscarNovas(
     @Body() body: { ingredientes: string[] },
-  ): Promise<{ novas: number; ingredientes: string[] }> {
-    const resultado = await this.crawlerService.crawlearManual(body.ingredientes);
-    return { novas: resultado.totalSalvas, ingredientes: resultado.ingredientes };
+  ): Promise<{ previews: Array<{ titulo: string; url: string; site: string }> }> {
+    const previews = await this.recipeSearchService.buscarPreviewsNaWeb(body.ingredientes ?? [], 12);
+    return { previews };
+  }
+
+  @Post('importar-url')
+  @ApiOperation({ summary: 'Importa receita de uma URL externa — salva como privada do usuário com badge de fonte' })
+  async importarUrl(
+    @CurrentUser() user: Usuario,
+    @Body('url') url: string,
+  ): Promise<{ receita: any; nova: boolean }> {
+    if (!url?.startsWith('http')) {
+      throw new BadRequestException('URL inválida');
+    }
+    return this.recipeGeneratorService.importarReceitaPorUrl(url, user.id);
   }
 
   @Delete(':id')

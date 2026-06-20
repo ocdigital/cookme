@@ -92,7 +92,7 @@ import { PushNotificationService } from '../notificacoes/services/push-notificat
     ReceiptImportService, RecipeSuggestionService, RecipeExecutionService,
     RecipeGeneratorService, ReceitaBancoService, IngredientNormalizerService, CronLogService,
     ProductClassificationModule, ModeracaoService, ReceitaClassificacaoService,
-    RecipeCrawlerService,
+    RecipeCrawlerService, RecipeSearchService,
   ],
 })
 export class ReceitasModule {}
