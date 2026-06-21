@@ -31,9 +31,16 @@ export default function ProfileScreen() {
     gasto_mes: number; total_compras_mes: number; mes_label: string;
   } | null>(null);
 
+  const [statusPlano, setStatusPlano] = useState<{
+    plano: string; uso?: { scans_mes: number; limite_scans: number };
+  } | null>(null);
+
   useFocusEffect(useCallback(() => {
     api.get('/compras/resumo-mes')
       .then(r => setResumoMes(r.data))
+      .catch(() => {});
+    api.get('/stripe/status')
+      .then(r => setStatusPlano(r.data))
       .catch(() => {});
   }, []));
 
@@ -201,6 +208,49 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <Text style={styles.avatarDica}>Toque para alterar a foto</Text>
           </View>
+
+          {/* Card de plano */}
+          {!editando && statusPlano && (() => {
+            const plano = statusPlano.plano?.toLowerCase() ?? 'free';
+            const isPremium = plano !== 'free';
+            const scansUsados = statusPlano.uso?.scans_mes ?? 0;
+            const scansLimite = statusPlano.uso?.limite_scans ?? 3;
+            const pct = scansLimite > 0 ? Math.min(scansUsados / scansLimite, 1) : 0;
+
+            return isPremium ? (
+              <TouchableOpacity style={styles.planoCardPremium} onPress={() => router.push('/(app)/planos' as any)} activeOpacity={0.85}>
+                <MaterialCommunityIcons name="star-circle" size={22} color="#7C3AED" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.planoNomePremium}>{plano.replace('_', ' ').toUpperCase()}</Text>
+                  <Text style={styles.planoDescPremium}>Scans ilimitados · IA ativa · Importação</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={18} color="#7C3AED" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.planoCardFree} onPress={() => router.push('/(app)/planos' as any)} activeOpacity={0.85}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <MaterialCommunityIcons name="account-outline" size={16} color={C.ink[500]} />
+                    <Text style={styles.planoNomeFree}>Plano Gratuito</Text>
+                    <View style={styles.planoUpgradeBadge}>
+                      <Text style={styles.planoUpgradeBadgeTxt}>Fazer upgrade</Text>
+                    </View>
+                  </View>
+                  {/* Barra de uso de scans */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={styles.planoBarraWrap}>
+                      <View style={[styles.planoBarra, { width: `${pct * 100}%` as any, backgroundColor: pct >= 1 ? C.red[500] : C.green[500] }]} />
+                    </View>
+                    <Text style={styles.planoBarraTxt}>{scansUsados}/{scansLimite} scans este mês</Text>
+                  </View>
+                  {pct >= 1 && (
+                    <Text style={styles.planoLimiteMsg}>Limite atingido — faça upgrade para continuar</Text>
+                  )}
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[400]} />
+              </TouchableOpacity>
+            );
+          })()}
 
           {/* Gastos do mês */}
           {resumoMes && !editando && (
@@ -472,6 +522,33 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: C.red[200],
   },
   logoutText: { ...T.body, color: C.red[500], fontWeight: '700' },
+
+  // Card de plano
+  planoCardPremium: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#F5F3FF', borderRadius: radius.lg,
+    borderWidth: 1.5, borderColor: '#C4B5FD', padding: 14, ...shadows.sm,
+  },
+  planoNomePremium: { ...T.small, fontWeight: '800', color: '#5B21B6', letterSpacing: 0.3 },
+  planoDescPremium: { ...T.micro, color: '#7C3AED', marginTop: 2 },
+
+  planoCardFree: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.ink[0], borderRadius: radius.lg,
+    borderWidth: 1, borderColor: C.ink[200], padding: 14, ...shadows.sm,
+  },
+  planoNomeFree: { ...T.small, fontWeight: '700', color: C.ink[700] },
+  planoUpgradeBadge: {
+    backgroundColor: C.green[600], borderRadius: 99,
+    paddingHorizontal: 8, paddingVertical: 2,
+  },
+  planoUpgradeBadgeTxt: { ...T.micro, color: C.ink[0], fontWeight: '700' },
+  planoBarraWrap: {
+    flex: 1, height: 6, backgroundColor: C.ink[150], borderRadius: 3, overflow: 'hidden',
+  },
+  planoBarra: { height: 6, borderRadius: 3 },
+  planoBarraTxt: { ...T.micro, color: C.ink[500], minWidth: 90 },
+  planoLimiteMsg: { ...T.micro, color: C.red[500], fontWeight: '700', marginTop: 4 },
 
   // Gastos do mês
   gastosCard: {
