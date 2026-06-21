@@ -4,7 +4,8 @@ import { StripeService, PLANOS_STRIPE } from './stripe.service';
 import { SubscriptionService } from '../affiliate/services/subscription.service';
 import { SubscriptionPlan } from '../affiliate/entities/subscription.entity';
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:4000';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://192.168.86.9:4000';
+const APP_SCHEME   = process.env.APP_SCHEME   || 'cookme';
 
 @ApiTags('Stripe')
 @ApiBearerAuth()
@@ -50,8 +51,8 @@ export class StripeController {
       stripeCustomerId,
       priceId,
       usuarioId,
-      successUrl: `${FRONTEND_URL}/configuracoes?checkout=success`,
-      cancelUrl:  `${FRONTEND_URL}/configuracoes?checkout=cancelled`,
+      successUrl: `${APP_SCHEME}://planos?checkout=success`,
+      cancelUrl:  `${APP_SCHEME}://planos?checkout=cancelled`,
     });
 
     return { url: checkoutUrl };

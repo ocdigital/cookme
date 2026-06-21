@@ -400,10 +400,13 @@ export default function HomeScreen() {
     SecureStore.getItemAsync('onboarding_aprendizado_seen').then(val => {
       if (!val) setShowOnboarding(true);
     }).catch(() => {});
+  }, []);
+
+  useFocusEffect(useCallback(() => {
     api.get('/stripe/status').then(r => {
       setPlanoFree((r.data?.plano ?? 'free').toLowerCase() === 'free');
     }).catch(() => {});
-  }, []);
+  }, []));
 
   const dismissOnboarding = async () => {
     setShowOnboarding(false);

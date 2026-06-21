@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { PremiumRequiredError, LimitExceededError } from '@common/filters/subscription-limit.filter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -67,21 +68,34 @@ export class SubscriptionService {
       throw new BadRequestException('Campos obrigatórios faltando');
     }
 
-    // Verifica se já existe assinatura ativa
+    // Se já existe assinatura (free ou premium), atualizar em vez de criar nova
     const assinaturaExistente = await this.subscriptionRepository.findOne({
-      where: {
-        usuario_id: usuarioId,
-        status: SubscriptionStatus.ACTIVE,
-      },
+      where: { usuario_id: usuarioId },
+      order: { criado_em: 'DESC' },
     });
 
     if (assinaturaExistente && assinaturaExistente.plano !== SubscriptionPlan.FREE) {
-      throw new BadRequestException(
-        'Usuário já possui uma assinatura ativa. Cancele a atual primeiro.',
-      );
+      // Já tem premium — atualizar stripe IDs e reativar
+      assinaturaExistente.plano = plano;
+      assinaturaExistente.status = SubscriptionStatus.ACTIVE;
+      assinaturaExistente.stripe_customer_id = stripeCustomerId ?? assinaturaExistente.stripe_customer_id;
+      assinaturaExistente.stripe_subscription_id = stripeSubscriptionId ?? assinaturaExistente.stripe_subscription_id;
+      assinaturaExistente.data_proximo_pagamento = this.calcularProximaDataPagamento(new Date());
+      return this.subscriptionRepository.save(assinaturaExistente);
     }
 
     const dataProximoPagamento = this.calcularProximaDataPagamento(new Date());
+
+    // Se existe assinatura free, atualizar para premium
+    if (assinaturaExistente) {
+      assinaturaExistente.plano = plano;
+      assinaturaExistente.preco_mensal = PLAN_PRICES[plano];
+      assinaturaExistente.status = SubscriptionStatus.ACTIVE;
+      if (stripeCustomerId) assinaturaExistente.stripe_customer_id = stripeCustomerId;
+      if (stripeSubscriptionId) assinaturaExistente.stripe_subscription_id = stripeSubscriptionId;
+      assinaturaExistente.data_proximo_pagamento = dataProximoPagamento;
+      return this.subscriptionRepository.save(assinaturaExistente);
+    }
 
     const assinatura = this.subscriptionRepository.create({
       usuario_id: usuarioId,
@@ -353,6 +367,16 @@ export class SubscriptionService {
     };
   }
 
+  async verificarPremium(usuarioId: string, feature: string): Promise<void> {
+    const assinatura = await this.subscriptionRepository.findOne({
+      where: { usuario_id: usuarioId, status: SubscriptionStatus.ACTIVE },
+    });
+    const plano = assinatura?.plano ?? SubscriptionPlan.FREE;
+    if (plano === SubscriptionPlan.FREE) {
+      throw new PremiumRequiredError(feature, plano);
+    }
+  }
+
   async registrarUso(usuarioId: string, tipo: 'ocr' | 'ia'): Promise<void> {
     let assinatura = await this.subscriptionRepository.findOne({
       where: { usuario_id: usuarioId, status: SubscriptionStatus.ACTIVE },
@@ -374,7 +398,7 @@ export class SubscriptionService {
       const usado = tipo === 'ocr' ? assinatura.ocr_usos_mes : assinatura.ia_usos_mes;
       const limite = tipo === 'ocr' ? this.LIMITES_FREE.ocr : this.LIMITES_FREE.ia;
       if (usado >= limite) {
-        throw new Error(`LIMIT_EXCEEDED:${tipo}:${limite}`);
+        throw new LimitExceededError(tipo, limite);
       }
     }
     if (tipo === 'ocr') assinatura.ocr_usos_mes += 1;

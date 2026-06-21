@@ -51,6 +51,7 @@ import { ProductClassificationModule } from '../product-classification/product-c
 import { NotificacaoModule } from '../notificacoes/notificacao.module';
 import { UploadModule } from '../upload/upload.module';
 import { PushNotificationService } from '../notificacoes/services/push-notification.service';
+import { SubscriptionModule } from '../affiliate/subscription.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { PushNotificationService } from '../notificacoes/services/push-notificat
     NotificacaoModule,
     UploadModule,
     ListasModule,
+    SubscriptionModule,
   ],
   providers: [
     CronLogService,

@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { AuditInterceptor } from './modules/audit-log/interceptors/audit.interceptor';
 import { AuditLogService } from './modules/audit-log/audit-log.service';
 import { AppLogger } from '@common/app-logger';
+import { SubscriptionLimitFilter } from '@common/filters/subscription-limit.filter';
 import helmet from 'helmet';
 
 async function bootstrap() {
@@ -15,16 +16,18 @@ async function bootstrap() {
     rawBody: true,
     logger: new AppLogger(),
   });
+
+  // Aumentar limite para cupons fiscais sem quebrar rawBody do webhook Stripe
+  const httpAdapter = app.getHttpAdapter().getInstance();
+  httpAdapter.use('/api/compras', require('body-parser').json({ limit: '10mb' }));
+  httpAdapter.use('/api/compras', require('body-parser').urlencoded({ limit: '10mb', extended: true }));
+
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
   const isProd = configService.get('NODE_ENV') === 'production';
 
   // Security headers
   app.use(helmet());
-
-  // Aumentar limite do body parser para aceitar HTML de cupons fiscais
-  app.use(require('body-parser').json({ limit: '10mb' }));
-  app.use(require('body-parser').urlencoded({ limit: '10mb', extended: true }));
 
   // Global prefix
   app.setGlobalPrefix('api');
@@ -57,6 +60,9 @@ async function bootstrap() {
   const reflector = app.get(Reflector);
   app.useGlobalGuards(new JwtAuthGuard(reflector));
 
+  // Filter para converter erros de limite/plano em 403 com upgrade:true
+  app.useGlobalFilters(new SubscriptionLimitFilter());
+
   // Audit interceptor global
   const auditLogService = app.get(AuditLogService);
   app.useGlobalInterceptors(new AuditInterceptor(auditLogService));
@@ -82,9 +88,9 @@ async function bootstrap() {
   }
 
   const port = configService.get('PORT', 3000);
-  await app.listen(port, '127.0.0.1');
+  await app.listen(port, '0.0.0.0');
 
-  logger.log(`🚀 Aplicação rodando em: http://127.0.0.1:${port}`);
+  logger.log(`🚀 Aplicação rodando em: http://0.0.0.0:${port}`);
   logger.log(`🌍 Ambiente: ${configService.get('NODE_ENV')}`);
 }
 

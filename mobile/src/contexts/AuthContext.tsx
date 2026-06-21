@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { maybeCompleteAuthSession } from 'expo-web-browser';
 import api from '../services/api';
+import { queryClient } from '../lib/queryClient';
 import { User, AuthResponse } from '../types';
 
 maybeCompleteAuthSession();
@@ -143,6 +144,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Resposta inválida do servidor');
       }
 
+      // Limpar cache do usuário anterior antes de logar
+      queryClient.clear();
+      await AsyncStorage.removeItem('cookme-query-cache-v2');
+
       await SecureStore.setItemAsync('accessToken', accessToken);
       if (rememberMe && refreshToken) {
         await SecureStore.setItemAsync('refreshToken', refreshToken);
@@ -229,6 +234,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await SecureStore.deleteItemAsync('accessToken');
       await SecureStore.deleteItemAsync('refreshToken');
+      // Limpar cache do TanStack Query + AsyncStorage para não vazar dados entre usuários
+      queryClient.clear();
+      await AsyncStorage.removeItem('cookme-query-cache-v2');
       setUser(null);
     } catch (err) {
       console.error('Erro ao fazer logout:', err);

@@ -5,6 +5,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 import api from '@/services/api';
@@ -90,12 +92,14 @@ const FEATURES_FREE = [
 export default function PlanosScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ origem?: string; feature?: string }>();
+  const queryClient = useQueryClient();
+  const params = useLocalSearchParams<{ origem?: string; feature?: string; checkout?: string }>();
 
   const [status, setStatus] = useState<StatusAssinatura | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [assinando, setAssinando] = useState<PlanoId | null>(null);
   const [abrindoPortal, setAbrindoPortal] = useState(false);
+  const [checkoutFeedback, setCheckoutFeedback] = useState<'success' | 'cancelled' | null>(null);
 
   const carregarStatus = useCallback(async () => {
     try {
@@ -108,7 +112,22 @@ export default function PlanosScreen() {
     }
   }, []);
 
-  useEffect(() => { carregarStatus(); }, [carregarStatus]);
+  // Recarrega ao focar a tela (volta do checkout, do portal, etc.)
+  useFocusEffect(useCallback(() => {
+    carregarStatus();
+    queryClient.invalidateQueries({ queryKey: ['stripe-status'] });
+  }, [carregarStatus, queryClient]));
+
+  // Retorno do Stripe Checkout via deep link cookme://planos?checkout=success
+  useEffect(() => {
+    if (params.checkout === 'success') {
+      setCheckoutFeedback('success');
+      carregarStatus();
+      queryClient.invalidateQueries({ queryKey: ['stripe-status'] });
+    } else if (params.checkout === 'cancelled') {
+      setCheckoutFeedback('cancelled');
+    }
+  }, [params.checkout]);
 
   const handleAssinar = async (plano: PlanoId) => {
     setAssinando(plano);
@@ -160,6 +179,20 @@ export default function PlanosScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* Feedback pós-checkout */}
+        {checkoutFeedback === 'success' && (
+          <View style={styles.feedbackSuccess}>
+            <MaterialCommunityIcons name="check-circle" size={20} color="#059669" />
+            <Text style={styles.feedbackTxt}>Assinatura ativada com sucesso! Bem-vindo ao Premium 🎉</Text>
+          </View>
+        )}
+        {checkoutFeedback === 'cancelled' && (
+          <View style={styles.feedbackCancelled}>
+            <MaterialCommunityIcons name="close-circle-outline" size={20} color="#DC2626" />
+            <Text style={styles.feedbackTxt}>Pagamento cancelado. Você pode tentar novamente quando quiser.</Text>
+          </View>
+        )}
 
         {/* Hero */}
         <View style={styles.hero}>
@@ -328,6 +361,16 @@ const styles = StyleSheet.create({
   },
   heroTitulo: { ...T.h2, color: C.ink[900], marginTop: 12, textAlign: 'center' },
   heroSub: { ...T.small, color: C.ink[500], textAlign: 'center', marginTop: 6 },
+
+  feedbackSuccess: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#D1FAE5', borderRadius: radius.md, padding: 14, marginBottom: 12,
+  },
+  feedbackCancelled: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#FEE2E2', borderRadius: radius.md, padding: 14, marginBottom: 12,
+  },
+  feedbackTxt: { ...T.small, color: C.ink[800], flex: 1 },
 
   bannerAtual: {
     flexDirection: 'row', alignItems: 'center', gap: 8,

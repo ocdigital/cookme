@@ -33,6 +33,7 @@ import { ReceitaExecutada } from './entities/receita-executada.entity';
 import { CreateReceitaDto } from './dto/create-receita.dto';
 import { UpdateReceitaDto } from './dto/update-receita.dto';
 import { ExecutarReceitaDto } from './dto/executar-receita.dto';
+import { SubscriptionService } from '../affiliate/services/subscription.service';
 
 @ApiTags('Receitas')
 @ApiBearerAuth()
@@ -44,6 +45,7 @@ export class ReceitasController {
     private readonly crawlerService: RecipeCrawlerService,
     private readonly recipeGeneratorService: RecipeGeneratorService,
     private readonly recipeSearchService: RecipeSearchService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   @Post()
@@ -230,7 +232,7 @@ export class ReceitasController {
   }
 
   @Post('importar-url')
-  @ApiOperation({ summary: 'Importa receita de uma URL externa — salva como privada do usuário com badge de fonte' })
+  @ApiOperation({ summary: 'Importa receita de uma URL externa — salva como privada do usuário com badge de fonte (Premium)' })
   async importarUrl(
     @CurrentUser() user: Usuario,
     @Body('url') url: string,
@@ -238,6 +240,7 @@ export class ReceitasController {
     if (!url?.startsWith('http')) {
       throw new BadRequestException('URL inválida');
     }
+    await this.subscriptionService.verificarPremium(user.id, 'Importar receitas');
     return this.recipeGeneratorService.importarReceitaPorUrl(url, user.id);
   }
 
@@ -254,7 +257,11 @@ export class ReceitasController {
   @Post('gerar-com-ia')
   @ApiOperation({ summary: 'Gerar receita com IA baseada em ingredientes' })
   @ApiResponse({ status: 201, description: 'Receita gerada com sucesso' })
-  async gerarComIA(@Body() body: { ingredientes: string[] }): Promise<Receita> {
+  async gerarComIA(
+    @CurrentUser() user: Usuario,
+    @Body() body: { ingredientes: string[] },
+  ): Promise<Receita> {
+    await this.subscriptionService.registrarUso(user.id, 'ia');
     return this.iaReceitasService.gerarESalvarReceita(body.ingredientes);
   }
 

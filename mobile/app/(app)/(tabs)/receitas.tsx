@@ -147,6 +147,15 @@ export default function ReceitasScreen() {
   const [buscandoPreviews, setBuscandoPreviews] = useState(false);
   const [telaModal, setTelaModal] = useState<'menu' | 'previews'>('menu');
 
+  // ─── Plano ────────────────────────────────────────────────────────────────────
+
+  const { data: planoData } = useQuery({
+    queryKey: ['stripe-status'],
+    queryFn: async () => { const r = await api.get('/stripe/status'); return r.data; },
+    staleTime: 5 * 60 * 1000,
+  });
+  const isPremium = planoData?.plano && planoData.plano !== 'free';
+
   // ─── Queries ──────────────────────────────────────────────────────────────────
 
   const { data: receitasData, isFetching: loading } = useQuery({
@@ -639,6 +648,12 @@ export default function ReceitasScreen() {
                       </View>
                     ) : (
                       <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                        {!isPremium && (
+                          <View style={styles.premiumBanner}>
+                            <MaterialCommunityIcons name="star-circle" size={16} color="#7C3AED" />
+                            <Text style={styles.premiumBannerTxt}>Importar receitas é exclusivo do plano Premium</Text>
+                          </View>
+                        )}
                         {previews.map((p, i) => (
                           <View key={p.url + i} style={styles.previewItem}>
                             <View style={{ flex: 1 }}>
@@ -649,11 +664,14 @@ export default function ReceitasScreen() {
                               </View>
                             </View>
                             <TouchableOpacity
-                              style={styles.previewImportarBtn}
+                              style={[styles.previewImportarBtn, !isPremium && styles.previewImportarBtnLocked]}
                               onPress={() => handleImportarPreview(p)}
                               activeOpacity={0.8}
                             >
-                              <Text style={styles.previewImportarBtnTxt}>Importar</Text>
+                              {!isPremium
+                                ? <MaterialCommunityIcons name="lock-outline" size={16} color="#7C3AED" />
+                                : <Text style={styles.previewImportarBtnTxt}>Importar</Text>
+                              }
                             </TouchableOpacity>
                           </View>
                         ))}
@@ -1227,7 +1245,18 @@ const styles = StyleSheet.create({
     backgroundColor: C.green[600], borderRadius: radius.md,
     paddingHorizontal: 14, paddingVertical: 8,
   },
+  previewImportarBtnLocked: {
+    backgroundColor: '#EDE9FE', paddingHorizontal: 12,
+  },
   previewImportarBtnTxt: { ...T.micro, color: C.ink[0], fontWeight: '700' },
+
+  premiumBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#F5F3FF', borderRadius: radius.md,
+    paddingHorizontal: 12, paddingVertical: 10,
+    marginBottom: 10,
+  },
+  premiumBannerTxt: { ...T.small, color: '#7C3AED', flex: 1 },
 
   // Badge fonte (receita importada)
   badgeFonte: {
