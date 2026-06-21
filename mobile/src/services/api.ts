@@ -1,10 +1,17 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import * as Sentry from '@sentry/react-native';
-import { EventEmitter } from 'events';
 
-// Emite 'paywall' quando backend retorna 403 com upgrade:true
-export const apiEvents = new EventEmitter();
+// Mini event emitter sem dependência Node
+type PaywallPayload = { feature?: string; descricao?: string };
+const listeners: Array<(p: PaywallPayload) => void> = [];
+export const apiEvents = {
+  on: (_: 'paywall', fn: (p: PaywallPayload) => void) => { listeners.push(fn); },
+  off: (_: 'paywall', fn: (p: PaywallPayload) => void) => {
+    const i = listeners.indexOf(fn); if (i !== -1) listeners.splice(i, 1);
+  },
+  emit: (_: 'paywall', p: PaywallPayload) => { listeners.forEach(fn => fn(p)); },
+};
 
 // Use fixed IP for celular real na mesma rede WiFi
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.86.9:3000/api';
