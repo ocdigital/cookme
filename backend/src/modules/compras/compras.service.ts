@@ -480,22 +480,35 @@ IMPORTANTE:
             .catch(() => {});
         }
 
-        // 2. Criar item no inventário
+        // 2. Upsert no inventário — somar quantidade se já existe com mesma validade
         const quantidade = item.quantidade || 1;
         const dataValidade = new Date();
-        dataValidade.setDate(dataValidade.getDate() + 30); // 30 dias por padrão
+        dataValidade.setDate(dataValidade.getDate() + 30);
 
-        const novoInventario = this.inventarioRepository.create({
-          usuario_id: usuarioId,
-          produto_id: produto!.id,
-          quantidade_disponivel: quantidade,
-          unidade: UnidadeMedida.UN,
-          data_validade: dataValidade,
-          metodo_atualizacao: MetodoCadastro.OCR_NOTA,
-          localizacao: 'Adicionado via OCR',
+        const existente = await this.inventarioRepository.findOne({
+          where: {
+            usuario_id: usuarioId,
+            produto_id: produto!.id,
+            data_validade: dataValidade,
+          },
         });
 
-        const salvo = await this.inventarioRepository.save(novoInventario);
+        let salvo: Inventario;
+        if (existente) {
+          existente.quantidade_disponivel += quantidade;
+          salvo = await this.inventarioRepository.save(existente);
+        } else {
+          const novoInventario = this.inventarioRepository.create({
+            usuario_id: usuarioId,
+            produto_id: produto!.id,
+            quantidade_disponivel: quantidade,
+            unidade: UnidadeMedida.UN,
+            data_validade: dataValidade,
+            metodo_atualizacao: MetodoCadastro.OCR_NOTA,
+            localizacao: 'Adicionado via OCR',
+          });
+          salvo = await this.inventarioRepository.save(novoInventario);
+        }
         itensSalvos.push(salvo as Inventario);
       } catch (error) {
         console.error(`Erro ao salvar item "${item.nome}":`, error);
