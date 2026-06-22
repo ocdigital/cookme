@@ -116,8 +116,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userData = response.data.data || response.data.user || response.data;
           setUser(userData);
         } catch (err: any) {
-          // Token inválido/expirado - limpar
-          if (err.response?.status === 401) {
+          const status = err.response?.status;
+          // Token inválido/expirado ou servidor inacessível — limpar sessão
+          if (status === 401 || status === 403 || !err.response) {
             await SecureStore.deleteItemAsync('accessToken');
             await SecureStore.deleteItemAsync('refreshToken');
             setUser(null);

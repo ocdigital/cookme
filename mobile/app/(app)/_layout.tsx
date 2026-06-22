@@ -144,6 +144,14 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 
 export default function AppLayout() {
   const [paywall, setPaywall] = useState<{ feature?: string; descricao?: string } | null>(null);
+  const { isSignedIn, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !isSignedIn) {
+      router.replace('/(auth)/login' as any);
+    }
+  }, [isSignedIn, loading]);
 
   useEffect(() => {
     const handler = (data: { feature?: string; descricao?: string }) => setPaywall(data);
