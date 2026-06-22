@@ -78,10 +78,13 @@ function parseNfceHtml(html: string): NfceResult {
   const n = linhas.length;
   const itens: NfceItem[] = [];
   let totalCupom = 0;
+
   let nomeEstab = '';
   let cnpjEstab = '';
+  // Linhas do cabeçalho (antes do primeiro produto) para excluir do array de itens
+  const linhasCabecalho = new Set<string>();
 
-  // Extrai CNPJ e nome do estabelecimento
+  // Extrai CNPJ e nome do estabelecimento — escaneia as primeiras 40 linhas
   for (let j = 0; j < Math.min(n, 40); j++) {
     const l = linhas[j];
     if (l.toUpperCase().includes('CNPJ:')) {
@@ -89,6 +92,10 @@ function parseNfceHtml(html: string): NfceResult {
     }
     if (!nomeEstab && l && !isKeyword(l) && !l.includes('CNPJ') && l.length > 5 && j > 5) {
       nomeEstab = l;
+    }
+    // Guardar todas as linhas não-vazias do cabeçalho como candidatas a excluir
+    if (l && l.length > 3) {
+      linhasCabecalho.add(l.toLowerCase().trim());
     }
   }
 
@@ -116,8 +123,14 @@ function parseNfceHtml(html: string): NfceResult {
 
       if (temCodigo) {
         let nomeProduto = linha;
-        // Ignorar se a linha é o nome do estabelecimento
-        if (nomeEstab && nomeProduto.toLowerCase().trim() === nomeEstab.toLowerCase().trim()) {
+        // Ignorar se a linha é o nome do estabelecimento ou qualquer linha do cabeçalho
+        // (estabelecimento aparece antes do primeiro produto e não tem (Código:) próprio,
+        // mas o lookahead captura o (Código:) do PRÓXIMO item)
+        const nomeLower = nomeProduto.toLowerCase().trim();
+        if (
+          (nomeEstab && nomeLower === nomeEstab.toLowerCase().trim()) ||
+          /^(residencial|supermercado|mercado|hipermercado|atacad|assai|carrefour|extra|walmart|hiper)\b/i.test(nomeProduto)
+        ) {
           i++;
           continue;
         }
