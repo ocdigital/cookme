@@ -344,7 +344,8 @@ export class ReceitaBancoService {
       origem: (receita as any).url_fonte ? 'internet' : 'ia_gerada',
       url_fonte: (receita as any).url_fonte || null,
       avaliacao_media: (receita as any).avaliacao || 0,
-      status_moderacao: proprietarioId ? 'ok' : ((receita.validation_score != null && receita.validation_score < 75) ? 'em_revisao' : 'ok'),
+      // Receitas do usuário (importadas) → ok direto; geradas pela IA → só ok se score ≥ 70, senão arquivar
+      status_moderacao: proprietarioId ? 'ok' : ((receita.validation_score != null && receita.validation_score >= 70) ? 'ok' : 'arquivado'),
       validation_score: receita.validation_score ?? null,
       validation_issues: receita.validation_issues?.join(' | ') ?? null,
       tags_dieta: this.classificacao.classificarTags(ingredientesChave, receita.tags_dieta || [], receita.titulo) || undefined,

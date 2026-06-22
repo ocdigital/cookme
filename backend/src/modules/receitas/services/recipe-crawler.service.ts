@@ -55,7 +55,7 @@ export class RecipeCrawlerService {
    * Crawl contínuo: toda hora pega 2 fontes em rotação (categorias + keywords)
    * e salva receitas novas no banco — independente de inventário de usuários.
    */
-  @Cron(CronExpression.EVERY_HOUR)
+  // @Cron(CronExpression.EVERY_HOUR) — desativado: scraping proativo substituído por geração IA sob demanda
   async crawlProativo(): Promise<void> {
     if (this.isRunning) {
       await this.cronLog.registrar({ job: 'crawl-proativo', status: 'skip', detalhe: 'Já em execução' });
