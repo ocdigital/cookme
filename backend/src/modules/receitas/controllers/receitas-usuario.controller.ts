@@ -8,6 +8,7 @@ import { Usuario } from '@modules/usuarios/entities/usuario.entity';
 import { Preferencia } from '@modules/usuarios/entities/preferencia.entity';
 import { ReceitaBancoService } from '../services/receita-banco.service';
 import { RecipeGeneratorService } from '../services/recipe-generator.service';
+import { RecipeSearchService } from '../services/recipe-search.service';
 import { AprendizadoService } from '../services/aprendizado.service';
 import { InventarioService } from '@modules/inventario/inventario.service';
 import { ListaService } from '@modules/listas/services/lista.service';
@@ -27,6 +28,7 @@ export class ReceitasUsuarioController {
     private readonly receitaBancoService: ReceitaBancoService,
     private readonly inventarioService: InventarioService,
     private readonly recipeGeneratorService: RecipeGeneratorService,
+    private readonly recipeSearchService: RecipeSearchService,
     private readonly listaService: ListaService,
     private readonly aprendizadoService: AprendizadoService,
     @InjectRepository(ReceitaExecutada)
@@ -57,12 +59,17 @@ export class ReceitasUsuarioController {
     const modoAlimentar = pref?.modo_alimentar || 'normal';
     const resultado = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes);
 
-    // Banco com poucas receitas → scraping em background para popular (sem bloquear resposta)
+    // Banco com poucas receitas → gerar via Haiku em background + buscar previews web em paralelo
+    let previewsWeb: Array<{ titulo: string; url: string; site: string }> = [];
     if (resultado.length < 8 && ingredientes.length > 0) {
-      this.logger.log(`Banco tem ${resultado.length} receitas — disparando scraping background`);
-      this.recipeGeneratorService.gerarReceitas(ingredientes).catch((err) =>
-        this.logger.error(`Erro no scraping background: ${err.message}`),
-      );
+      this.logger.log(`Banco tem ${resultado.length} receitas — gerando IA + buscando previews web`);
+      const [, previews] = await Promise.allSettled([
+        this.recipeGeneratorService.gerarReceitas(ingredientes).catch((err) =>
+          this.logger.error(`Erro na geração background: ${err.message}`),
+        ),
+        this.recipeSearchService.buscarPreviewsNaWeb(ingredientes, 6),
+      ]);
+      if (previews.status === 'fulfilled') previewsWeb = previews.value ?? [];
     }
 
     // Aplica filtro/sort baseado no modo alimentar do usuário
@@ -128,6 +135,7 @@ export class ReceitasUsuarioController {
       ingredientes_vencendo: nomesVencendo,
       modo_alimentar: modoAlimentar,
       receitas: receitasComVencimento,
+      previews_web: previewsWeb,
     };
   }
 

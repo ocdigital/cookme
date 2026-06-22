@@ -220,6 +220,7 @@ export default function ReceitasScreen() {
   const receitas: ReceitaDisponivel[] = receitasData?.receitas ?? [];
   const totalIngredientes: number = receitasData?.ingredientes_ativos ?? 0;
   const ingredientesVencendo: string[] = receitasData?.ingredientes_vencendo ?? [];
+  const previewsWeb: Preview[] = receitasData?.previews_web ?? [];
   const quaseReceitas: QuaseReceita[] = quaseData ?? [];
   const favoritosIds = useMemo(
     () => new Set((favoritasData ?? []).map(r => r.id)),
@@ -596,6 +597,42 @@ export default function ReceitasScreen() {
                   onFaltando={() => abrirFaltando(r)}
                   onPress={() => router.push({ pathname: '/(app)/receita/[id]', params: { id: r.id, dados: JSON.stringify(r) } })}
                 />
+              ))}
+            </>
+          )}
+
+          {/* Receitas encontradas na web — aparece quando banco tem poucas receitas */}
+          {previewsWeb.length > 0 && (
+            <>
+              <View style={[styles.sugestaoHeader, { backgroundColor: '#FEF3C7' }]}>
+                <View style={[styles.sugestaoHeaderIcon, { backgroundColor: '#D97706' }]}>
+                  <MaterialCommunityIcons name="web" size={15} color={C.ink[0]} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sugestaoHeaderTitle}>Encontramos na web 🌐</Text>
+                  <Text style={styles.sugestaoHeaderSub}>Receitas com seus ingredientes — importe as que quiser</Text>
+                </View>
+              </View>
+              {previewsWeb.map((p, i) => (
+                <View key={`web-${i}`} style={styles.previewItem}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.previewTitulo} numberOfLines={2}>{p.titulo}</Text>
+                    <View style={styles.badgeFonte}>
+                      <MaterialCommunityIcons name="download-outline" size={11} color="#D97706" />
+                      <Text style={styles.badgeFonteTxt}>{p.site}</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.previewImportarBtn, !isPremium && styles.previewImportarBtnLocked]}
+                    onPress={() => handleImportarPreview(p)}
+                    activeOpacity={0.8}
+                  >
+                    {!isPremium
+                      ? <MaterialCommunityIcons name="lock-outline" size={16} color="#7C3AED" />
+                      : <Text style={styles.previewImportarBtnTxt}>Importar</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
               ))}
             </>
           )}
