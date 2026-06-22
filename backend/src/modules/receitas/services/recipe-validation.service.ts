@@ -1,71 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
+import { PROTAGONISTAS } from './protagonistas';
 
 export interface ValidationResult {
   score: number | null;
   issues: string[];
   status: 'ok' | 'em_revisao' | 'descartar';
 }
-
-const PROTAGONISTAS: Record<string, string[]> = {
-  'lagosta':        ['lagosta'],
-  'camarao':        ['camarao', 'camarão'],
-  'salmao':         ['salmao', 'salmão'],
-  'atum':           ['atum'],
-  'bacalhau':       ['bacalhau'],
-  'sardinha':       ['sardinha'],
-  'tilapia':        ['tilapia', 'tilápia'],
-  'corvina':        ['corvina'],
-  'merluza':        ['merluza'],
-  'frango':         ['frango', 'peito de frango', 'coxa', 'sobrecoxa', 'file de frango'],
-  'carne':          ['carne', 'patinho', 'alcatra', 'maminha', 'picanha', 'acem', 'musculo', 'contrafile', 'bife'],
-  'porco':          ['porco', 'suino', 'lombo', 'pernil', 'costelinha', 'bacon', 'linguica'],
-  'peixe':          ['peixe', 'tilapia', 'atum', 'bacalhau', 'merluza', 'corvina', 'sardinha'],
-  'costela':        ['costela'],
-  'linguica':       ['linguica', 'calabresa', 'paio', 'linguiça'],
-  'bacon':          ['bacon'],
-  'ovo':            ['ovo', 'ovos'],
-  'camaroes':       ['camarao', 'camarão'],
-  'queijo':         ['queijo', 'mussarela', 'parmesao', 'ricota', 'cottage', 'provolone', 'gruyere', 'brie'],
-  'requeijao':      ['requeijao', 'requeijão'],
-  'ricota':         ['ricota'],
-  'mussarela':      ['mussarela', 'mozarela', 'mozzarella'],
-  'abobrinha':      ['abobrinha'],
-  'berinjela':      ['berinjela'],
-  'brocolis':       ['brocolis', 'brócolis'],
-  'espinafre':      ['espinafre'],
-  'cogumelo':       ['cogumelo', 'champignon', 'shiitake', 'shimeji', 'portobello'],
-  'abobora':        ['abobora', 'abóbora', 'jerimum', 'moranga'],
-  'couve':          ['couve'],
-  'couve-flor':     ['couve-flor', 'couve flor'],
-  'cenoura':        ['cenoura'],
-  'batata':         ['batata', 'batata-doce', 'batata doce'],
-  'mandioca':       ['mandioca', 'aipim', 'macaxeira'],
-  'lentilha':       ['lentilha'],
-  'grao-de-bico':   ['grao-de-bico', 'grao de bico', 'grão-de-bico'],
-  'feijao':         ['feijao', 'feijão'],
-  'quiabo':         ['quiabo'],
-  'milho':          ['milho'],
-  'cuscuz':         ['cuscuz', 'couscous', 'flocos de milho', 'flocao', 'flocão', 'farinha de milho'],
-  'palmito':        ['palmito'],
-  'alcachofra':     ['alcachofra'],
-  'macarrao':       ['macarrao', 'espaguete', 'penne', 'fusilli', 'fettuccine', 'lasanha'],
-  'arroz':          ['arroz'],
-  'quinoa':         ['quinoa'],
-  'tapioca':        ['tapioca'],
-  'chocolate':      ['chocolate'],
-  'morango':        ['morango'],
-  'limao':          ['limao', 'limão'],
-  'abacaxi':        ['abacaxi'],
-  'coco':           ['coco', 'leite de coco'],
-  'banana':         ['banana'],
-  'manga':          ['manga'],
-  'fricasse':       ['frango', 'creme de leite', 'requeijao'],
-  'feijoada':       ['feijao', 'feijão', 'feijao preto', 'carne seca', 'linguica'],
-  'lasanha':        ['massa', 'molho', 'mussarela'],
-  'coxinha':        ['frango', 'massa', 'farinha'],
-};
 
 const TERMOS_INVALIDOS = [
   'imao para lavar',
