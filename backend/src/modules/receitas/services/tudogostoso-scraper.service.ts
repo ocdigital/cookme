@@ -199,9 +199,18 @@ export class TudoGostosoScraperService {
     return this.parsarJsonLd(html, url);
   }
 
+  private normalizeTitle(s: string): string {
+    return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
   private parsarJsonLd(html: string, url: string): ReceitaGerada | null {
     const ogImage = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)?.[1] ||
                     html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i)?.[1];
+
+    // Título real da página (og:title ou <title>) para validar contra JSON-LD
+    const ogTitle = html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)?.[1] ||
+                    html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || '';
+    const tituloReal = this.normalizeTitle(this.decodeHtml(ogTitle.replace(/\s*[-|].*$/, '').trim()));
 
     const scriptRegex = /<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
     let match;
@@ -213,6 +222,14 @@ export class TudoGostosoScraperService {
 
         for (const schema of schemas) {
           if (schema['@type'] === 'Recipe') {
+            const nomeSchema = this.normalizeTitle(this.decodeHtml(schema.name || schema.headline || ''));
+
+            // TudoGostoso às vezes serve JSON-LD de outra receita — detectar divergência de título
+            if (tituloReal && nomeSchema && !tituloReal.includes(nomeSchema.substring(0, 15)) && !nomeSchema.includes(tituloReal.substring(0, 15))) {
+              this.logger.warn(`JSON-LD diverge do título da página — "${nomeSchema}" vs "${tituloReal}" (${url}) — tentando HTML scraping`);
+              return this.parsarHtmlDireto(html, url, ogImage);
+            }
+
             const receita = this.schemaParaReceita(schema, url, ogImage);
             if (receita) return receita;
           }
@@ -223,6 +240,50 @@ export class TudoGostosoScraperService {
     }
 
     return null;
+  }
+
+  private parsarHtmlDireto(html: string, url: string, ogImage?: string): ReceitaGerada | null {
+    // Extrair título
+    const titulo = this.decodeHtml(
+      html.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1] ||
+      html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)?.[1] || ''
+    ).replace(/\s*[-|].*$/, '').trim();
+    if (!titulo) return null;
+
+    // TudoGostoso: ingredientes ficam em elementos com classe ou atributo de ingrediente
+    const ingredientesMatches = html.matchAll(/<span[^>]+data-ingredient-name[^>]*>([^<]+)<\/span>|<li[^>]+class="[^"]*ingredient[^"]*"[^>]*>([\s\S]*?)<\/li>/gi);
+    const ingredientes: string[] = [];
+    for (const m of ingredientesMatches) {
+      const texto = this.decodeHtml((m[1] || m[2] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+      if (texto && texto.length > 1) ingredientes.push(texto);
+    }
+
+    // Fallback: buscar lista de ingredientes pelo padrão da página
+    if (ingredientes.length === 0) {
+      const secaoIng = html.match(/(?:ingredientes?|ingredients?)[\s\S]{0,200}<ul([\s\S]*?)<\/ul>/i)?.[1] || '';
+      const items = secaoIng.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+      for (const m of items) {
+        const texto = this.decodeHtml(m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+        if (texto && texto.length > 1) ingredientes.push(texto);
+      }
+    }
+
+    if (ingredientes.length === 0) {
+      this.logger.warn(`HTML scraping: nenhum ingrediente encontrado em ${url}`);
+      return null;
+    }
+
+    return {
+      titulo,
+      descricao: '',
+      ingredientes,
+      modo_preparo: '',
+      tempo_preparo: 0,
+      dificuldade: 'médio',
+      rendimento: '4 porções',
+      tags_dieta: [],
+      url_fonte: url,
+    } as any;
   }
 
   private decodeHtml(str: string): string {
