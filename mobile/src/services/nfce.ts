@@ -116,6 +116,11 @@ function parseNfceHtml(html: string): NfceResult {
 
       if (temCodigo) {
         let nomeProduto = linha;
+        // Ignorar se a linha é o nome do estabelecimento
+        if (nomeEstab && nomeProduto.toLowerCase().trim() === nomeEstab.toLowerCase().trim()) {
+          i++;
+          continue;
+        }
         let codigo = '';
         let qtde = 1.0;
         let unidade = 'UN';

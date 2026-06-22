@@ -370,8 +370,9 @@ IMPORTANTE:
           );
 
           const nome = String(item.nome || '').trim();
-          // Rejeitar itens cujo nome é só número/preço (ex: "18,59", "4.98")
-          if (!nome || /^[\d.,\s]+$/.test(nome)) continue;
+          const PALAVRAS_ESTAB = /^(residencial|supermercado|mercado|hipermercado|atacadao|atacado|assai|carrefour|extra|walmart|hiper|loja|comercio|comercial|cnpj|chave|protocolo|consumidor|nota|fiscal|nfc|sat|documento)\b/i;
+          // Rejeitar nomes que são preços ou nomes de estabelecimento
+          if (!nome || /^[\d.,\s]+$/.test(nome) || PALAVRAS_ESTAB.test(nome)) continue;
 
           itensProcessados.push({
             nome,
@@ -424,10 +425,11 @@ IMPORTANTE:
 
     for (const item of itens) {
       try {
-        // Rejeitar nomes inválidos (números, preços, vazios)
+        // Rejeitar nomes inválidos (números, preços, vazios, ou claramente nomes de estabelecimento)
         const nomeValido = String(item.nome || '').trim();
-        if (!nomeValido || /^[\d.,\s]+$/.test(nomeValido) || nomeValido.length < 2) {
-          console.warn(`[ComprasService] Item ignorado (nome inválido): "${item.nome}"`);
+        const PALAVRAS_ESTABELECIMENTO = /^(residencial|supermercado|mercado|hipermercado|atacadao|atacado|assai|carrefour|extra|walmart|hiper|loja|comercio|comercial|cnpj|chave|protocolo|consumidor|nota|fiscal|nfc|sat|documento)\b/i;
+        if (!nomeValido || /^[\d.,\s]+$/.test(nomeValido) || nomeValido.length < 2 || PALAVRAS_ESTABELECIMENTO.test(nomeValido)) {
+          console.warn(`[ComprasService] Item ignorado (nome inválido/estabelecimento): "${item.nome}"`);
           continue;
         }
 
