@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Image, Modal, TextInput, KeyboardAvoidingView, Platform,
+  ActivityIndicator, Alert, Image, Modal, TextInput, KeyboardAvoidingView, Platform, RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -83,8 +83,15 @@ export default function ReceitaDetalheScreen() {
   const insets = useSafeAreaInsets();
 
   const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const [executando, setExecutando] = useState(false);
   const [togglingFav, setTogglingFav] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.receitaDetalhe(id ?? '') });
+    setRefreshing(false);
+  }, [queryClient, id]);
 
   // Foto
   const [modalFoto, setModalFoto] = useState(false);
@@ -320,7 +327,11 @@ export default function ReceitaDetalheScreen() {
 
   return (
     <ScreenWrapper>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.green[600]]} tintColor={C.green[600]} />}
+      >
 
         {/* ── Hero imagem ────────────────────────────────────────────── */}
         <View style={styles.hero}>

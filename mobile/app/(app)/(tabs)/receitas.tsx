@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   ScrollView, Image, Alert, Modal, FlatList, TextInput,
-  KeyboardAvoidingView, Platform, Pressable, Animated,
+  KeyboardAvoidingView, Platform, Pressable, Animated, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
@@ -126,8 +126,17 @@ export default function ReceitasScreen() {
 
   const { modoAlimentar, setModoAlimentar: setModoCtx } = useModoAlimentar();
   const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const [gerando, setGerando] = useState(false);
   const [comprando, setComprando] = useState<string | null>(null);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
+    await queryClient.invalidateQueries({ queryKey: ['receitas', 'quase-possiveis'] });
+    setRefreshing(false);
+  }, [queryClient, modoAlimentar]);
+
   const { gerarReceitas } = useRecipeGenerator();
   const { showTutorial, dismissTutorial } = useScreenTutorial('receitas');
   const { isConnected, isInternetReachable } = useNetworkStatus();
@@ -476,7 +485,11 @@ export default function ReceitasScreen() {
       ) : receitas.length === 0 ? (
         <EmptyState onGerar={handleGerar} gerando={gerando} />
       ) : (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.green[600]]} tintColor={C.green[600]} />}
+        >
           {/* Resumo */}
           <View style={styles.resumo}>
             <MaterialCommunityIcons name="fridge-outline" size={16} color={C.green[600]} />
