@@ -122,7 +122,8 @@ export class ReceitasService {
    */
   async findOne(id: string, incluirArquivadas = false): Promise<Receita> {
     const where: any = { id };
-    if (!incluirArquivadas) where.status_moderacao = In(['ok', 'em_revisao'] as any[]);
+    // em_revisao = aguarda moderação admin — não exibir para usuários comuns
+    if (!incluirArquivadas) where.status_moderacao = 'ok';
 
     const receita = await this.receitaRepository.findOne({
       where,
