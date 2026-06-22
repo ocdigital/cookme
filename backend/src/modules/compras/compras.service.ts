@@ -369,8 +369,12 @@ IMPORTANTE:
             String(item.quantidade || '1').replace(',', '.'),
           );
 
+          const nome = String(item.nome || '').trim();
+          // Rejeitar itens cujo nome é só número/preço (ex: "18,59", "4.98")
+          if (!nome || /^[\d.,\s]+$/.test(nome)) continue;
+
           itensProcessados.push({
-            nome: String(item.nome || '').trim(),
+            nome,
             quantidade,
             valor: valor.toFixed(2),
             valor_total: (valor * quantidade).toFixed(2),
@@ -420,6 +424,13 @@ IMPORTANTE:
 
     for (const item of itens) {
       try {
+        // Rejeitar nomes inválidos (números, preços, vazios)
+        const nomeValido = String(item.nome || '').trim();
+        if (!nomeValido || /^[\d.,\s]+$/.test(nomeValido) || nomeValido.length < 2) {
+          console.warn(`[ComprasService] Item ignorado (nome inválido): "${item.nome}"`);
+          continue;
+        }
+
         // 1. Buscar ou criar produto
         let produto: Produto | null = null;
 
