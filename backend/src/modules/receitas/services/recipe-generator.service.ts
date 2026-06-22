@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import Anthropic from '@anthropic-ai/sdk';
 import { ReceitaBancoService } from './receita-banco.service';
 import { RecipeSearchService } from './recipe-search.service';
@@ -28,7 +27,6 @@ export interface Receita {
 @Injectable()
 export class RecipeGeneratorService {
   private readonly logger = new Logger('RecipeGeneratorService');
-  private geminiModel: any;
   private anthropic: Anthropic | null = null;
 
   constructor(
@@ -37,11 +35,6 @@ export class RecipeGeneratorService {
     private readonly recipeSearchService: RecipeSearchService,
     private readonly validationService: RecipeValidationService,
   ) {
-    const geminiKey = this.configService.get<string>('GEMINI_API_KEY');
-    if (geminiKey) {
-      const genAI = new GoogleGenerativeAI(geminiKey);
-      this.geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    }
     const anthropicKey = this.configService.get<string>('CLAUDE_API_KEY') ||
                          this.configService.get<string>('ANTHROPIC_API_KEY');
     if (anthropicKey) {
@@ -66,79 +59,95 @@ export class RecipeGeneratorService {
       this.logger.log(`🔄 forcarIA=true — pulando banco, buscando novas na web`);
     }
 
-    this.logger.log(`⚡ Banco retornou ${receitasDoBanco.length} receita(s) — buscando na web...`);
+    this.logger.log(`⚡ Banco retornou ${receitasDoBanco.length} receita(s) — gerando com Haiku...`);
 
-    // 2. Scraping de sites reais de receitas
-    const quantidadeBuscar = forcarIA ? 6 : Math.max(3, 5 - receitasDoBanco.length);
-    this.logger.log(`🌐 Buscando ${quantidadeBuscar} receita(s) na internet...`);
-    let receitasWeb = await this.recipeSearchService.buscarReceitasReais(ingredientes, quantidadeBuscar);
+    // 2. Geração via Claude Haiku com os ingredientes do usuário
+    const quantidadeGerar = forcarIA ? 5 : Math.max(2, 5 - receitasDoBanco.length);
+    let receitasIA = await this.gerarComHaiku(ingredientes, quantidadeGerar);
 
-    if (receitasWeb.length === 0) {
-      this.logger.warn('⚠️ Nenhuma receita encontrada nos sites');
+    if (receitasIA.length === 0) {
+      this.logger.warn('⚠️ Haiku não gerou receitas — retornando banco');
       return receitasDoBanco.map((r) => this.receitaBancoService.entidadeParaFormato(r));
     }
 
-    // 3. Filtra receitas web pelo cobertura de ingredientes do usuário
-    const normalizados = ingredientes.map(i =>
-      i.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
-    );
+    // 3. Valida + busca imagem + salva no banco
+    const enriquecidas = await Promise.all(receitasIA.map(r => this.enriquecerReceita(r)));
+    receitasIA = enriquecidas.filter((r): r is Receita => r !== null).map(r => ({ ...r, is_nova: true }));
 
-    const receitasFiltradas = receitasWeb.filter(receita => {
-      const chaves = this.receitaBancoService.extrairChaves(receita.ingredientes);
-      if (chaves.length === 0) return false;
-
-      let pesoTotal = 0;
-      let pesoEncontrado = 0;
-      for (const chave of chaves) {
-        const peso = this.receitaBancoService.pesoIngrediente(chave, receita.titulo);
-        pesoTotal += peso;
-        // Normaliza a chave também (remove acentos) para comparação consistente
-        const chaveNorm = chave.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-        if (normalizados.some(n => n.includes(chaveNorm) || chaveNorm.includes(n))) {
-          pesoEncontrado += peso;
-        }
-      }
-
-      const cobertura = pesoTotal > 0 ? pesoEncontrado / pesoTotal : 0;
-      if (cobertura >= 0.25) {
-        this.logger.log(`✅ "${receita.titulo}" cobertura ${Math.round(cobertura * 100)}%`);
-        return true;
-      }
-      this.logger.debug(`❌ "${receita.titulo}" cobertura ${Math.round(cobertura * 100)}% — descartada`);
-      return false;
-    });
-
-    receitasWeb = receitasFiltradas.slice(0, quantidadeBuscar);
-
-    if (receitasWeb.length === 0) {
-      this.logger.warn('⚠️ Nenhuma receita web passou o filtro de cobertura — retornando banco');
-      return receitasDoBanco.map((r) => this.receitaBancoService.entidadeParaFormato(r));
-    }
-
-    // 4. Reescreve, valida e busca imagem (Mestre Cuca pipeline)
-    const enriquecidas = await Promise.all(receitasWeb.map(r => this.enriquecerReceita(r)));
-    receitasWeb = enriquecidas.filter((r): r is Receita => r !== null).map(r => ({ ...r, is_nova: true }));
-
-    // 5. Salva receitas reais no banco para próximos usuários
-    this.logger.log(`💾 Salvando ${receitasWeb.length} receita(s) no banco...`);
+    this.logger.log(`💾 Salvando ${receitasIA.length} receita(s) geradas no banco...`);
     await Promise.allSettled(
-      receitasWeb.map((r) =>
+      receitasIA.map((r) =>
         this.receitaBancoService.salvarReceitaGerada(r).catch((err) =>
           this.logger.error(`❌ Falha ao salvar "${r.titulo}": ${err.message}`),
         ),
       ),
     );
 
-    // 6. Combina banco + web
+    // 4. Combina banco + geradas
     const receitasBancoFormatadas = receitasDoBanco.map((r) =>
       this.receitaBancoService.entidadeParaFormato(r),
     );
-    const resultado = [...receitasBancoFormatadas, ...receitasWeb].slice(0, 5);
+    const resultado = [...receitasBancoFormatadas, ...receitasIA].slice(0, 5);
 
     this.logger.log(
-      `✨ Total: ${resultado.length} receita(s) (${receitasDoBanco.length} banco + ${receitasWeb.length} web)`,
+      `✨ Total: ${resultado.length} receita(s) (${receitasDoBanco.length} banco + ${receitasIA.length} IA)`,
     );
     return resultado;
+  }
+
+  private async gerarComHaiku(ingredientes: string[], quantidade: number): Promise<Receita[]> {
+    if (!this.anthropic) {
+      this.logger.warn('Anthropic não configurado — sem geração IA');
+      return [];
+    }
+
+    const prompt = `Você é um chef brasileiro. Crie ${quantidade} receitas usando principalmente estes ingredientes: ${ingredientes.slice(0, 12).join(', ')}.
+
+Retorne APENAS um array JSON válido (sem markdown):
+[
+  {
+    "titulo": "Nome da Receita",
+    "descricao": "Descrição em 1 frase",
+    "ingredientes": ["2 xícaras de arroz", "1 dente de alho picado"],
+    "modo_preparo": "Passo 1. ... Passo 2. ...",
+    "tempo_preparo": "30 minutos",
+    "dificuldade": "fácil",
+    "rendimento": "4 porções",
+    "tags_dieta": []
+  }
+]
+
+Regras:
+- Use ingredientes da lista como base — pode adicionar temperos básicos (sal, azeite, alho, cebola)
+- modo_preparo: passos numerados, completo e executável
+- tags_dieta: array com "vegetariano", "vegano" ou "fitness" se aplicável, senão []
+- Receitas brasileiras do dia a dia, simples e saborosas`;
+
+    try {
+      const msg = await this.anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const raw = (msg.content[0] as any).text.trim().replace(/```json\n?|\n?```/g, '').trim();
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed.slice(0, quantidade).map((r: any) => ({
+        titulo: r.titulo ?? 'Receita',
+        descricao: r.descricao ?? '',
+        ingredientes: Array.isArray(r.ingredientes) ? r.ingredientes : [],
+        modo_preparo: r.modo_preparo ?? '',
+        tempo_preparo: r.tempo_preparo ?? '30 minutos',
+        dificuldade: r.dificuldade ?? 'médio',
+        rendimento: r.rendimento ?? '4 porções',
+        tags_dieta: Array.isArray(r.tags_dieta) ? r.tags_dieta : [],
+      }));
+    } catch (err: any) {
+      this.logger.error(`Haiku geração falhou: ${err.message}`);
+      return [];
+    }
   }
 
   async importarReceitaPorUrl(url: string, proprietarioId?: string): Promise<{ receita: any; nova: boolean }> {
@@ -315,28 +324,7 @@ Retorne APENAS o modo de preparo reescrito, sem título, sem comentários.`;
     }
 
     if (candidatas.length === 0) return undefined;
-    if (candidatas.length === 1 || !this.geminiModel) return candidatas[0].url;
-
-    // Gemini Vision: escolhe a candidata mais relevante para o título
-    try {
-      const thumbUrls = candidatas.map((c, i) => `${i}: ${c.thumbUrl}`).join('\n');
-      const prompt = `Você é um chef avaliando imagens de comida. Qual das URLs abaixo melhor representa visualmente a receita "${titulo}"?
-
-${thumbUrls}
-
-Responda APENAS com o número do índice (0 a ${candidatas.length - 1}) ou -1 se nenhuma for adequada.`;
-
-      const result = await this.geminiModel.generateContent(prompt);
-      const text = result.response.text().trim();
-      const idx = parseInt(text.replace(/\D/g, '')) ?? -1;
-      if (idx >= 0 && idx < candidatas.length) {
-        this.logger.debug(`📸 Gemini escolheu candidata ${idx} para "${titulo}"`);
-        return candidatas[idx].url;
-      }
-    } catch (err: any) {
-      this.logger.debug(`Gemini Vision error para "${titulo}": ${err.message}`);
-    }
-
+    // Retorna primeira candidata — sem custo adicional de IA para seleção de imagem
     return candidatas[0].url;
   }
 }

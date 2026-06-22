@@ -143,31 +143,17 @@ export class RecipeValidationService {
       return { score: null, issues: ['haiku_indisponivel'], status: 'em_revisao' };
     }
 
-    const prompt = `Você é um chef experiente avaliando uma receita brasileira. Analise criticamente e seja rigoroso:
+    // Prompt otimizado — só o essencial para validação binária (↓60% tokens)
+    const ing = receita.ingredientes.slice(0, 10).join(', ');
+    const preparo = receita.modo_preparo.substring(0, 400);
+    const prompt = `Chef avaliando receita. JSON apenas: {"score":0-100,"issues":["..."]}
 
-Receita: ${receita.titulo}
-Ingredientes: ${receita.ingredientes.slice(0, 15).join(', ')}
-Tempo: ${receita.tempo_preparo}
-Rendimento: ${receita.rendimento}
-Modo de preparo:
-${receita.modo_preparo.substring(0, 1000)}
+"${receita.titulo}" | ${receita.tempo_preparo} | ${receita.rendimento}
+Ingredientes: ${ing}
+Preparo: ${preparo}
 
-Critérios de avaliação:
-- Ingredientes fazem sentido juntos culinariamente? (25 pts)
-- O modo de preparo menciona ingredientes que NÃO estão na lista? Se sim, descontar muito (25 pts)
-- Quantidades e proporções são realistas? (25 pts)
-- Modo de preparo é completo, coerente e executável? (25 pts)
-
-DESCARTE IMEDIATO se:
-- Receita tem nome de ingrediente principal mas ele não está na lista
-- Ingredientes absurdos ou sem sentido
-- Modo de preparo pede ingredientes ausentes da lista
-
-Retorne APENAS JSON válido:
-{
-  "score": 85,
-  "issues": ["problema encontrado 1"]
-}`;
+Score: ingredientes coerentes(25) + preparo só usa ingredientes listados(25) + proporções realistas(25) + preparo executável(25).
+Score 0 se: protagonista ausente nos ingredientes, preparo pede ingrediente não listado, <2 ingredientes.`;
 
     try {
       const msg = await this.anthropic.messages.create({
