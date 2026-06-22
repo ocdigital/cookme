@@ -495,7 +495,7 @@ IMPORTANTE:
 
         let salvo: Inventario;
         if (existente) {
-          existente.quantidade_disponivel += quantidade;
+          existente.quantidade_disponivel = parseFloat(String(existente.quantidade_disponivel)) + parseFloat(String(quantidade));
           salvo = await this.inventarioRepository.save(existente);
         } else {
           const novoInventario = this.inventarioRepository.create({
