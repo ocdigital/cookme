@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   ScrollView, Image, Alert, Modal, FlatList, TextInput,
@@ -7,7 +7,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
@@ -146,6 +147,38 @@ export default function ReceitasScreen() {
   const [previews, setPreviews] = useState<Preview[]>([]);
   const [buscandoPreviews, setBuscandoPreviews] = useState(false);
   const [telaModal, setTelaModal] = useState<'menu' | 'previews'>('menu');
+
+  // ─── Share Intent / Deep Link ─────────────────────────────────────────────────
+
+  const params = useLocalSearchParams<{ url?: string }>();
+
+  useEffect(() => {
+    // Receber URL via deep link cookme://receitas?url=<url> ou share intent
+    const sharedUrl = params.url;
+    if (sharedUrl) {
+      setUrlImportar(sharedUrl);
+      setMostrarUrlInput(true);
+      setModalAdicionar(true);
+    }
+  }, [params.url]);
+
+  useEffect(() => {
+    // Android share intent: app.json intentFilters ACTION_SEND entrega via initial URL
+    const handleUrl = (event: { url: string }) => {
+      const parsed = Linking.parse(event.url);
+      // Se vier como texto compartilhado, pode chegar no query param "text"
+      const text = (parsed.queryParams?.text as string) || (parsed.queryParams?.url as string) || '';
+      if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+        setUrlImportar(text);
+        setMostrarUrlInput(true);
+        setModalAdicionar(true);
+      }
+    };
+    const sub = Linking.addEventListener('url', handleUrl);
+    // Checar URL inicial (app aberto via share)
+    Linking.getInitialURL().then(url => { if (url) handleUrl({ url }); });
+    return () => sub.remove();
+  }, []);
 
   // ─── Plano ────────────────────────────────────────────────────────────────────
 
@@ -714,7 +747,7 @@ export default function ReceitasScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.modalOpcaoLabel}>Colar link de receita</Text>
-                          <Text style={styles.modalOpcaoDesc}>TudoGostoso, Panelinha, Cybercook e outros</Text>
+                          <Text style={styles.modalOpcaoDesc}>TudoGostoso, Instagram, TikTok, YouTube, Pinterest, Reddit e mais</Text>
                         </View>
                         <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[400]} />
                       </TouchableOpacity>
@@ -722,7 +755,7 @@ export default function ReceitasScreen() {
                       <View style={styles.urlInputWrap}>
                         <TextInput
                           style={styles.urlInput}
-                          placeholder="https://www.tudogostoso.com.br/receita/..."
+                          placeholder="Cole um link de TikTok, Instagram, YouTube, receita..."
                           placeholderTextColor={C.ink[400]}
                           value={urlImportar}
                           onChangeText={setUrlImportar}

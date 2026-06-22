@@ -34,6 +34,7 @@ import { AvaliacaoService } from './services/avaliacao.service';
 import { RecipeCleanupJob } from './jobs/recipe-cleanup.job';
 import { AprendizadoService } from './services/aprendizado.service';
 import { ReceitaClassificacaoService } from './services/receita-classificacao.service';
+import { SocialRecipeExtractorService } from './services/social-recipe-extractor.service';
 import { PreferenciaAprendida } from '../usuarios/entities/preferencia-aprendida.entity';
 import { ReceitasController } from './receitas.controller';
 import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
@@ -72,7 +73,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     ReceitasService, IAReceitasService, MOIEngineService,
     ReceiptOcrService, ProductClassifierService, ReceiptImportService,
     RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService,
-    IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, TudoGostosoScraperService,
+    IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, TudoGostosoScraperService, SocialRecipeExtractorService,
 
     ReceiteriaCrawlerService, RecipeCrawlerService, RecipeValidationService,
     InventarioService, PushNotificationService,

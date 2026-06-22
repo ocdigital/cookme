@@ -24,7 +24,29 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.cookme.app"
+      "package": "com.cookme.app",
+      "intentFilters": [
+        {
+          "action": "android.intent.action.SEND",
+          "data": [{ "mimeType": "text/plain" }],
+          "category": ["android.intent.category.DEFAULT"]
+        },
+        {
+          "action": "android.intent.action.VIEW",
+          "autoVerify": false,
+          "data": [
+            { "scheme": "https", "host": "www.tiktok.com" },
+            { "scheme": "https", "host": "vm.tiktok.com" },
+            { "scheme": "https", "host": "www.instagram.com" },
+            { "scheme": "https", "host": "www.youtube.com" },
+            { "scheme": "https", "host": "youtu.be" },
+            { "scheme": "https", "host": "www.pinterest.com" },
+            { "scheme": "https", "host": "pin.it" },
+            { "scheme": "https", "host": "www.reddit.com" }
+          ],
+          "category": ["android.intent.category.DEFAULT", "android.intent.category.BROWSABLE"]
+        }
+      ]
     },
     "web": {
       "output": "static",

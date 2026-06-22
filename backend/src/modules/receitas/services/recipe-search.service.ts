@@ -4,9 +4,15 @@ import axios from 'axios';
 import { Receita as ReceitaGerada } from './recipe-generator.service';
 import { TudoGostosoScraperService } from './tudogostoso-scraper.service';
 import { ReceiteriaCrawlerService } from './receiteria-scraper.service';
+import { SocialRecipeExtractorService, detectarFonte } from './social-recipe-extractor.service';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const MODEL = 'gemini-2.0-flash';
+
+const DOMINIOS_CONHECIDOS = [
+  'tudogostoso.com.br', 'receiteria.com.br', 'panelinha.com.br',
+  'cybercook.com.br', 'receitasnestle.com.br', 'receitasnestlebr.com.br',
+];
 
 @Injectable()
 export class RecipeSearchService {
@@ -17,6 +23,7 @@ export class RecipeSearchService {
     private readonly configService: ConfigService,
     private readonly tudoGostoso: TudoGostosoScraperService,
     private readonly receiteria: ReceiteriaCrawlerService,
+    private readonly socialExtractor: SocialRecipeExtractorService,
   ) {
     this.geminiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
   }
@@ -231,10 +238,23 @@ export class RecipeSearchService {
   }
 
   async scraparUrl(url: string): Promise<ReceitaGerada | null> {
+    // Sites brasileiros conhecidos — scraper dedicado
     if (url.includes('receiteria.com.br')) {
       return this.receiteria.scraparReceita(url);
     }
-    return this.tudoGostoso.scraparReceita(url);
+    if (url.includes('tudogostoso.com.br')) {
+      return this.tudoGostoso.scraparReceita(url);
+    }
+    // Redes sociais e qualquer outro site — extrator universal com Claude
+    const fonte = detectarFonte(url);
+    const isSocial = fonte !== 'generic';
+    const isSiteConhecido = DOMINIOS_CONHECIDOS.some(d => url.includes(d));
+
+    if (isSocial || !isSiteConhecido) {
+      return this.socialExtractor.extrairReceita(url);
+    }
+    // Fallback para sites genéricos de receita
+    return this.socialExtractor.extrairReceita(url);
   }
 
   /**
