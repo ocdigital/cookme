@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
+import Groq from 'groq-sdk';
 import { ReceitaBancoService } from './receita-banco.service';
 import { RecipeSearchService } from './recipe-search.service';
 import { RecipeValidationService } from './recipe-validation.service';
@@ -28,6 +29,7 @@ export interface Receita {
 export class RecipeGeneratorService {
   private readonly logger = new Logger('RecipeGeneratorService');
   private anthropic: Anthropic | null = null;
+  private groq: Groq | null = null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -39,6 +41,10 @@ export class RecipeGeneratorService {
                          this.configService.get<string>('ANTHROPIC_API_KEY');
     if (anthropicKey) {
       this.anthropic = new Anthropic({ apiKey: anthropicKey });
+    }
+    const groqKey = this.configService.get<string>('GROQ_API_KEY');
+    if (groqKey) {
+      this.groq = new Groq({ apiKey: groqKey });
     }
   }
 
@@ -95,13 +101,8 @@ export class RecipeGeneratorService {
     return resultado;
   }
 
-  private async gerarComHaiku(ingredientes: string[], quantidade: number): Promise<Receita[]> {
-    if (!this.anthropic) {
-      this.logger.warn('Anthropic não configurado — sem geração IA');
-      return [];
-    }
-
-    const prompt = `Você é um chef brasileiro. Crie ${quantidade} receitas usando principalmente estes ingredientes: ${ingredientes.slice(0, 12).join(', ')}.
+  private buildPromptReceitas(ingredientes: string[], quantidade: number): string {
+    return `Você é um chef brasileiro. Crie ${quantidade} receitas usando principalmente estes ingredientes: ${ingredientes.slice(0, 12).join(', ')}.
 
 Retorne APENAS um array JSON válido (sem markdown):
 [
@@ -122,32 +123,65 @@ Regras:
 - modo_preparo: passos numerados, completo e executável
 - tags_dieta: array com "vegetariano", "vegano" ou "fitness" se aplicável, senão []
 - Receitas brasileiras do dia a dia, simples e saborosas`;
+  }
 
-    try {
-      const msg = await this.anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      });
+  private parseReceitasJson(raw: string, quantidade: number): Receita[] {
+    const clean = raw.trim().replace(/```json\n?|\n?```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.slice(0, quantidade).map((r: any) => ({
+      titulo: r.titulo ?? 'Receita',
+      descricao: r.descricao ?? '',
+      ingredientes: Array.isArray(r.ingredientes) ? r.ingredientes : [],
+      modo_preparo: r.modo_preparo ?? '',
+      tempo_preparo: r.tempo_preparo ?? '30 minutos',
+      dificuldade: r.dificuldade ?? 'médio',
+      rendimento: r.rendimento ?? '4 porções',
+      tags_dieta: Array.isArray(r.tags_dieta) ? r.tags_dieta : [],
+    }));
+  }
 
-      const raw = (msg.content[0] as any).text.trim().replace(/```json\n?|\n?```/g, '').trim();
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
+  private async gerarComHaiku(ingredientes: string[], quantidade: number): Promise<Receita[]> {
+    const prompt = this.buildPromptReceitas(ingredientes, quantidade);
 
-      return parsed.slice(0, quantidade).map((r: any) => ({
-        titulo: r.titulo ?? 'Receita',
-        descricao: r.descricao ?? '',
-        ingredientes: Array.isArray(r.ingredientes) ? r.ingredientes : [],
-        modo_preparo: r.modo_preparo ?? '',
-        tempo_preparo: r.tempo_preparo ?? '30 minutos',
-        dificuldade: r.dificuldade ?? 'médio',
-        rendimento: r.rendimento ?? '4 porções',
-        tags_dieta: Array.isArray(r.tags_dieta) ? r.tags_dieta : [],
-      }));
-    } catch (err: any) {
-      this.logger.error(`Haiku geração falhou: ${err.message}`);
-      return [];
+    // Tenta Haiku primeiro
+    if (this.anthropic) {
+      try {
+        const msg = await this.anthropic.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        return this.parseReceitasJson((msg.content[0] as any).text, quantidade);
+      } catch (err: any) {
+        this.logger.warn(`Haiku falhou (${err.status ?? err.message}) — tentando Groq...`);
+      }
     }
+
+    // Fallback: Groq (Llama 3.3 70B) — gratuito
+    if (this.groq) {
+      try {
+        this.logger.log('⚡ Gerando com Groq Llama 3.3 70B...');
+        const resp = await this.groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          max_tokens: 2000,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: 'Você é um chef brasileiro. Responda APENAS com JSON válido.' },
+            { role: 'user', content: prompt + '\n\nIMPORTANTE: responda com objeto JSON {"receitas": [...]}' },
+          ],
+        });
+        const raw = resp.choices[0]?.message?.content ?? '{}';
+        const obj = JSON.parse(raw);
+        const arr = Array.isArray(obj) ? obj : (obj.receitas ?? []);
+        return this.parseReceitasJson(JSON.stringify(arr), quantidade);
+      } catch (err: any) {
+        this.logger.error(`Groq falhou: ${err.message}`);
+      }
+    }
+
+    this.logger.warn('Nenhum provider IA disponível');
+    return [];
   }
 
   async importarReceitaPorUrl(url: string, proprietarioId?: string): Promise<{ receita: any; nova: boolean }> {
@@ -211,8 +245,7 @@ Regras:
   }
 
   async enriquecerReceita(receita: Receita): Promise<Receita | null> {
-    const [modo_preparo, imagem_url, validacao] = await Promise.all([
-      this.reescreverModoPreparo(receita.titulo, receita.ingredientes, receita.modo_preparo),
+    const [imagem_url, validacao] = await Promise.all([
       receita.imagem_url ? Promise.resolve(receita.imagem_url) : this.buscarImagemReceita(receita.titulo),
       this.validationService.validar({
         titulo: receita.titulo,
@@ -230,7 +263,6 @@ Regras:
 
     return {
       ...receita,
-      modo_preparo,
       imagem_url,
       validation_score: validacao.score,
       validation_issues: validacao.issues,

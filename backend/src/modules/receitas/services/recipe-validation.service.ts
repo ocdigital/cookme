@@ -47,6 +47,7 @@ const PROTAGONISTAS: Record<string, string[]> = {
   'feijao':         ['feijao', 'feijão'],
   'quiabo':         ['quiabo'],
   'milho':          ['milho'],
+  'cuscuz':         ['cuscuz', 'couscous', 'flocos de milho', 'flocao', 'flocão', 'farinha de milho'],
   'palmito':        ['palmito'],
   'alcachofra':     ['alcachofra'],
   'macarrao':       ['macarrao', 'espaguete', 'penne', 'fusilli', 'fettuccine', 'lasanha'],

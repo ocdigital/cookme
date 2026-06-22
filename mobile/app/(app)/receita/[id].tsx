@@ -426,25 +426,27 @@ export default function ReceitaDetalheScreen() {
             ) : null}
           </View>
 
-          {/* Faltando */}
-          {!receita.disponivel && receita.faltando && receita.faltando.length > 0 && (
-            <View style={styles.faltandoBox}>
-              <MaterialCommunityIcons name="package-variant-remove" size={14} color={C.amber[700]} />
-              <Text style={styles.faltandoLabel}>Faltam: </Text>
-              <Text style={styles.faltandoItens}>{receita.faltando.join(', ')}</Text>
-            </View>
-          )}
-
           {/* ── Ingredientes ─────────────────────────────────────────── */}
           {receita.ingredientes && receita.ingredientes.length > 0 && (
             <View style={styles.secao}>
               <Text style={styles.secaoTitulo}>Ingredientes</Text>
-              {receita.ingredientes.map((ing, i) => (
-                <View key={i} style={styles.ingredienteItem}>
-                  <View style={styles.ingredienteBullet} />
-                  <Text style={styles.ingredienteText}>{ing}</Text>
-                </View>
-              ))}
+              {receita.ingredientes.map((ing, i) => {
+                const ingNorm = norm(ing);
+                const falta = receita.faltando && receita.faltando.length > 0
+                  ? receita.faltando.some(f => ingNorm.includes(norm(f)))
+                  : false;
+                return (
+                  <View key={i} style={styles.ingredienteItem}>
+                    <MaterialCommunityIcons
+                      name={falta ? 'close-circle' : 'check-circle'}
+                      size={18}
+                      color={falta ? C.red[500] : C.green[600]}
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text style={[styles.ingredienteText, falta && { color: C.ink[400] }]}>{ing}</Text>
+                  </View>
+                );
+              })}
             </View>
           )}
 
