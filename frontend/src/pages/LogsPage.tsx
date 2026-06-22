@@ -1,155 +1,181 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Trash2, Pause, Play } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '../components/Card';
+import { api } from '../services/api';
 
-interface LogEntry {
-  ts: string;
-  level: 'log' | 'error' | 'warn' | 'debug' | 'verbose';
-  context: string;
-  message: string;
+interface CronLog {
+  id: string;
+  job: string;
+  status: 'ok' | 'erro' | 'skip';
+  receitas_salvas: number;
+  receitas_descartadas: number;
+  detalhe: string | null;
+  duracao_ms: number | null;
+  criado_em: string;
 }
 
-const LEVEL_STYLE: Record<LogEntry['level'], string> = {
-  log:     'text-green-400',
-  error:   'text-red-400',
-  warn:    'text-yellow-400',
-  debug:   'text-blue-400',
-  verbose: 'text-gray-400',
+const JOB_LABEL: Record<string, string> = {
+  'crawl-proativo': 'Crawl de Receitas',
+  'recipe-cleanup': 'Limpeza e Validação',
 };
 
-const LEVEL_BADGE: Record<LogEntry['level'], string> = {
-  log:     'bg-green-900/40 text-green-300',
-  error:   'bg-red-900/40 text-red-300',
-  warn:    'bg-yellow-900/40 text-yellow-300',
-  debug:   'bg-blue-900/40 text-blue-300',
-  verbose: 'bg-gray-700 text-gray-400',
+const STATUS_ICON = {
+  ok: <CheckCircle size={14} className="text-green-500" />,
+  erro: <XCircle size={14} className="text-red-500" />,
+  skip: <AlertTriangle size={14} className="text-yellow-500" />,
 };
 
-function formatTime(ts: string) {
-  return new Date(ts).toLocaleTimeString('pt-BR', { hour12: false });
+const STATUS_ROW: Record<CronLog['status'], string> = {
+  ok: '',
+  erro: 'bg-red-950/20',
+  skip: 'bg-yellow-950/10',
+};
+
+function formatDate(ts: string) {
+  return new Date(ts).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function formatDuration(ms: number | null) {
+  if (!ms) return '—';
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
 }
 
 export const LogsPage: React.FC = () => {
-  const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken') || '';
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [paused, setPaused] = useState(false);
-  const [filter, setFilter] = useState<LogEntry['level'] | 'all'>('all');
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const pausedRef = useRef(false);
-  const esRef = useRef<EventSource | null>(null);
+  const [logs, setLogs] = useState<CronLog[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  pausedRef.current = paused;
-
-  useEffect(() => {
-    const apiBase = 'http://localhost:3000/api';
-
-    // Initial snapshot
-    fetch(`${apiBase}/admin/system/logs`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data: LogEntry[]) => setLogs(data))
-      .catch(() => {});
-
-    // SSE stream
-    const es = new EventSource(`${apiBase}/admin/system/logs/stream?token=${token}`);
-    esRef.current = es;
-
-    es.onmessage = (e) => {
-      if (pausedRef.current) return;
-      try {
-        const entry: LogEntry = JSON.parse(e.data);
-        setLogs((prev) => {
-          const next = [...prev, entry];
-          return next.length > 50 ? next.slice(-50) : next;
-        });
-      } catch {}
-    };
-
-    return () => {
-      es.close();
-    };
-  }, [token]);
-
-  // SSE doesn't support Authorization header natively — backend needs to accept token via query param
-  // The snapshot fetch above uses the header correctly
-
-  useEffect(() => {
-    if (!paused) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const carregar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/admin/cron-logs?limit=200');
+      setLogs(Array.isArray(data) ? data : []);
+      setLastRefresh(new Date());
+    } catch {
+      setLogs([]);
+    } finally {
+      setLoading(false);
     }
-  }, [logs, paused]);
+  }, []);
 
-  const filtered = filter === 'all' ? logs : logs.filter((l) => l.level === filter);
+  useEffect(() => { carregar(); }, [carregar]);
+
+  const totalOk = logs.filter(l => l.status === 'ok').length;
+  const totalErro = logs.filter(l => l.status === 'erro').length;
+  const totalReceitas = logs.reduce((s, l) => s + (l.receitas_salvas ?? 0), 0);
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Terminal size={20} className="text-primary" />
-          <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">Logs do Sistema</h1>
-          <span className="text-xs text-gray-500 dark:text-gray-400">últimas 50 linhas · tempo real</span>
+        <div>
+          <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">Logs de Jobs Agendados</h1>
+          {lastRefresh && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Atualizado às {lastRefresh.toLocaleTimeString('pt-BR', { hour12: false })}
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          {/* Filter */}
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as any)}
-            className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-          >
-            <option value="all">Todos</option>
-            <option value="log">Log</option>
-            <option value="warn">Warn</option>
-            <option value="error">Error</option>
-            <option value="debug">Debug</option>
-            <option value="verbose">Verbose</option>
-          </select>
-          {/* Pause/Resume */}
-          <button
-            onClick={() => setPaused((p) => !p)}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              paused
-                ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            {paused ? <Play size={12} /> : <Pause size={12} />}
-            {paused ? 'Retomar' : 'Pausar'}
-          </button>
-          {/* Clear */}
-          <button
-            onClick={() => setLogs([])}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-          >
-            <Trash2 size={12} />
-            Limpar
-          </button>
-        </div>
+        <button
+          onClick={carregar}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium bg-primary text-white hover:bg-primary/90 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          Atualizar
+        </button>
       </div>
 
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="py-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Execuções OK</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{totalOk}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Erros</p>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">{totalErro}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Receitas Salvas (total)</p>
+            <p className="text-2xl font-bold text-primary">{totalReceitas}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Table */}
       <Card>
-        <CardContent>
-          <div className="bg-gray-950 rounded-lg p-3 font-mono text-xs h-[calc(100vh-220px)] overflow-y-auto">
-            {filtered.length === 0 ? (
-              <p className="text-gray-600 text-center py-8">Nenhum log disponível</p>
-            ) : (
-              filtered.map((entry, i) => (
-                <div key={i} className="flex items-start gap-2 py-0.5 hover:bg-gray-900/50 rounded px-1 group">
-                  <span className="text-gray-600 shrink-0 tabular-nums">{formatTime(entry.ts)}</span>
-                  <span className={`shrink-0 px-1 rounded text-[10px] font-bold uppercase ${LEVEL_BADGE[entry.level]}`}>
-                    {entry.level === 'verbose' ? 'verb' : entry.level}
-                  </span>
-                  {entry.context && (
-                    <span className="text-purple-400 shrink-0 max-w-[120px] truncate" title={entry.context}>
-                      [{entry.context}]
-                    </span>
-                  )}
-                  <span className={`break-all ${LEVEL_STYLE[entry.level]}`}>{entry.message}</span>
-                </div>
-              ))
-            )}
-            <div ref={bottomRef} />
-          </div>
+        <CardContent className="p-0 overflow-hidden">
+          {logs.length === 0 ? (
+            <div className="py-16 text-center text-gray-500 dark:text-gray-400">
+              {loading ? 'Carregando...' : 'Nenhum log registrado ainda. Os jobs rodam de hora em hora.'}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <th className="text-left px-4 py-2.5 font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">Horário</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-gray-600 dark:text-gray-300">Job</th>
+                    <th className="text-center px-4 py-2.5 font-medium text-gray-600 dark:text-gray-300">Status</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-gray-600 dark:text-gray-300 whitespace-nowrap">Receitas Salvas</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-gray-600 dark:text-gray-300">Duração</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-gray-600 dark:text-gray-300">Detalhe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log) => (
+                    <tr
+                      key={log.id}
+                      className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30 ${STATUS_ROW[log.status]}`}
+                    >
+                      <td className="px-4 py-2 text-gray-500 dark:text-gray-400 whitespace-nowrap font-mono text-xs">
+                        <span className="flex items-center gap-1">
+                          <Clock size={11} />
+                          {formatDate(log.criado_em)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                        {JOB_LABEL[log.job] ?? log.job}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <span className="inline-flex items-center gap-1 justify-center">
+                          {STATUS_ICON[log.status]}
+                          <span className={`text-xs font-semibold uppercase ${
+                            log.status === 'ok' ? 'text-green-600 dark:text-green-400' :
+                            log.status === 'erro' ? 'text-red-600 dark:text-red-400' :
+                            'text-yellow-600 dark:text-yellow-400'
+                          }`}>{log.status}</span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right font-semibold text-gray-800 dark:text-gray-200">
+                        {log.receitas_salvas > 0 ? (
+                          <span className="text-green-600 dark:text-green-400">+{log.receitas_salvas}</span>
+                        ) : (
+                          <span className="text-gray-400">0</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-500 dark:text-gray-400 font-mono text-xs whitespace-nowrap">
+                        {formatDuration(log.duracao_ms)}
+                      </td>
+                      <td className="px-4 py-2 text-gray-500 dark:text-gray-400 text-xs max-w-[280px] truncate" title={log.detalhe ?? ''}>
+                        {log.detalhe ?? '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -7,6 +7,8 @@ import { Receita } from '@modules/receitas/entities/receita.entity';
 import { Compra } from '@modules/compras/entities/compra.entity';
 import { ProductKnowledgeBase } from '@modules/product-classification/entities/product-knowledge-base.entity';
 import { AbbreviationExpansion } from '@modules/product-classification/entities/abbreviation-expansion.entity';
+import { CronLog } from './entities/cron-log.entity';
+import { CronLogService } from './services/cron-log.service';
 import { UsuariosModule } from '@modules/usuarios/usuarios.module';
 import { ReceitasModule } from '@modules/receitas/receitas.module';
 import { ProductClassificationModule } from '@modules/product-classification/product-classification.module';
@@ -25,7 +27,7 @@ import { AbbreviationsAdminController } from './controllers/abbreviations.contro
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([Produto, Usuario, Receita, Compra, ProductKnowledgeBase, AbbreviationExpansion]),
+    TypeOrmModule.forFeature([Produto, Usuario, Receita, Compra, ProductKnowledgeBase, AbbreviationExpansion, CronLog]),
     UsuariosModule,
     ReceitasModule,
     ProductClassificationModule,
@@ -34,7 +36,7 @@ import { AbbreviationsAdminController } from './controllers/abbreviations.contro
     NotificacaoModule,
   ],
   controllers: [AdminController, SystemController, ModeracaoAdminController, KnowledgeBaseAdminController, AbbreviationsAdminController],
-  providers: [AdminService, ReceitaSeederService, SystemService],
-  exports: [AdminService, SystemService],
+  providers: [AdminService, ReceitaSeederService, SystemService, CronLogService],
+  exports: [AdminService, SystemService, CronLogService],
 })
 export class AdminModule {}

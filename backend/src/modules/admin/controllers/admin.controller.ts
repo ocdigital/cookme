@@ -1,10 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Query, Body, Param, UseInterceptors, HttpCode, HttpStatus, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Query, Body, Param, UseInterceptors, HttpCode, HttpStatus, Logger, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Roles } from '@common/decorators/roles.decorator';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { UserRole } from '@common/enums/user-role.enum';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AdminService } from '../services/admin.service';
 import { ReceitaSeederService } from '../services/receita-seeder.service';
@@ -27,9 +31,12 @@ import { NotificacaoTriggersService } from '../../notificacoes/services/notifica
 import { CreateUsuarioDto } from '../../usuarios/dto/create-usuario.dto';
 import { UpdateUsuarioDto } from '../../usuarios/dto/update-usuario.dto';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
+import { CronLogService } from '../services/cron-log.service';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
+@UseGuards(RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller('admin')
 export class AdminController {
   private readonly logger = new Logger(AdminController.name);
@@ -51,6 +58,7 @@ export class AdminController {
     @InjectRepository(Produto)
     private readonly produtoRepo: Repository<Produto>,
     private readonly notificacaoTriggers: NotificacaoTriggersService,
+    private readonly cronLogService: CronLogService,
   ) {}
 
   @Get('produtos')
@@ -396,6 +404,14 @@ export class AdminController {
     return this.adminService.atualizarModeracaoReceita(id, status);
   }
 
+  @Patch('receitas/:id')
+  async atualizarReceita(
+    @Param('id') id: string,
+    @Body() data: { imagem_url?: string },
+  ) {
+    return this.adminService.atualizarReceita(id, data);
+  }
+
   @Get('dashboard/stats')
   @UseInterceptors(CacheInterceptor)
   @CacheTTL(180) // 3 minutos
@@ -447,6 +463,7 @@ export class AdminController {
   }
 
   @Post('receitas/popular-banco')
+  @Throttle({ default: { limit: 2, ttl: 3600000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Popula banco com receitas do TudoGostoso para todos os modos alimentares' })
   async popularBanco(@Body('modos') modos?: string[]) {
@@ -467,6 +484,7 @@ export class AdminController {
   }
 
   @Post('receitas/popular-banco/:modo')
+  @Throttle({ default: { limit: 2, ttl: 3600000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Popula banco com receitas de um modo alimentar específico' })
   async popularBancoModo(@Param('modo') modo: string) {
@@ -607,5 +625,11 @@ export class AdminController {
   async crawlearReceitas(@Body('ingredientes') ingredientes?: string[]) {
     const resultado = await this.recipeCrawlerService.crawlearManual(ingredientes);
     return { ok: true, ...resultado };
+  }
+
+  @Get('cron-logs')
+  @ApiOperation({ summary: 'Histórico de execuções dos jobs agendados' })
+  async cronLogs(@Query('limit') limit?: string) {
+    return this.cronLogService.listar(limit ? +limit : 100);
   }
 }

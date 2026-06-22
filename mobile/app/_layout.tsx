@@ -31,7 +31,7 @@ const AppTheme = {
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
-  const { isSignedIn, loading } = useAuth();
+  const { isSignedIn, isNewUser, loading } = useAuth();
   // Processa fila de mutações offline quando reconectar
   useMutationQueueSync();
 
@@ -57,19 +57,15 @@ function RootLayoutContent() {
         headerShown: false,
       }}
     >
-      {isSignedIn ? (
+      {isSignedIn && !isNewUser ? (
         <Stack.Screen
           name="(app)"
-          options={{
-            gestureEnabled: false,
-          }}
+          options={{ gestureEnabled: false }}
         />
       ) : (
         <Stack.Screen
           name="(auth)"
-          options={{
-            gestureEnabled: false,
-          }}
+          options={{ gestureEnabled: false }}
         />
       )}
     </Stack>

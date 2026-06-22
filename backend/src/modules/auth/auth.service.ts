@@ -126,7 +126,10 @@ export class AuthService {
         where: { id: payload.sub },
       });
 
-      if (!usuario || usuario.refresh_token !== refreshToken) {
+      const tokenValido = usuario?.refresh_token
+        ? await bcrypt.compare(refreshToken, usuario.refresh_token)
+        : false;
+      if (!usuario || !tokenValido) {
         throw new UnauthorizedException('Refresh token inválido');
       }
 
@@ -264,8 +267,9 @@ export class AuthService {
     userId: string,
     refreshToken: string,
   ): Promise<void> {
+    const hashed = await bcrypt.hash(refreshToken, 10);
     await this.usuarioRepository.update(userId, {
-      refresh_token: refreshToken,
+      refresh_token: hashed,
     });
   }
 

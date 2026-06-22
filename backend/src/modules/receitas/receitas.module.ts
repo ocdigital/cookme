@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Receita } from './entities/receita.entity';
+import { CronLog } from '../admin/entities/cron-log.entity';
+import { CronLogService } from '../admin/services/cron-log.service';
 import { ReceitaIngrediente } from './entities/receita-ingrediente.entity';
 import { ReceitaExecutada } from './entities/receita-executada.entity';
 import { ReceitaFavorita } from './entities/receita-favorita.entity';
@@ -29,8 +31,10 @@ import { RecipeValidationService } from './services/recipe-validation.service';
 import { IngredientNormalizerService } from './services/ingredient-normalizer.service';
 import { ModeracaoService } from './services/moderacao.service';
 import { AvaliacaoService } from './services/avaliacao.service';
+import { RecipeCleanupJob } from './jobs/recipe-cleanup.job';
 import { AprendizadoService } from './services/aprendizado.service';
 import { ReceitaClassificacaoService } from './services/receita-classificacao.service';
+import { SocialRecipeExtractorService } from './services/social-recipe-extractor.service';
 import { PreferenciaAprendida } from '../usuarios/entities/preferencia-aprendida.entity';
 import { ReceitasController } from './receitas.controller';
 import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
@@ -48,6 +52,7 @@ import { ProductClassificationModule } from '../product-classification/product-c
 import { NotificacaoModule } from '../notificacoes/notificacao.module';
 import { UploadModule } from '../upload/upload.module';
 import { PushNotificationService } from '../notificacoes/services/push-notification.service';
+import { SubscriptionModule } from '../affiliate/subscription.module';
 
 @Module({
   imports: [
@@ -55,24 +60,28 @@ import { PushNotificationService } from '../notificacoes/services/push-notificat
     TypeOrmModule.forFeature([
       Receita, ReceitaIngrediente, ReceitaExecutada, ReceitaFavorita,
       Produto, Preferencia, Inventario, Usuario, Compra, CompraItem,
-      PreferenciaAprendida,
+      PreferenciaAprendida, CronLog,
     ]),
     ProductClassificationModule,
     NotificacaoModule,
     UploadModule,
     ListasModule,
+    SubscriptionModule,
   ],
   providers: [
+    CronLogService,
     ReceitasService, IAReceitasService, MOIEngineService,
     ReceiptOcrService, ProductClassifierService, ReceiptImportService,
     RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService,
-    IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, TudoGostosoScraperService,
+    IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, TudoGostosoScraperService, SocialRecipeExtractorService,
+
     ReceiteriaCrawlerService, RecipeCrawlerService, RecipeValidationService,
     InventarioService, PushNotificationService,
     ModeracaoService,
     AvaliacaoService,
     AprendizadoService,
     ReceitaClassificacaoService,
+    RecipeCleanupJob,
   ],
   controllers: [
     ReceitasUsuarioController, ModeracaoUsuarioController,
@@ -84,9 +93,9 @@ import { PushNotificationService } from '../notificacoes/services/push-notificat
   exports: [
     TypeOrmModule, ReceitasService, ReceiptOcrService, ProductClassifierService,
     ReceiptImportService, RecipeSuggestionService, RecipeExecutionService,
-    RecipeGeneratorService, ReceitaBancoService, IngredientNormalizerService,
+    RecipeGeneratorService, ReceitaBancoService, IngredientNormalizerService, CronLogService,
     ProductClassificationModule, ModeracaoService, ReceitaClassificacaoService,
-    RecipeCrawlerService,
+    RecipeCrawlerService, RecipeSearchService,
   ],
 })
 export class ReceitasModule {}

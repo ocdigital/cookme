@@ -1,6 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 
 // TTLs em ms — alinhados com docs/OFFLINE_PLAN.md
 export const STALE_TIMES = {
@@ -47,16 +47,8 @@ export const queryClient = new QueryClient({
   },
 });
 
-// AsyncStorage como persister (compatível com Expo Go)
-// Migrar para MMKV em produção quando sair do Expo Go
-const asyncStorageAdapter = {
-  getItem: (key: string) => AsyncStorage.getItem(key),
-  setItem: (key: string, value: string) => AsyncStorage.setItem(key, value),
-  removeItem: (key: string) => AsyncStorage.removeItem(key),
-};
-
-export const persister = createSyncStoragePersister({
-  storage: asyncStorageAdapter as any,
-  key: 'cookme-query-cache',
+export const persister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: 'cookme-query-cache-v2',
   throttleTime: 1000,
 });

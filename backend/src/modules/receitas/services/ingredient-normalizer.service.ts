@@ -29,6 +29,55 @@ const REGEX_QUANTIDADE = new RegExp(
   'i',
 );
 
+// Remove quantidade numérica no FINAL da string (ex: "biscoito 200g", "queijo 1/2")
+const REGEX_QUANTIDADE_FIM = new RegExp(
+  `\\s*(?:de\\s+)?(?:(?:${UNIDADES})(?:inhos?|inhas?|s?)?\\s*)?[\\d½¼¾⅓⅔/.,]+\\s*$`,
+  'i',
+);
+
+// Plurais irregulares em PT-BR — mapeia plural → singular
+const PLURAIS_IRREGULARES: Record<string, string> = {
+  'files': 'file',
+  'oles': 'ole',
+  'paes': 'pao',
+  'raizes': 'raiz',
+  'alfaces': 'alface',
+  'nuzes': 'noz',
+  'vozes': 'voz',
+  'vezes': 'vez',
+  'cruzes': 'cruz',
+  'fazes': 'faz',
+  'juizes': 'juiz',
+  // ões → ão
+  'limoes': 'limao',
+  'pinhoes': 'pinhao',
+  'meloes': 'melao',
+  'feijoes': 'feijao',
+  'quiabos': 'quiabo',
+  'camaroes': 'camarao',
+  'caldinhos': 'caldinho',
+  // ães → ão
+  'alemaes': 'alemao',
+  'capitaes': 'capitao',
+  // is → il (terminados em 'is' de singular em 'il')
+  'funis': 'funil',
+  'barris': 'barril',
+  'perfis': 'perfil',
+  'gentis': 'gentil',
+  'cantis': 'cantil',
+  // es → e
+  'foles': 'fole',
+  'roles': 'role',
+  'potes': 'pote',
+  'dotes': 'dote',
+  // Específicos culinários
+  'files de peixe': 'file de peixe',
+  'files de frango': 'file de frango',
+  'costelinhas': 'costelinha',
+  'pitangas': 'pitanga',
+  'jabuticabas': 'jabuticaba',
+};
+
 // "sopa de" no início = colher de sopa de (unidade)
 const REGEX_SOPA_CHA = /^(?:(?:de\s+)?(?:sopa|chá|cha|sobremesa|café|cafe)\s+de\s+)/i;
 
@@ -274,13 +323,30 @@ const SEMPRE_A_GOSTO = new Set([
   'salsinha', 'cebolinha', 'coentro', 'hortelã',
 ]);
 
-// Lixo que não é ingrediente
+// Lixo que não é ingrediente culinário
 const NAO_INGREDIENTE = new Set([
   'agua quente', 'agua fria', 'agua', 'gelo',
   'papel aluminio', 'papel manteiga', 'filme plastico',
   'palitos de dente', 'palito',
-  'sal grosso', // não é ingrediente separado
+  'sal grosso',
+  // Itens de cozinha, não ingredientes
+  'panela', 'frigideira', 'forma', 'assadeira',
+  'espatula', 'colher de pau',
+  // Produtos industrializados não culinários (nomes de NFCe)
+  'sobremesa lactea', 'iogurte liquido', 'bebida lactea',
+  'queijo processado', 'requeijao cremoso light',
+  'margarina vegetal', 'creme vegetal',
 ]);
+
+// Padrões que indicam "isso não é ingrediente" (NFCe / código de produto)
+// Ex: "Sobrem Lact Batavo C/2", "Bisct Recheado", "Suco Cxinha Pet"
+const REGEX_NAO_CULINARIO = [
+  /\bc\/\d/i,              // C/2, C/6 (sigla de "com X unidades")
+  /\blact\b/i,             // abreviação de "lácteo/lactea" em nome NCF
+  /\bbisct\b/i,            // biscoito abreviado
+  /\bsob\s+\w{2,4}\b/i,   // "Sob Lact" (Sobremesa Láctea abrev.)
+  /^[A-Z][a-z]{0,3}\s+[A-Z][a-z]{0,3}/,  // padrão "Abrev Abrev" (NFCe)
+];
 
 @Injectable()
 export class IngredientNormalizerService {
@@ -319,15 +385,31 @@ export class IngredientNormalizerService {
       texto = texto.replace(REGEX_PREPARO, ' ').trim();
     }
 
+    // Remove quantidade numérica no FINAL (ex: "biscoito 200g", "queijo 1/2 kg")
+    texto = texto.replace(REGEX_QUANTIDADE_FIM, '').trim();
+
     // Limpa espaços duplos
     texto = texto.replace(/\s{2,}/g, ' ').trim();
 
-    // Singularize common Portuguese food plurals (bananas→banana, tomates→tomate, ovos→ovo)
-    // Only last word, only if ends in vowel+s (safe: arroz ends in 'z', not 's')
-    texto = texto.replace(/\b(\w+[aeiou])s\b$/i, '$1');
+    // Plurais irregulares PT-BR antes da singularização padrão
+    const textoIrregular = PLURAIS_IRREGULARES[texto];
+    if (textoIrregular) {
+      texto = textoIrregular;
+    } else {
+      // Singularize common Portuguese food plurals (bananas→banana, tomates→tomate, ovos→ovo)
+      // Only last word, only if ends in vowel+s (safe: arroz ends in 'z', not 's')
+      texto = texto.replace(/\b(\w+[aeiou])s\b$/i, '$1');
+    }
 
     if (!texto || texto.length < 2) return null;
     if (NAO_INGREDIENTE.has(texto)) return null;
+
+    // Descarta se parece código de produto (NFCe, abreviações industriais)
+    if (REGEX_NAO_CULINARIO.some((r) => r.test(textoRaw))) return null;
+
+    // Descarta fragmentos: começa com conjunção, preposição isolada, ou contém dígito residual
+    if (/^(?:e|ou|de|do|da|dos|das|em|no|na|nos|nas|com|para|por)\s/i.test(texto)) return null;
+    if (/\d/.test(texto)) return null;
 
     // Trunca em 4 palavras (nome do ingrediente não precisa ser mais longo)
     const nomeBase = texto.split(/\s+/).slice(0, 4).join(' ');

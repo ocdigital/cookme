@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import api from '@/services/api';
+import { consultarNFCe } from '@/services/nfce';
 
 const { width } = Dimensions.get('window');
 const PREF_KEY = 'cookme_preferir_foto_cupom';
@@ -53,6 +54,9 @@ const STATUS_LABELS: Record<string, string> = {
   timeout: 'Tempo esgotado',
   cancelado: 'Cancelado',
 };
+
+// Status que só aparecem no fluxo via servidor (SAT)
+const STATUS_SERVIDOR = new Set(['aguardando_captcha', 'timeout', 'cancelado']);
 
 function isFiscalReceiptQR(data: string): boolean {
   const lower = data.toLowerCase();
@@ -205,6 +209,73 @@ export default function QRScannerScreen() {
 
   const handleFiscalReceiptQR = async (data: string) => {
     setProcessing(true);
+
+    // NFC-e URL — consulta direto do dispositivo (IP do usuário, sem passar pelo VPS)
+    if (data.startsWith('http')) {
+      try {
+        setSession({ sessionId: '', status: 'consultando_sat', progress: 40, totalProdutos: 0, valorTotal: 0 });
+        setShowModal(true);
+
+        const resultado = await consultarNFCe(data);
+
+        setSession({ sessionId: '', status: 'salvando_api', progress: 80, totalProdutos: 0, valorTotal: 0 });
+
+        // Envia apenas os itens já parseados — sem processamento no VPS
+        const itensParaSalvar = resultado.itens.map((item) => ({
+          nome: item.nome,
+          quantidade: item.quantidade,
+          valor: item.valor_total,
+          codigo_barras: item.codigo || undefined,
+        }));
+
+        await api.post('/compras/ocr-cupom/salvar-itens', {
+          itens: itensParaSalvar,
+          estabelecimento: resultado.estabelecimento,
+        });
+
+        setProcessing(false);
+        setShowModal(false);
+        setSession(null);
+
+        Alert.alert(
+          'Cupom fiscal importado!',
+          `${resultado.itens.length} itens encontrados.\nValor total: R$ ${resultado.total.toFixed(2)}`,
+          [
+            {
+              text: 'Ver Inventário',
+              onPress: () => {
+                scannedRef.current = false;
+                setScanned(false);
+                router.push('/(app)/(tabs)');
+              },
+            },
+          ],
+        );
+      } catch (err: any) {
+        setProcessing(false);
+        setShowModal(false);
+        setSession(null);
+
+        Alert.alert(
+          'Não foi possível ler o QR Code',
+          `${err.message || 'Erro ao consultar SEFAZ.'}\n\nDeseja fotografar o cupom?`,
+          [
+            { text: 'Fotografar cupom', onPress: irParaFoto },
+            {
+              text: 'Tentar novamente',
+              onPress: () => {
+                scannedRef.current = false;
+                setScanned(false);
+                completedRef.current = false;
+              },
+            },
+          ],
+        );
+      }
+      return;
+    }
+
+    // SAT/CF-e (texto com chave de acesso) — usa servidor como fallback
     try {
       const res = await api.post<ScraperSession>('/scraper/consultas', {
         qrcodeTexto: data,
@@ -216,10 +287,7 @@ export default function QRScannerScreen() {
       pollStatus(s.sessionId);
     } catch (err: any) {
       setProcessing(false);
-      const msg =
-        err?.response?.data?.message ||
-        'Não foi possível iniciar a consulta.';
-
+      const msg = err?.response?.data?.message || 'Não foi possível iniciar a consulta.';
       Alert.alert(
         'Erro ao consultar SEFAZ',
         `${msg}\n\nDeseja fotografar o cupom para tentar com OCR?`,

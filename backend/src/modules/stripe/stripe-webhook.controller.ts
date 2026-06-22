@@ -7,6 +7,8 @@ import { Public } from '../../common/decorators/public.decorator';
 import { SkipThrottle } from '@nestjs/throttler';
 import { StripeService } from './stripe.service';
 import { SubscriptionService } from '../affiliate/services/subscription.service';
+import { SubscriptionPlan } from '../affiliate/entities/subscription.entity';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Stripe')
 @SkipThrottle()
@@ -17,7 +19,14 @@ export class StripeWebhookController {
   constructor(
     private readonly stripeService: StripeService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly config: ConfigService,
   ) {}
+
+  private priceIdToPlano(priceId: string): SubscriptionPlan {
+    if (priceId === this.config.get('STRIPE_PRICE_PREMIUM_ANUAL'))  return SubscriptionPlan.PREMIUM_PLUS;
+    if (priceId === this.config.get('STRIPE_PRICE_FAMILIA'))        return SubscriptionPlan.FAMILIA;
+    return SubscriptionPlan.PREMIUM;
+  }
 
   @Public()
   @Post('webhook')
@@ -41,12 +50,27 @@ export class StripeWebhookController {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as any;
-        if (session.mode === 'subscription' && session.subscription) {
-          await this.subscriptionService.processarWebhookRenovacao(
-            session.subscription as string,
-            'active',
-          );
+        if (session.mode !== 'subscription' || !session.subscription) break;
+
+        const usuarioId: string = session.metadata?.usuario_id;
+        if (!usuarioId) {
+          this.logger.error('checkout.session.completed sem usuario_id no metadata');
+          break;
         }
+
+        // Buscar o price_id da subscription para determinar o plano
+        const stripeSubscription = await this.stripeService.buscarSubscription(session.subscription);
+        const priceId = stripeSubscription?.items?.data?.[0]?.price?.id;
+        const plano = this.priceIdToPlano(priceId);
+
+        await this.subscriptionService.criarAssinatura(
+          usuarioId,
+          plano,
+          session.customer as string,
+          session.subscription as string,
+        );
+
+        this.logger.log(`Assinatura criada: usuario=${usuarioId} plano=${plano}`);
         break;
       }
 

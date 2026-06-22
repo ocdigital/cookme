@@ -3,6 +3,9 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@common/enums/user-role.enum';
 import { SystemService } from '../services/system.service';
 import { RecipeGeneratorService } from '@modules/receitas/services/recipe-generator.service';
 import { RecipeCrawlerService } from '@modules/receitas/services/recipe-crawler.service';
@@ -12,7 +15,8 @@ import { logBuffer, logStream$ } from '@common/log-buffer.singleton';
 
 @ApiTags('Admin - Sistema')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller('admin/system')
 export class SystemController {
   private readonly logger = new Logger(SystemController.name);

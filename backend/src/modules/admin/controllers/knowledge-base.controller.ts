@@ -16,6 +16,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, Or } from 'typeorm';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@common/enums/user-role.enum';
 import { ProductKnowledgeBase } from '@modules/product-classification/entities/product-knowledge-base.entity';
 
 class CreateKnowledgeBaseDto {
@@ -32,7 +35,8 @@ class UpdateKnowledgeBaseDto {
 
 @ApiTags('Admin — Knowledge Base')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller('admin/knowledge-base')
 export class KnowledgeBaseAdminController {
   constructor(

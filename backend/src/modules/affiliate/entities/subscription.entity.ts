@@ -11,8 +11,9 @@ import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 export enum SubscriptionPlan {
   FREE = 'free',
-  PREMIUM = 'premium',
-  PREMIUM_PLUS = 'premium_plus',
+  PREMIUM = 'premium',           // premium_mensal no Stripe
+  PREMIUM_PLUS = 'premium_plus', // premium_anual no Stripe
+  FAMILIA = 'familia',           // familia no Stripe
 }
 
 export enum SubscriptionStatus {

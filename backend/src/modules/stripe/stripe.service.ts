@@ -54,6 +54,12 @@ export class StripeService {
     return session.url!;
   }
 
+  async buscarSubscription(subscriptionId: string) {
+    return this.stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['items.data.price'],
+    });
+  }
+
   async criarPortalSession(stripeCustomerId: string, returnUrl: string): Promise<string> {
     const session = await this.stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,

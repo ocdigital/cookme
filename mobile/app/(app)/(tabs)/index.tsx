@@ -394,12 +394,19 @@ export default function HomeScreen() {
   const { showTutorial, dismissTutorial } = useScreenTutorial('home');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [tipoRefeicao, setTipoRefeicao] = useState<string>('almoco');
+  const [planoFree, setPlanoFree] = useState(false);
 
   useEffect(() => {
     SecureStore.getItemAsync('onboarding_aprendizado_seen').then(val => {
       if (!val) setShowOnboarding(true);
     }).catch(() => {});
   }, []);
+
+  useFocusEffect(useCallback(() => {
+    api.get('/stripe/status').then(r => {
+      setPlanoFree((r.data?.plano ?? 'free').toLowerCase() === 'free');
+    }).catch(() => {});
+  }, []));
 
   const dismissOnboarding = async () => {
     setShowOnboarding(false);
@@ -481,7 +488,7 @@ export default function HomeScreen() {
   // Recentes: endpoint pode não existir (404 ignorado)
   const { data: recentesData } = useQuery({
     queryKey: queryKeys.receitasExecutadasRecentes(),
-    queryFn: () => api.get('/receitas/executadas/recentes').then(r => {
+    queryFn: () => api.get('/receitas/executadas').then(r => {
       const lista: any[] = r.data?.receitas || r.data || [];
       return lista.slice(0, 6).map((e: any) => e.receita || e) as ReceitaSimples[];
     }),
@@ -695,6 +702,24 @@ export default function HomeScreen() {
             </TouchableOpacity>
           );
         })()}
+
+        {/* Banner upgrade — só free */}
+        {planoFree && (
+          <TouchableOpacity
+            style={styles.bannerUpgrade}
+            onPress={() => router.push('/(app)/planos' as any)}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="star-circle" size={18} color="#7C3AED" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bannerUpgradeTitulo}>Desbloqueie o CookMe completo</Text>
+              <Text style={styles.bannerUpgradeSub}>Scans ilimitados · IA · Importar receitas</Text>
+            </View>
+            <View style={styles.bannerUpgradeBtn}>
+              <Text style={styles.bannerUpgradeBtnTxt}>Ver planos</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* contexto discreto */}
         {!loading && (
@@ -929,6 +954,21 @@ const styles = StyleSheet.create({
   },
   modoBadgeTxt: { ...T.small, fontWeight: '700' },
   contextoTxt: { ...T.small, color: C.ink[500], paddingHorizontal: 20, paddingBottom: 16 },
+
+  // Banner upgrade
+  bannerUpgrade: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 16, marginBottom: 10,
+    backgroundColor: '#F5F3FF', borderRadius: radius.lg,
+    borderWidth: 1, borderColor: '#C4B5FD', padding: 12,
+  },
+  bannerUpgradeTitulo: { ...T.small, fontWeight: '700', color: '#5B21B6' },
+  bannerUpgradeSub: { ...T.micro, color: '#7C3AED', marginTop: 1 },
+  bannerUpgradeBtn: {
+    backgroundColor: '#7C3AED', borderRadius: radius.md,
+    paddingHorizontal: 10, paddingVertical: 6,
+  },
+  bannerUpgradeBtnTxt: { ...T.micro, color: '#fff', fontWeight: '700' },
 
   // Separador entre seções
   separador: {

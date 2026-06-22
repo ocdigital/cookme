@@ -160,6 +160,11 @@ export const adminService = {
     return response.data;
   },
 
+  atualizarReceita: async (id: string, data: Partial<{ imagem_url: string }>) => {
+    const response = await api.patch(`/admin/receitas/${id}`, data);
+    return response.data;
+  },
+
   listUsers: async (
     page: number = 1,
     limit: number = 20,

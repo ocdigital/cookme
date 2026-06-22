@@ -115,6 +115,8 @@ export class ReceitasUsuarioController {
         ingredientes_produtos: this.receitaBancoService.ingredientesParaSheet(r.receita),
         usa_vencendo: usaVencendo,
         tags_dieta: r.receita.tags_dieta,
+        url_fonte: r.receita.url_fonte ?? null,
+        autor_id: r.receita.autor_id ?? null,
       };
     });
 

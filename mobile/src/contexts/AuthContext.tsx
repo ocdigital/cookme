@@ -1,20 +1,23 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { maybeCompleteAuthSession } from 'expo-web-browser';
 import api from '../services/api';
+import { queryClient } from '../lib/queryClient';
 import { User, AuthResponse } from '../types';
 
 maybeCompleteAuthSession();
 
 // IDs do Google OAuth — preencher no Google Cloud Console
 // https://console.cloud.google.com → APIs & Services → Credentials
-const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
-const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
+const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || undefined;
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || undefined;
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || undefined;
 
 interface AuthContextType {
   user: User | null;
@@ -24,9 +27,11 @@ interface AuthContextType {
   register: (nome: string, email: string, password: string) => Promise<User>;
   loginWithGoogle: () => Promise<void>;
   loginWithApple: () => Promise<void>;
+  isGoogleAvailable: boolean;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
   isSignedIn: boolean;
+  isNewUser: boolean;
   isAppleAvailable: boolean;
 }
 
@@ -37,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAppleAvailable, setIsAppleAvailable] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   // Expo Go: proxy fixo — registrar no Google Cloud Console como redirect autorizado
   // Build nativo: usa scheme cookme://
@@ -45,11 +51,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ? 'https://auth.expo.io/@eduocdigital/cookme-mobile'
     : AuthSession.makeRedirectUri({ scheme: 'cookme' });
 
+  const googleAvailable = Platform.OS === 'android'
+    ? !!(GOOGLE_ANDROID_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID)
+    : Platform.OS === 'ios'
+    ? !!(GOOGLE_IOS_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID)
+    : !!GOOGLE_WEB_CLIENT_ID;
+
   const [_googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID ?? 'placeholder',
+    iosClientId: GOOGLE_IOS_CLIENT_ID ?? GOOGLE_WEB_CLIENT_ID ?? 'placeholder',
+    webClientId: GOOGLE_WEB_CLIENT_ID ?? 'placeholder',
     redirectUri,
+    responseType: 'id_token',
+    usePKCE: false,
   });
 
   useEffect(() => {
@@ -60,8 +74,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Handle Google OAuth response
   useEffect(() => {
     if (googleResponse?.type === 'success') {
+      const params = googleResponse.params as any;
       const auth = googleResponse.authentication as any;
-      const idToken = auth?.id_token || auth?.idToken;
+      const idToken = params?.id_token || auth?.id_token || auth?.idToken;
       if (idToken) handleSocialAuthResponse(() => api.post('/auth/google-login', { idToken }));
     }
   }, [googleResponse]);
@@ -129,6 +144,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Resposta inválida do servidor');
       }
 
+      // Limpar cache do usuário anterior antes de logar
+      queryClient.clear();
+      await AsyncStorage.removeItem('cookme-query-cache-v2');
+
       await SecureStore.setItemAsync('accessToken', accessToken);
       if (rememberMe && refreshToken) {
         await SecureStore.setItemAsync('refreshToken', refreshToken);
@@ -169,7 +188,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await SecureStore.setItemAsync('accessToken', accessToken);
       await SecureStore.setItemAsync('refreshToken', refreshToken);
+      await AsyncStorage.setItem('isNewUser', '1');
 
+      setIsNewUser(true);
       setUser(userData);
       return userData;
     } catch (err: any) {
@@ -213,6 +234,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await SecureStore.deleteItemAsync('accessToken');
       await SecureStore.deleteItemAsync('refreshToken');
+      // Limpar cache do TanStack Query + AsyncStorage para não vazar dados entre usuários
+      queryClient.clear();
+      await AsyncStorage.removeItem('cookme-query-cache-v2');
       setUser(null);
     } catch (err) {
       console.error('Erro ao fazer logout:', err);
@@ -230,7 +254,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     updateUser,
     isSignedIn: !!user,
+    isNewUser,
     isAppleAvailable,
+    isGoogleAvailable: googleAvailable,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

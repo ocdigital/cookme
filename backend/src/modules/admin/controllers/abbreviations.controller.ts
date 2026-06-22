@@ -11,10 +11,16 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { UseGuards } from '@nestjs/common';
+import { RolesGuard } from '@common/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
+import { UserRole } from '@common/enums/user-role.enum';
 import { AbbreviationService } from '@modules/product-classification/services/abbreviation.service';
 
 @ApiTags('Admin - Abreviações')
 @ApiBearerAuth()
+@UseGuards(RolesGuard)
+@Roles(UserRole.ADMIN)
 @Controller('admin/abbreviations')
 export class AbbreviationsAdminController {
   constructor(private readonly abbreviationService: AbbreviationService) {}

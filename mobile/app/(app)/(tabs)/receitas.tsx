@@ -1,12 +1,14 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  ScrollView, Image, Alert, Modal, FlatList,
+  ScrollView, Image, Alert, Modal, FlatList, TextInput,
+  KeyboardAvoidingView, Platform, Pressable, Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
@@ -67,6 +69,8 @@ interface ReceitaDisponivel {
   vezes_executada: number;
   usa_vencendo?: string[];
   tags_dieta?: string[];
+  url_fonte?: string | null;
+  autor_id?: string | null;
 }
 
 // ─── extração de ingrediente (igual despensa) ─────────────────────────────────
@@ -132,6 +136,58 @@ export default function ReceitasScreen() {
 
   // Sheet de ingredientes (compartilhado entre "Fiz essa!" e "Faltando")
   const [sheet, setSheet] = useState<{ receita: ReceitaDisponivel; modo: 'fiz' | 'faltando' } | null>(null);
+
+  // Modal "Adicionar receita"
+  const [modalAdicionar, setModalAdicionar] = useState(false);
+  const [urlImportar, setUrlImportar] = useState('');
+  const [importando, setImportando] = useState(false);
+  const [mostrarUrlInput, setMostrarUrlInput] = useState(false);
+  // Tela de previews dentro do modal
+  type Preview = { titulo: string; url: string; site: string };
+  const [previews, setPreviews] = useState<Preview[]>([]);
+  const [buscandoPreviews, setBuscandoPreviews] = useState(false);
+  const [telaModal, setTelaModal] = useState<'menu' | 'previews'>('menu');
+
+  // ─── Share Intent / Deep Link ─────────────────────────────────────────────────
+
+  const params = useLocalSearchParams<{ url?: string }>();
+
+  useEffect(() => {
+    // Receber URL via deep link cookme://receitas?url=<url> ou share intent
+    const sharedUrl = params.url;
+    if (sharedUrl) {
+      setUrlImportar(sharedUrl);
+      setMostrarUrlInput(true);
+      setModalAdicionar(true);
+    }
+  }, [params.url]);
+
+  useEffect(() => {
+    // Android share intent: app.json intentFilters ACTION_SEND entrega via initial URL
+    const handleUrl = (event: { url: string }) => {
+      const parsed = Linking.parse(event.url);
+      // Se vier como texto compartilhado, pode chegar no query param "text"
+      const text = (parsed.queryParams?.text as string) || (parsed.queryParams?.url as string) || '';
+      if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+        setUrlImportar(text);
+        setMostrarUrlInput(true);
+        setModalAdicionar(true);
+      }
+    };
+    const sub = Linking.addEventListener('url', handleUrl);
+    // Checar URL inicial (app aberto via share)
+    Linking.getInitialURL().then(url => { if (url) handleUrl({ url }); });
+    return () => sub.remove();
+  }, []);
+
+  // ─── Plano ────────────────────────────────────────────────────────────────────
+
+  const { data: planoData } = useQuery({
+    queryKey: ['stripe-status'],
+    queryFn: async () => { const r = await api.get('/stripe/status'); return r.data; },
+    staleTime: 5 * 60 * 1000,
+  });
+  const isPremium = planoData?.plano && planoData.plano !== 'free';
 
   // ─── Queries ──────────────────────────────────────────────────────────────────
 
@@ -212,11 +268,50 @@ export default function ReceitasScreen() {
     }
   };
 
-  const handleGerar = async () => {
+  const handleGerar = () => {
     if (!isOnline) {
-      Alert.alert('Sem conexão', 'Esta ação requer conexão com a internet para gerar receitas com IA.');
+      Alert.alert('Sem conexão', 'Esta ação requer conexão com a internet.');
       return;
     }
+    setMostrarUrlInput(false);
+    setUrlImportar('');
+    setTelaModal('menu');
+    setPreviews([]);
+    setModalAdicionar(true);
+  };
+
+  const handleBaixarNovas = async () => {
+    setTelaModal('previews');
+    setBuscandoPreviews(true);
+    setPreviews([]);
+    try {
+      const invRes = await api.get('/inventario');
+      const ingredientes: string[] = (invRes.data ?? []).map((i: any) =>
+        i.produto?.nome_display || i.produto?.nome || ''
+      ).filter(Boolean);
+      const res = await api.post('/receitas/buscar-novas', { ingredientes });
+      setPreviews(res.data?.previews ?? []);
+    } catch {
+      Alert.alert('Erro', 'Falha ao buscar receitas na web');
+      setTelaModal('menu');
+    } finally {
+      setBuscandoPreviews(false);
+    }
+  };
+
+  const handleImportarPreview = async (preview: Preview) => {
+    try {
+      await api.post('/receitas/importar-url', { url: preview.url });
+      queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
+      setPreviews(prev => prev.filter(p => p.url !== preview.url));
+      Alert.alert('Importada!', `"${preview.titulo}" salva na sua biblioteca.`);
+    } catch (e: any) {
+      Alert.alert('Erro', e?.response?.data?.message || 'Não foi possível importar esta receita.');
+    }
+  };
+
+  const handleGerarIA = async () => {
+    setModalAdicionar(false);
     try {
       setGerando(true);
       await gerarReceitas([], true);
@@ -225,6 +320,23 @@ export default function ReceitasScreen() {
       Alert.alert('Erro', 'Falha ao gerar receitas');
     } finally {
       setGerando(false);
+    }
+  };
+
+  const handleImportarUrl = async () => {
+    if (!urlImportar.trim()) return;
+    setImportando(true);
+    try {
+      await api.post('/receitas/importar-url', { url: urlImportar.trim() });
+      setModalAdicionar(false);
+      setUrlImportar('');
+      setMostrarUrlInput(false);
+      queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
+      Alert.alert('Importada!', 'Receita salva na sua biblioteca pessoal.');
+    } catch (e: any) {
+      Alert.alert('Erro', e?.response?.data?.message || 'Não foi possível importar esta receita.');
+    } finally {
+      setImportando(false);
     }
   };
 
@@ -307,16 +419,14 @@ export default function ReceitasScreen() {
           <Text style={styles.headerTitle}>Receitas</Text>
         </View>
         <TouchableOpacity
-          style={[styles.btnGerar, !isOnline && { opacity: 0.5 }]}
+          style={[styles.btnAdicionar, (!isOnline || gerando) && { opacity: 0.5 }]}
           onPress={handleGerar}
-          disabled={gerando}
+          disabled={!isOnline || gerando}
+          activeOpacity={0.8}
         >
           {gerando
             ? <ActivityIndicator size="small" color={C.ink[0]} />
-            : <>
-                <MaterialCommunityIcons name="auto-fix" size={16} color={C.ink[0]} />
-                <Text style={styles.btnGerarText}>Gerar novas</Text>
-              </>
+            : <MaterialCommunityIcons name="plus" size={22} color={C.ink[0]} />
           }
         </TouchableOpacity>
       </View>
@@ -524,10 +634,173 @@ export default function ReceitasScreen() {
         onDismiss={dismissTutorial}
         steps={[
           { icon: 'robot-happy', title: 'Receitas com IA', description: 'A inteligência artificial analisa o que você tem na despensa e sugere receitas personalizadas para você.' },
-          { icon: 'auto-fix', title: 'Gerar receitas', description: "Toque em 'Gerar novas' no topo para criar sugestões com os ingredientes disponíveis na sua despensa." },
+          { icon: 'plus-circle', title: 'Adicionar receitas', description: "Toque em '+' para criar sua própria receita, gerar com IA ou importar de um site." },
           { icon: 'check-circle-outline', title: 'Fiz essa receita!', description: "Ao cozinhar, toque em 'Fiz essa!' para registrar e descontar automaticamente os ingredientes usados." },
         ]}
       />
+
+      {/* Modal Adicionar Receita */}
+      <Modal
+        visible={modalAdicionar}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalAdicionar(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setModalAdicionar(false)}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ width: '100%' }}>
+            <Pressable onPress={e => e.stopPropagation()}>
+              <View style={[styles.modalSheet, { paddingBottom: insets.bottom + 16 }]}>
+                <View style={styles.modalHandle} />
+
+                <View style={styles.modalHeader}>
+                  {telaModal === 'previews' ? (
+                    <TouchableOpacity onPress={() => setTelaModal('menu')} hitSlop={12} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <MaterialCommunityIcons name="arrow-left" size={18} color={C.ink[600]} />
+                      <Text style={[styles.modalTitulo, { fontSize: 16 }]}>Receitas encontradas</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={styles.modalTitulo}>Adicionar receita</Text>
+                  )}
+                  <TouchableOpacity onPress={() => setModalAdicionar(false)} hitSlop={12}>
+                    <MaterialCommunityIcons name="close" size={20} color={C.ink[500]} />
+                  </TouchableOpacity>
+                </View>
+
+                {telaModal === 'previews' ? (
+                  /* ── Tela de previews ── */
+                  <View style={{ minHeight: 200 }}>
+                    {buscandoPreviews ? (
+                      <View style={styles.previewLoading}>
+                        <ActivityIndicator size="large" color={C.green[600]} />
+                        <Text style={styles.previewLoadingTxt}>Buscando receitas com seus ingredientes…</Text>
+                      </View>
+                    ) : previews.length === 0 ? (
+                      <View style={styles.previewLoading}>
+                        <MaterialCommunityIcons name="magnify-close" size={40} color={C.ink[300]} />
+                        <Text style={styles.previewLoadingTxt}>Nenhuma receita encontrada. Tente mais tarde.</Text>
+                      </View>
+                    ) : (
+                      <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                        {!isPremium && (
+                          <View style={styles.premiumBanner}>
+                            <MaterialCommunityIcons name="star-circle" size={16} color="#7C3AED" />
+                            <Text style={styles.premiumBannerTxt}>Importar receitas é exclusivo do plano Premium</Text>
+                          </View>
+                        )}
+                        {previews.map((p, i) => (
+                          <View key={p.url + i} style={styles.previewItem}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.previewTitulo} numberOfLines={2}>{p.titulo}</Text>
+                              <View style={styles.badgeFonte}>
+                                <MaterialCommunityIcons name="download-outline" size={11} color="#D97706" />
+                                <Text style={styles.badgeFonteTxt}>{p.site}</Text>
+                              </View>
+                            </View>
+                            <TouchableOpacity
+                              style={[styles.previewImportarBtn, !isPremium && styles.previewImportarBtnLocked]}
+                              onPress={() => handleImportarPreview(p)}
+                              activeOpacity={0.8}
+                            >
+                              {!isPremium
+                                ? <MaterialCommunityIcons name="lock-outline" size={16} color="#7C3AED" />
+                                : <Text style={styles.previewImportarBtnTxt}>Importar</Text>
+                              }
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
+                ) : (
+                  /* ── Tela menu principal ── */
+                  <>
+                    <Text style={styles.modalSecao}>Buscar receitas</Text>
+
+                    <TouchableOpacity style={styles.modalOpcao} onPress={handleBaixarNovas} activeOpacity={0.8}>
+                      <View style={[styles.modalOpcaoIcon, { backgroundColor: C.green[50] }]}>
+                        <MaterialCommunityIcons name="web" size={20} color={C.green[600]} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.modalOpcaoLabel}>Buscar na web</Text>
+                        <Text style={styles.modalOpcaoDesc}>Encontra receitas com seus ingredientes — só você vê</Text>
+                      </View>
+                      <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[400]} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.modalOpcao} onPress={handleGerarIA} activeOpacity={0.8}>
+                      <View style={[styles.modalOpcaoIcon, { backgroundColor: '#EDE9FE' }]}>
+                        <MaterialCommunityIcons name="robot-happy-outline" size={20} color="#7C3AED" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.modalOpcaoLabel}>Gerar com IA</Text>
+                        <Text style={styles.modalOpcaoDesc}>IA cria uma receita original para você</Text>
+                      </View>
+                      <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[400]} />
+                    </TouchableOpacity>
+
+                    <Text style={[styles.modalSecao, { marginTop: 20 }]}>Importar de um site</Text>
+
+                    {!mostrarUrlInput ? (
+                      <TouchableOpacity style={styles.modalOpcao} onPress={() => setMostrarUrlInput(true)} activeOpacity={0.8}>
+                        <View style={[styles.modalOpcaoIcon, { backgroundColor: '#FEF3C7' }]}>
+                          <MaterialCommunityIcons name="link-variant" size={20} color="#D97706" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.modalOpcaoLabel}>Colar link de receita</Text>
+                          <Text style={styles.modalOpcaoDesc}>TudoGostoso, Instagram, TikTok, YouTube, Pinterest, Reddit e mais</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[400]} />
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.urlInputWrap}>
+                        <TextInput
+                          style={styles.urlInput}
+                          placeholder="Cole um link de TikTok, Instagram, YouTube, receita..."
+                          placeholderTextColor={C.ink[400]}
+                          value={urlImportar}
+                          onChangeText={setUrlImportar}
+                          autoFocus
+                          autoCapitalize="none"
+                          keyboardType="url"
+                          returnKeyType="done"
+                          onSubmitEditing={handleImportarUrl}
+                        />
+                        <TouchableOpacity
+                          style={[styles.urlImportarBtn, (!urlImportar.trim() || importando) && { opacity: 0.5 }]}
+                          onPress={handleImportarUrl}
+                          disabled={!urlImportar.trim() || importando}
+                        >
+                          {importando
+                            ? <ActivityIndicator size="small" color={C.ink[0]} />
+                            : <Text style={styles.urlImportarBtnTxt}>Importar</Text>
+                          }
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    <Text style={[styles.modalSecao, { marginTop: 20 }]}>Criar sua receita</Text>
+
+                    <TouchableOpacity
+                      style={styles.modalOpcao}
+                      onPress={() => { setModalAdicionar(false); router.push('/(app)/nova-receita' as any); }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[styles.modalOpcaoIcon, { backgroundColor: '#FEE2E2' }]}>
+                        <MaterialCommunityIcons name="pencil-outline" size={20} color={C.red[500]} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.modalOpcaoLabel}>Escrever receita</Text>
+                        <Text style={styles.modalOpcaoDesc}>Crie e publique sua própria receita</Text>
+                      </View>
+                      <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[400]} />
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </Pressable>
+          </KeyboardAvoidingView>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -602,6 +875,15 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
         <Text style={[styles.receitaNome, parcial && { color: C.ink[400] }]}>
           {receita.titulo}
         </Text>
+
+        {receita.url_fonte && (
+          <View style={[styles.badgeFonte, { marginBottom: 4 }]}>
+            <MaterialCommunityIcons name="download-outline" size={11} color="#D97706" />
+            <Text style={styles.badgeFonteTxt}>
+              {(() => { try { return new URL(receita.url_fonte).hostname.replace('www.', ''); } catch { return 'importada'; } })()}
+            </Text>
+          </View>
+        )}
 
         {receita.descricao ? (
           <Text style={styles.receitaDesc} numberOfLines={2}>{receita.descricao}</Text>
@@ -935,6 +1217,87 @@ const styles = StyleSheet.create({
     borderRadius: radius.md, ...shadows.sm, minWidth: 44, justifyContent: 'center',
   },
   btnGerarText: { ...T.small, color: C.ink[0], fontWeight: '700' },
+  btnAdicionar: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: C.green[600], alignItems: 'center', justifyContent: 'center',
+    ...shadows.sm,
+  },
+
+  // Modal Adicionar Receita
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: C.ink[0], borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingHorizontal: 20, paddingTop: 12,
+  },
+  modalHandle: {
+    width: 36, height: 4, borderRadius: 2, backgroundColor: C.ink[200],
+    alignSelf: 'center', marginBottom: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20,
+  },
+  modalTitulo: { ...T.h2, color: C.ink[900] },
+  modalSecao: { ...T.micro, fontWeight: '700', color: C.ink[400], textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
+  modalOpcao: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingVertical: 14, paddingHorizontal: 14,
+    backgroundColor: C.ink[50], borderRadius: radius.lg,
+    borderWidth: 1, borderColor: C.ink[150], marginBottom: 8,
+  },
+  modalOpcaoIcon: {
+    width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+  },
+  modalOpcaoLabel: { ...T.body, fontWeight: '700', color: C.ink[800] },
+  modalOpcaoDesc: { ...T.micro, color: C.ink[500], marginTop: 2 },
+  urlInputWrap: {
+    flexDirection: 'row', gap: 8, marginBottom: 8,
+  },
+  urlInput: {
+    flex: 1, borderWidth: 1, borderColor: C.green[400], borderRadius: radius.md,
+    paddingHorizontal: 12, paddingVertical: 10, ...T.small, color: C.ink[800],
+    backgroundColor: C.ink[50],
+  },
+  urlImportarBtn: {
+    backgroundColor: C.green[600], borderRadius: radius.md,
+    paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center',
+  },
+  urlImportarBtnTxt: { ...T.small, color: C.ink[0], fontWeight: '700' },
+
+  // Tela de previews
+  previewLoading: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 },
+  previewLoadingTxt: { ...T.small, color: C.ink[500], textAlign: 'center' },
+  previewItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.ink[100],
+  },
+  previewTitulo: { ...T.body, fontWeight: '600', color: C.ink[800], marginBottom: 4 },
+  previewImportarBtn: {
+    backgroundColor: C.green[600], borderRadius: radius.md,
+    paddingHorizontal: 14, paddingVertical: 8,
+  },
+  previewImportarBtnLocked: {
+    backgroundColor: '#EDE9FE', paddingHorizontal: 12,
+  },
+  previewImportarBtnTxt: { ...T.micro, color: C.ink[0], fontWeight: '700' },
+
+  premiumBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#F5F3FF', borderRadius: radius.md,
+    paddingHorizontal: 12, paddingVertical: 10,
+    marginBottom: 10,
+  },
+  premiumBannerTxt: { ...T.small, color: '#7C3AED', flex: 1 },
+
+  // Badge fonte (receita importada)
+  badgeFonte: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 99, alignSelf: 'flex-start',
+  },
+  badgeFonteTxt: { ...T.micro, color: '#92400E', fontWeight: '700' },
 
   modoChipsRow: {
     flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 10,

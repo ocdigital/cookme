@@ -18,6 +18,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ComprasService } from './compras.service';
+import { SubscriptionService } from '../affiliate/services/subscription.service';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Compra } from './entities/compra.entity';
@@ -27,7 +28,10 @@ import { CreateCompraDto } from './dto/create-compra.dto';
 @ApiBearerAuth()
 @Controller('compras')
 export class ComprasController {
-  constructor(private readonly comprasService: ComprasService) {}
+  constructor(
+    private readonly comprasService: ComprasService,
+    private readonly subscriptionService: SubscriptionService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Criar nova compra com itens' })
@@ -75,21 +79,15 @@ export class ComprasController {
 
   @Post('ocr-cupom')
   @ApiOperation({ summary: 'Extrair itens de cupom fiscal via OCR' })
-  @ApiResponse({
-    status: 200,
-    description: 'Itens extraídos com sucesso',
-  })
+  @ApiResponse({ status: 200, description: 'Itens extraídos com sucesso' })
   async ocrCupom(
-    @Body()
-    body: {
-      image_base64: string;
-      image_type: string;
-    },
+    @CurrentUser() user: Usuario,
+    @Body() body: { image_base64: string; image_type: string },
   ) {
     if (!body.image_base64) {
       throw new BadRequestException('Imagem em base64 é obrigatória');
     }
-
+    await this.subscriptionService.registrarUso(user.id, 'ocr');
     return this.comprasService.extrairItensCupom(body.image_base64);
   }
 
