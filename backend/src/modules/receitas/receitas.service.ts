@@ -120,9 +120,12 @@ export class ReceitasService {
   /**
    * Busca receita por ID
    */
-  async findOne(id: string): Promise<Receita> {
+  async findOne(id: string, incluirArquivadas = false): Promise<Receita> {
+    const where: any = { id };
+    if (!incluirArquivadas) where.status_moderacao = In(['ok', 'em_revisao'] as any[]);
+
     const receita = await this.receitaRepository.findOne({
-      where: { id },
+      where,
       relations: ['ingredientes', 'ingredientes.produto', 'ingredientes.produto.marca'],
     });
 
