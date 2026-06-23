@@ -281,9 +281,9 @@ export class ReceitaBancoService {
 
         const cobertura = pesoTotal > 0 ? pesoEncontrado / pesoTotal : 0;
 
-        // Se tem protagonista, inclui mesmo com cobertura baixa (mínimo 0.15)
-        // Se não tem protagonista, exige cobertura mínima de 0.4
-        const limiteMinimo = temProtagonista ? 0.15 : 0.4;
+        // Sem protagonista real (dict PROTAGONISTAS) → exige 50% de cobertura
+        // Com protagonista → exige 40% mínimo (ainda falta menos da metade)
+        const limiteMinimo = temProtagonista ? 0.4 : 0.5;
         if (cobertura < limiteMinimo) return null;
 
         return { receita, cobertura, disponivel: cobertura >= 0.7, temProtagonista, faltando };
