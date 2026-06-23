@@ -281,8 +281,15 @@ export class ReceitaBancoService {
 
         const cobertura = pesoTotal > 0 ? pesoEncontrado / pesoTotal : 0;
 
-        // Sem protagonista real (dict PROTAGONISTAS) → exige 50% de cobertura
-        // Com protagonista → exige 40% mínimo (ainda falta menos da metade)
+        // Se alguma palavra do nome da receita é protagonista e está faltando → bloquear
+        const nomeNorm = this.normalizar(receita.nome);
+        const protagonistaNomeFaltando = [...PROTAGONISTAS].some(
+          (prot) => nomeNorm.includes(prot) && faltando.some((f) => f.includes(prot) || prot.includes(f)),
+        );
+        if (protagonistaNomeFaltando) return null;
+
+        // Sem protagonista no inventário → exige 50% de cobertura
+        // Com protagonista presente → exige 40% mínimo
         const limiteMinimo = temProtagonista ? 0.4 : 0.5;
         if (cobertura < limiteMinimo) return null;
 
