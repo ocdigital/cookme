@@ -155,9 +155,10 @@ export class ReceitaBancoService {
       .createQueryBuilder('r')
       .where('r.ingredientes_chave IS NOT NULL')
       .andWhere("r.status_moderacao = 'ok'")
+      .andWhere("array_length(r.ingredientes_chave, 1) >= 2")
       .orderBy('r.vezes_executada', 'DESC')
       .addOrderBy('r.avaliacao_media', 'DESC')
-      .limit(200) // pool para filtrar
+      .limit(200)
       .getMany();
 
     const candidatas: Array<{ receita: Receita; score: number }> = [];
@@ -217,6 +218,7 @@ export class ReceitaBancoService {
       .where('r.ingredientes_chave IS NOT NULL')
       .andWhere("r.status_moderacao = 'ok'")
       .andWhere('r.autor_id IS NULL')
+      .andWhere("array_length(r.ingredientes_chave, 1) >= 2")
       .orderBy('r.vezes_executada', 'DESC')
       .addOrderBy('r.avaliacao_media', 'DESC')
       .limit(200)
