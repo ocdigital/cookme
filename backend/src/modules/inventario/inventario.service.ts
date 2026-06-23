@@ -647,35 +647,18 @@ export class InventarioService {
     const stripAccents = (s: string) =>
       s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-    // Expansão de abreviações comuns em cupons fiscais
-    const ABREVIACOES: Record<string, string> = {
-      'mant': 'manteiga', 'marg': 'margarina', 'cr': 'creme',
-      'bisc': 'biscoito', 'choc': 'chocolate', 'mac': 'macarrao',
-      'ref': 'refresco', 'sab': 'sabonete', 'det': 'detergente',
-      'ling': 'linguica', 'esp': 'esponja', 'esc': 'escova',
-      'sh': 'shampoo', 'desod': 'desodorante', 'cond': 'condicionador',
-      'salg': 'salgadinho', 'achoc': 'achocolatado', 'leite cond': 'leite condensado',
-      'file': 'file', 'fil': 'file',
-    };
-
-    const normalize = (nome: string): string => {
-      let n = stripAccents(nome).toLowerCase();
-      // Expande abreviações no início da string
-      for (const [abrev, expansao] of Object.entries(ABREVIACOES)) {
-        const re = new RegExp(`^${abrev}\\b`, 'i');
-        if (re.test(n)) { n = n.replace(re, expansao); break; }
-      }
-      return n
-        // remove quantidades e unidades (500g, 1kg, 1l, etc.)
-        .replace(/\b\d+[.,]?\d*\s*(kg|g|ml|l|un|gr|lts?)\b/gi, '')
-        // remove números soltos
-        .replace(/\b\d+\b/g, '')
-        // remove palavras de marca/embalagem comuns que não são ingrediente
-        .replace(/\b(italac|sadia|perdigao|nestl[eé]|yoki|quero|fugini|camil|prato fino|broto legal|d benta|maisdoce|alto alegre|cisne|regina|natureza|naturegg|caipira|grao campo|elma chips|pringles|bauducco|parati|panco|nutrella|renata|venturelli|aurora|frimesa|perdigao|swift|seara)\b/gi, '')
-        .replace(/\b(lte|trad|prem|vac|orig|ped|peq|gd|bco|verm|c\/sal|s\/sal|zero|light|diet|integral|int|tipo)\b/gi, '')
+    const normalize = (nome: string): string =>
+      stripAccents(nome)
+        .toLowerCase()
+        .replace(/^\d+\s+/g, '')
+        .replace(/\b\d+\s*(kg|g|ml|l|un|gr)\b/gi, '')
+        .replace(/\b(kg|un|gr)\b/gi, '')
         .replace(/\s{2,}/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .slice(0, 3)
+        .join(' ')
         .trim();
-    };
 
     return [
       ...new Set(
