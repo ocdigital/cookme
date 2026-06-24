@@ -583,6 +583,8 @@ export default function ReceitasScreen() {
                   onToggleFavorito={() => toggleFavorito(r.id)}
                   onFiz={() => abrirFiz(r)}
                   onFaltando={() => abrirFaltando(r)}
+                  onAdicionarIngrediente={(ingrediente) => adicionarIngredienteInventario(r.id, ingrediente)}
+                  onComprarIngrediente={(ingrediente) => comprarIngrediente(r, ingrediente)}
                   onPress={() => router.push({ pathname: '/(app)/receita/[id]', params: { id: r.id, dados: JSON.stringify(r) } })}
                 />
               ))}
@@ -815,7 +817,7 @@ export default function ReceitasScreen() {
 
 // ─── ReceitaCard ─────────────────────────────────────────────────────────────
 
-function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado, onToggleFavorito }: {
+function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado, onToggleFavorito, onAdicionarIngrediente, onComprarIngrediente }: {
   receita: ReceitaDisponivel;
   onFiz: () => void;
   onFaltando: () => void;
@@ -823,6 +825,8 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
   urgente?: boolean;
   favoritado?: boolean;
   onToggleFavorito?: () => void;
+  onAdicionarIngrediente?: (ingrediente: string) => void;
+  onComprarIngrediente?: (ingrediente: string) => void;
 }) {
   const [imageError, setImageError] = useState(false);
   const parcial = !receita.disponivel;
