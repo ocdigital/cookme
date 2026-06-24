@@ -551,18 +551,19 @@ IMPORTANTE:
         });
         const savedCompra = await this.compraRepository.save(compra);
 
-        const compraItens = itensSalvos.map((inv) =>
-          this.compraItemRepository.create({
-            compra_id: savedCompra.id,
-            produto_id: inv.produto_id,
-            nome_ocr: '',
-            nome_display: '',
-            quantidade: inv.quantidade_disponivel,
-            unidade: (inv.unidade as unknown) as UnidadeMedida,
-            adicionado_inventario: true,
-          } as any),
-        );
-        await this.compraItemRepository.save(compraItens);
+        for (const inv of itensSalvos) {
+          await this.compraItemRepository.save(
+            this.compraItemRepository.create({
+              compra_id: savedCompra.id,
+              produto_id: inv.produto_id,
+              nome_ocr: '',
+              nome_display: '',
+              quantidade: inv.quantidade_disponivel,
+              unidade: inv.unidade as unknown as UnidadeMedida,
+              adicionado_inventario: true,
+            } as any),
+          );
+        }
       } catch (err) {
         // Não falhar o inventário por erro no histórico
         console.warn('[ComprasService] Erro ao registrar compra no histórico:', err);
