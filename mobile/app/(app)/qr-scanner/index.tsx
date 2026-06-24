@@ -224,6 +224,7 @@ export default function QRScannerScreen() {
         const itensParaSalvar = resultado.itens.map((item) => ({
           nome: item.nome,
           quantidade: item.quantidade,
+          unidade: item.unidade,
           valor: item.valor_total,
           codigo_barras: item.codigo || undefined,
         }));

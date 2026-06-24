@@ -417,13 +417,14 @@ IMPORTANTE:
     itens: Array<{
       nome: string;
       quantidade?: number;
+      unidade?: string;
       valor?: number;
       codigo_barras?: string;
     }>,
     localCompra?: string,
   ) {
     const itensSalvos: Inventario[] = [];
-    const metaPorProdutoId = new Map<string, { nome: string; valor: number }>();
+    const metaPorProdutoId = new Map<string, { nome: string; valor: number; unidade: string }>();
 
     for (const item of itens) {
       try {
@@ -529,7 +530,7 @@ IMPORTANTE:
             usuario_id: usuarioId,
             produto_id: produto!.id,
             quantidade_disponivel: quantidade,
-            unidade: UnidadeMedida.UN,
+            unidade: (item.unidade as unknown as UnidadeMedida) ?? UnidadeMedida.UN,
             data_validade: dataValidade,
             metodo_atualizacao: MetodoCadastro.OCR_NOTA,
             localizacao: 'Adicionado via OCR',
@@ -540,6 +541,7 @@ IMPORTANTE:
         metaPorProdutoId.set(salvo.produto_id, {
           nome: produto?.nome_display || produto?.nome || item.nome,
           valor: item.valor ?? 0,
+          unidade: item.unidade ?? 'UN',
         });
       } catch (error) {
         console.error(`Erro ao salvar item "${item.nome}":`, error);
@@ -567,7 +569,7 @@ IMPORTANTE:
               nome_display: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
               quantidade: inv.quantidade_disponivel,
               preco_total: metaPorProdutoId.get(inv.produto_id)?.valor ?? 0,
-              unidade: inv.unidade as unknown as UnidadeMedida,
+              unidade: (metaPorProdutoId.get(inv.produto_id)?.unidade ?? 'UN') as unknown as UnidadeMedida,
               adicionado_inventario: true,
             } as any),
           );
