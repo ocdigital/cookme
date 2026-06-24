@@ -104,6 +104,7 @@ export class ComprasController {
       itens: Array<{
         nome: string;
         quantidade?: number;
+        unidade?: string;
         valor?: number;
         codigo_barras?: string;
       }>;
