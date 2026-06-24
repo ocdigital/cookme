@@ -226,6 +226,7 @@ export default function QRScannerScreen() {
           quantidade: item.quantidade,
           unidade: item.unidade,
           valor: item.valor_total,
+          valor_unitario: item.valor_unitario,
           codigo_barras: item.codigo || undefined,
         }));
 

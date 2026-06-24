@@ -434,12 +434,13 @@ IMPORTANTE:
       quantidade?: number;
       unidade?: string;
       valor?: number;
+      valor_unitario?: number;
       codigo_barras?: string;
     }>,
     localCompra?: string,
   ) {
     const itensSalvos: Inventario[] = [];
-    const metaPorProdutoId = new Map<string, { nome: string; valor: number; unidade: UnidadeMedida }>();
+    const metaPorProdutoId = new Map<string, { nome: string; valor: number; valor_unitario: number; unidade: UnidadeMedida }>();
 
     for (const item of itens) {
       try {
@@ -556,6 +557,7 @@ IMPORTANTE:
         metaPorProdutoId.set(salvo.produto_id, {
           nome: produto?.nome_display || produto?.nome || item.nome,
           valor: item.valor ?? 0,
+          valor_unitario: item.valor_unitario ?? (item.valor && quantidade ? item.valor / quantidade : 0),
           unidade: this.normalizarUnidade(item.unidade),
         });
       } catch (error) {
@@ -583,6 +585,7 @@ IMPORTANTE:
               nome_ocr: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
               nome_display: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
               quantidade: inv.quantidade_disponivel,
+              preco_unitario: metaPorProdutoId.get(inv.produto_id)?.valor_unitario ?? 0,
               preco_total: metaPorProdutoId.get(inv.produto_id)?.valor ?? 0,
               unidade: metaPorProdutoId.get(inv.produto_id)?.unidade ?? UnidadeMedida.UN,
               adicionado_inventario: true,
