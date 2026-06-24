@@ -14,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { ReceiptOcrService, DedupItem, ItemReceipt } from '../services/receipt-ocr.service';
 import { ProductClassificationService } from '../../product-classification/services/product-classification.service';
+import { SubscriptionService } from '../../affiliate/services/subscription.service';
 
 interface ReceiptPhotoData {
   ocrText: string;
@@ -55,6 +56,7 @@ export class ReceiptOcrController {
     private readonly receiptOcrService: ReceiptOcrService,
     private readonly configService: ConfigService,
     private readonly productClassificationService: ProductClassificationService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   /**
@@ -165,7 +167,9 @@ export class ReceiptOcrController {
    * Extrai texto OCR de uma imagem usando Gemini Vision API
    */
   @Post('extract-from-image')
+  @UseGuards(JwtAuthGuard)
   async extractFromImage(
+    @Request() req: any,
     @Body()
     request: {
       image: string; // Base64
@@ -176,6 +180,8 @@ export class ReceiptOcrController {
       if (!request.image) {
         throw new BadRequestException('Imagem não fornecida');
       }
+
+      await this.subscriptionService.registrarUso(req.user.id, 'ocr');
 
       const geminiApiKey = this.configService.get<string>('GEMINI_API_KEY');
       if (!geminiApiKey) {
