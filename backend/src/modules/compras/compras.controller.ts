@@ -116,6 +116,7 @@ export class ComprasController {
       throw new BadRequestException('Pelo menos um item é obrigatório');
     }
 
+    await this.subscriptionService.registrarUso(user.id, 'ocr');
     return this.comprasService.salvarItensCupomNoInventario(user.id, body.itens);
   }
 
