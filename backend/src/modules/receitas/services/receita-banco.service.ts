@@ -243,7 +243,15 @@ export class ReceitaBancoService {
           if (chave) riPorChave.set(chave, ri.a_gosto || p?.sempre_a_gosto || p?.opcional_por_natureza || false);
         }
 
-        const chaves = receita.ingredientes_chave || [];
+        // Extrair protagonistas do nome da receita que não estejam nas chaves
+        // Ex: "Molho branco com azeite de oliva" → adiciona 'azeite' se ausente
+        const nomeNormalizado = this.normalizar(receita.nome);
+        const protagonistasDoNome = [...PROTAGONISTAS].filter(
+          (prot) =>
+            nomeNormalizado.includes(prot) &&
+            !(receita.ingredientes_chave || []).some((c) => c.includes(prot) || prot.includes(c)),
+        );
+        const chaves = [...(receita.ingredientes_chave || []), ...protagonistasDoNome];
         if (chaves.length === 0) return null;
 
         const chavesBloqueadoras = chaves.filter((c) => {
