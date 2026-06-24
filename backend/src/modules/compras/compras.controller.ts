@@ -117,7 +117,7 @@ export class ComprasController {
     }
 
     await this.subscriptionService.registrarUso(user.id, 'ocr');
-    return this.comprasService.salvarItensCupomNoInventario(user.id, body.itens);
+    return this.comprasService.salvarItensCupomNoInventario(user.id, body.itens, body.estabelecimento?.nome);
   }
 
   @Post('ocr-validade')
