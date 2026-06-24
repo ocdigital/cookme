@@ -81,6 +81,14 @@ export class StripeController {
   async status(@Request() req: any) {
     const status = await this.subscriptionService.obterStatusAssinatura(req.user.id);
     const uso = await this.subscriptionService.obterUsoMensal(req.user.id);
-    return { ...status, uso };
+    return {
+      ...status,
+      uso: {
+        scans_mes: uso.ocr.usado,
+        limite_scans: uso.ocr.limite,
+        ia_mes: uso.ia.usado,
+        limite_ia: uso.ia.limite,
+      },
+    };
   }
 }
