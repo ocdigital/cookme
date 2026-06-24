@@ -121,10 +121,6 @@ function parseNfceHtmlFallback(html: string): NfceResult {
     if (!nomeEstab && j >= 1 && l.length > 3 && !/CNPJ|CPF|IE:|Inscrição|Endereço|Rua|Av\.|Tel|Fone|CEP|\d{2}\/\d{2}\/\d{4}|http/i.test(l)) {
       nomeEstab = l;
     }
-    // Guardar todas as linhas não-vazias do cabeçalho como candidatas a excluir
-    if (l && l.length > 3) {
-      linhasCabecalho.add(l.toLowerCase().trim());
-    }
   }
 
   // Extrai total
