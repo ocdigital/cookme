@@ -541,6 +541,34 @@ IMPORTANTE:
       }
     }
 
+    // Registrar compra no histórico se algum item foi salvo
+    if (itensSalvos.length > 0) {
+      try {
+        const compra = this.compraRepository.create({
+          usuario_id: usuarioId,
+          data_compra: new Date(),
+          metodo_cadastro: MetodoCadastro.CUPOM_SAT,
+        });
+        const savedCompra = await this.compraRepository.save(compra);
+
+        const compraItens = itensSalvos.map((inv) =>
+          this.compraItemRepository.create({
+            compra: savedCompra,
+            produto_id: inv.produto_id,
+            nome_ocr: '',
+            nome_display: '',
+            quantidade: inv.quantidade_disponivel,
+            unidade: inv.unidade as string,
+            adicionado_inventario: true,
+          }),
+        );
+        await this.compraItemRepository.save(compraItens);
+      } catch (err) {
+        // Não falhar o inventário por erro no histórico
+        console.warn('[ComprasService] Erro ao registrar compra no histórico:', err);
+      }
+    }
+
     return {
       total: itens.length,
       salvos: itensSalvos.length,
