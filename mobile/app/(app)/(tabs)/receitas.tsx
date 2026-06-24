@@ -583,8 +583,6 @@ export default function ReceitasScreen() {
                   onToggleFavorito={() => toggleFavorito(r.id)}
                   onFiz={() => abrirFiz(r)}
                   onFaltando={() => abrirFaltando(r)}
-                  onAdicionarIngrediente={(ingrediente) => adicionarIngredienteInventario(r.id, ingrediente)}
-                  onComprarIngrediente={(ingrediente) => comprarIngrediente(r, ingrediente)}
                   onPress={() => router.push({ pathname: '/(app)/receita/[id]', params: { id: r.id, dados: JSON.stringify(r) } })}
                 />
               ))}
@@ -817,7 +815,7 @@ export default function ReceitasScreen() {
 
 // ─── ReceitaCard ─────────────────────────────────────────────────────────────
 
-function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado, onToggleFavorito, onAdicionarIngrediente, onComprarIngrediente }: {
+function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado, onToggleFavorito }: {
   receita: ReceitaDisponivel;
   onFiz: () => void;
   onFaltando: () => void;
@@ -825,8 +823,6 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
   urgente?: boolean;
   favoritado?: boolean;
   onToggleFavorito?: () => void;
-  onAdicionarIngrediente?: (ingrediente: string) => void;
-  onComprarIngrediente?: (ingrediente: string) => void;
 }) {
   const [imageError, setImageError] = useState(false);
   const parcial = !receita.disponivel;
@@ -860,29 +856,13 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
             </View>
             <Text style={styles.progressPct}>{pct}%</Text>
           </View>
-          {/* Ingredientes faltando com botões */}
+          {/* Ingredientes faltando — apenas nomes, botões ficam no detalhe */}
           {receita.faltando && receita.faltando.length > 0 && (
-            <View style={{ gap: 4 }}>
+            <View style={{ gap: 2 }}>
               {receita.faltando.slice(0, 3).map((ing, i) => (
-                <View key={i} style={styles.faltandoRow}>
-                  <MaterialCommunityIcons name="close-circle-outline" size={13} color={C.red[500]} />
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <MaterialCommunityIcons name="close-circle-outline" size={12} color={C.red[500]} />
                   <Text style={styles.faltandoIngNome} numberOfLines={1}>{ing}</Text>
-                  <TouchableOpacity
-                    style={styles.btnComprarIng}
-                    onPress={(e) => { e.stopPropagation(); onComprarIngrediente?.(ing); }}
-                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                  >
-                    <MaterialCommunityIcons name="cart-plus" size={12} color={C.green[700]} />
-                    <Text style={styles.btnComprarIngText}>Comprar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.btnJaTenho}
-                    onPress={(e) => { e.stopPropagation(); onAdicionarIngrediente?.(ing); }}
-                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                  >
-                    <MaterialCommunityIcons name="check" size={12} color={C.ink[500]} />
-                    <Text style={styles.btnJaTenhoText}>Já tenho</Text>
-                  </TouchableOpacity>
                 </View>
               ))}
               {receita.faltando.length > 3 && (
