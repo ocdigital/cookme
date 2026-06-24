@@ -444,17 +444,54 @@ export default function ReceitaDetalheScreen() {
               {receita.ingredientes.map((ing, i) => {
                 const ingNorm = norm(ing);
                 const falta = receita.faltando && receita.faltando.length > 0
-                  ? receita.faltando.some(f => ingNorm.includes(norm(f)))
+                  ? receita.faltando.some(f => ingNorm.includes(norm(f)) || norm(f).includes(ingNorm))
                   : false;
                 return (
                   <View key={i} style={styles.ingredienteItem}>
+                    {/* Ícone + nome */}
                     <MaterialCommunityIcons
                       name={falta ? 'close-circle' : 'check-circle'}
                       size={18}
                       color={falta ? C.red[500] : C.green[600]}
                       style={{ marginRight: 8 }}
                     />
-                    <Text style={[styles.ingredienteText, falta && { color: C.ink[400] }]}>{ing}</Text>
+                    <Text style={[styles.ingredienteText, falta && { color: C.ink[400] }]} numberOfLines={2}>{ing}</Text>
+                    {/* Botões apenas para ingredientes faltando */}
+                    {falta && (
+                      <View style={styles.ingredienteBtns}>
+                        <TouchableOpacity
+                          style={styles.btnIngComprar}
+                          hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                          onPress={async () => {
+                            try {
+                              const chave = receita.faltando?.find(f => ingNorm.includes(norm(f)) || norm(f).includes(ingNorm)) ?? ing;
+                              const tituloLista = `Ingredientes para ${receita.titulo}`;
+                              await api.post('/listas/adicionar-item-rapido', { titulo_lista: tituloLista, ingrediente: chave });
+                              Alert.alert('Adicionado!', `"${chave}" foi para a lista "${tituloLista}"`, [{ text: 'Ok' }]);
+                            } catch { Alert.alert('Erro', 'Não foi possível adicionar à lista'); }
+                          }}
+                        >
+                          <MaterialCommunityIcons name="cart-plus" size={12} color={C.green[700]} />
+                          <Text style={styles.btnIngComprarText}>Comprar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.btnIngJaTenho}
+                          hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                          onPress={async () => {
+                            try {
+                              const chave = receita.faltando?.find(f => ingNorm.includes(norm(f)) || norm(f).includes(ingNorm)) ?? ing;
+                              await api.post('/inventario/adicionar-manual', { nome: chave, quantidade: 1, unidade: 'un' });
+                              queryClient.invalidateQueries({ queryKey: queryKeys.receitaDetalhe(receita.id) });
+                              queryClient.invalidateQueries({ queryKey: queryKeys.inventario() });
+                              Alert.alert('Adicionado!', `"${chave}" foi para a despensa.`, [{ text: 'Ok' }]);
+                            } catch { Alert.alert('Erro', 'Não foi possível adicionar ao inventário'); }
+                          }}
+                        >
+                          <MaterialCommunityIcons name="check" size={12} color={C.ink[600]} />
+                          <Text style={styles.btnIngJaTenhoText}>Já tenho</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 );
               })}
@@ -863,9 +900,24 @@ const styles = StyleSheet.create({
   secao: { gap: 10 },
   secaoTitulo: { fontSize: 17, fontWeight: '700', color: C.ink[900], letterSpacing: -0.1, marginBottom: 2 },
 
-  ingredienteItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  ingredienteItem: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5, flexWrap: 'nowrap' },
   ingredienteBullet: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green[500], flexShrink: 0 },
   ingredienteText: { ...T.body, color: C.ink[700], flex: 1 },
+  ingredienteBtns: { flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 },
+  btnIngComprar: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: C.green[50], borderRadius: radius.pill,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: C.green[200],
+  },
+  btnIngComprarText: { fontSize: 11, fontWeight: '700', color: C.green[700] },
+  btnIngJaTenho: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: C.ink[50], borderRadius: radius.pill,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: C.ink[200],
+  },
+  btnIngJaTenhoText: { fontSize: 11, fontWeight: '600', color: C.ink[600] },
 
   passoItem: { flexDirection: 'row', gap: 12, paddingVertical: 6 },
   passoNum: {
