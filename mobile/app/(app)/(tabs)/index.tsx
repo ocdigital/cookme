@@ -539,8 +539,8 @@ export default function HomeScreen() {
   [todasReceitas]);
 
   const stats: Stats = useMemo(() => ({
-    alimentos: (inventarioData ?? []).filter((p: any) => p.ingrediente_receita !== false).length,
-    listas: (listasData ?? []).filter((l: any) => l.status === 'ativa').length,
+    alimentos: (Array.isArray(inventarioData) ? inventarioData : []).filter((p: any) => p.ingrediente_receita !== false).length,
+    listas: (Array.isArray(listasData) ? listasData : []).filter((l: any) => l.status === 'ativa').length,
   }), [inventarioData, listasData]);
 
   const favoritosIds = useMemo(
