@@ -553,14 +553,14 @@ IMPORTANTE:
 
         const compraItens = itensSalvos.map((inv) =>
           this.compraItemRepository.create({
-            compra: savedCompra,
+            compra_id: savedCompra.id,
             produto_id: inv.produto_id,
             nome_ocr: '',
             nome_display: '',
             quantidade: inv.quantidade_disponivel,
-            unidade: inv.unidade as string,
+            unidade: (inv.unidade as unknown) as UnidadeMedida,
             adicionado_inventario: true,
-          }),
+          } as any),
         );
         await this.compraItemRepository.save(compraItens);
       } catch (err) {
