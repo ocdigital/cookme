@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Query, Body, Param, UseInterceptors, HttpCode, HttpStatus, Logger, UseGuards } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -35,6 +35,7 @@ import { CronLogService } from '../services/cron-log.service';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
+@SkipThrottle()
 @UseGuards(RolesGuard)
 @Roles(UserRole.ADMIN)
 @Controller('admin')
