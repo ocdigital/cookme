@@ -2,6 +2,10 @@
  * Consulta NFC-e diretamente do dispositivo do usuário.
  * O fetch sai do IP do usuário, não do VPS — elimina o rate limit por IP.
  * Funciona apenas para QR codes NFC-e (URL). SAT/CF-e não são suportados.
+ *
+ * Estratégia:
+ * 1. Tenta parsear o XML embutido na página HTML (tag <nfeProc> ou <NFe>)
+ * 2. Fallback: regex estruturada no HTML buscando padrões fixos de produto
  */
 
 export interface NfceItem {
@@ -19,78 +23,102 @@ export interface NfceResult {
   total: number;
 }
 
-const KEYWORDS = [
-  'qtde.:',
-  'un:',
-  'vl. unit.:',
-  'vl. total',
-  'valor total r$:',
-  'descontos r$:',
-  'valor a pagar r$:',
-  'forma de pagamento:',
-  'valor pago r$:',
-  'troco',
-  '(código:',
-  ')',
-  'consulta resumida',
-  'documento auxiliar',
-  'secretaria da fazenda',
-  'cnpj:',
-  'chave de acesso',
-  'protocolo',
-  'consumidor',
-  'tributos',
-  'informações',
-  'ambiente',
-  'emissão:',
-  'versão',
-];
+// ── Parser XML ────────────────────────────────────────────────────────────────
+// O SEFAZ emite o XML da NFC-e inline no HTML em alguns estados.
+// Extrai via regex sem precisar de DOM parser.
 
-function isKeyword(line: string): boolean {
-  const l = line.toLowerCase().trim();
-  if (!l || l.length < 3) return true;
-  return KEYWORDS.some((k) => l.startsWith(k));
+function extrairTagXml(xml: string, tag: string): string {
+  const m = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+  return m ? m[1].trim() : '';
 }
+
+function extrairTodasTagsXml(xml: string, tag: string): string[] {
+  const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'gi');
+  const result: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    result.push(m[1].trim());
+  }
+  return result;
+}
+
+function parseNfceXml(xml: string): NfceResult | null {
+  // Verifica se é XML da NFC-e
+  if (!xml.includes('<NFe') && !xml.includes('<nfeProc')) return null;
+
+  // Estabelecimento
+  const emit = extrairTagXml(xml, 'emit');
+  const nomeEstab = extrairTagXml(emit || xml, 'xNome') || extrairTagXml(emit || xml, 'xFant');
+  const cnpj = extrairTagXml(emit || xml, 'CNPJ');
+
+  // Total
+  const ICMSTot = extrairTagXml(xml, 'ICMSTot');
+  const totalStr = extrairTagXml(ICMSTot || xml, 'vNF');
+  const total = parseFloat(totalStr) || 0;
+
+  // Itens — cada <det> contém um <prod>
+  const dets = extrairTodasTagsXml(xml, 'det');
+  const itens: NfceItem[] = [];
+
+  for (const det of dets) {
+    const prod = extrairTagXml(det, 'prod');
+    if (!prod) continue;
+
+    const nome = extrairTagXml(prod, 'xProd').trim();
+    const codigo = extrairTagXml(prod, 'cEAN') || extrairTagXml(prod, 'cProd');
+    const qtde = parseFloat(extrairTagXml(prod, 'qCom').replace(',', '.')) || 1;
+    const unidade = extrairTagXml(prod, 'uCom') || 'UN';
+    const vlUnit = parseFloat(extrairTagXml(prod, 'vUnCom').replace(',', '.')) || 0;
+    const vlTotal = parseFloat(extrairTagXml(prod, 'vProd').replace(',', '.')) || 0;
+
+    if (nome && nome.length > 1) {
+      itens.push({ nome, codigo, quantidade: qtde, unidade, valor_unitario: vlUnit, valor_total: vlTotal });
+    }
+  }
+
+  if (itens.length === 0) return null;
+
+  return {
+    estabelecimento: { nome: nomeEstab, cnpj },
+    itens,
+    total,
+  };
+}
+
+// ── Parser HTML (fallback) ────────────────────────────────────────────────────
+// Busca padrões fixos no HTML: tabelas de produto com classe/id conhecidos,
+// ou sequência de campos com rótulos fixos ("Qtde.:", "Vl. Unit.:").
+// NÃO tenta detectar nome de produto por heurística de linha.
 
 function parseBRL(s: string): number {
   return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
 }
 
-function parseNfceHtml(html: string): NfceResult {
-  // Extrai texto simples do HTML — sem DOM parser no RN, usa regex básico
+function parseNfceHtmlFallback(html: string): NfceResult {
+  // Extrai texto limpo
   const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/?(div|p|li|tr|td|th|span|h[1-6])[^>]*>/gi, '\n')
+    .replace(/<\/?(div|p|li|tr|td|th|span|h[1-6]|table|tbody|thead|tfoot)[^>]*>/gi, '\n')
     .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#\d+;/g, ' ');
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ').replace(/&#\d+;/g, ' ');
 
-  const linhas = text
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
-  const n = linhas.length;
-  const itens: NfceItem[] = [];
-  let totalCupom = 0;
+  const linhas = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
 
   let nomeEstab = '';
   let cnpjEstab = '';
-  // Linhas do cabeçalho (antes do primeiro produto) para excluir do array de itens
-  const linhasCabecalho = new Set<string>();
+  let totalCupom = 0;
+  const itens: NfceItem[] = [];
 
-  // Extrai CNPJ e nome do estabelecimento — escaneia as primeiras 40 linhas
-  for (let j = 0; j < Math.min(n, 40); j++) {
+  // Extrai estabelecimento e CNPJ das primeiras 20 linhas
+  for (let j = 0; j < Math.min(linhas.length, 20); j++) {
     const l = linhas[j];
-    if (l.toUpperCase().includes('CNPJ:')) {
-      cnpjEstab = l.replace(/CNPJ:/i, '').trim();
+    if (/CNPJ\s*:/i.test(l)) {
+      cnpjEstab = l.replace(/CNPJ\s*:/i, '').trim();
     }
-    if (!nomeEstab && l && !isKeyword(l) && !l.includes('CNPJ') && l.length > 5 && j > 5) {
+    if (!nomeEstab && j >= 1 && l.length > 3 && !/CNPJ|CPF|IE:|Inscrição|Endereço|Rua|Av\.|Tel|Fone|CEP|\d{2}\/\d{2}\/\d{4}|http/i.test(l)) {
       nomeEstab = l;
     }
     // Guardar todas as linhas não-vazias do cabeçalho como candidatas a excluir
@@ -99,136 +127,106 @@ function parseNfceHtml(html: string): NfceResult {
     }
   }
 
-  // Máquina de estados: detecta produto pela linha seguida de "(Código:"
-  let i = 0;
-  while (i < n) {
-    const linha = linhas[i];
+  // Extrai total
+  for (const l of linhas) {
+    if (/valor\s+total\s+r\$\s*:/i.test(l) || /^valor\s+a\s+pagar/i.test(l)) {
+      const idx = linhas.indexOf(l);
+      for (let k = idx + 1; k < Math.min(idx + 5, linhas.length); k++) {
+        const v = parseBRL(linhas[k]);
+        if (v > 0) { totalCupom = v; break; }
+      }
+    }
+  }
 
-    // Total do cupom
-    if (linha.toLowerCase().startsWith('valor total r$:')) {
-      for (let k = i + 1; k < Math.min(i + 5, n); k++) {
-        if (linhas[k]) {
-          totalCupom = parseBRL(linhas[k]);
+  // Estratégia: busca blocos com rótulos fixos "Qtde.:" e "Vl. Total"
+  // O nome do produto é a linha IMEDIATAMENTE ANTES de "(Código:" OU "Qtde.:"
+  // MAS apenas se não for o nome do estabelecimento ou linha de cabeçalho.
+  const CABECALHO_RE = /^(CNPJ|CPF|IE:|Inscrição|Endereço|Rua|Av\.|Tel|Fone|CEP|Subtotal|Total|Desconto|Troco|Valor|Forma|Pagamento|Protocolo|Chave|Ambiente|Versão|Documento|Consumidor|Tributo|Secretaria|NFC-e|SAT|Data|Emissão|Número|Série)/i;
+  const ESTAB_LOWER = nomeEstab.toLowerCase().trim();
+
+  for (let i = 0; i < linhas.length; i++) {
+    const l = linhas[i];
+
+    // Detecta início de produto: linha com "(Código:" indica que a linha anterior é o nome
+    if (/^\(c[oó]digo:/i.test(l) && i > 0) {
+      const nomeCandidato = linhas[i - 1];
+      const nomeLower = nomeCandidato.toLowerCase().trim();
+
+      // Rejeitar se for cabeçalho, estabelecimento, ou linha já vazia
+      if (
+        !nomeCandidato ||
+        nomeCandidato.length < 2 ||
+        CABECALHO_RE.test(nomeCandidato) ||
+        (ESTAB_LOWER && nomeLower === ESTAB_LOWER) ||
+        /^[\d.,\s]+$/.test(nomeCandidato)
+      ) continue;
+
+      // Coleta campos do bloco: qtde, unidade, vl unit, vl total
+      let codigo = '';
+      let qtde = 1;
+      let unidade = 'UN';
+      let vlUnit = 0;
+      let vlTotal = 0;
+
+      // Código vem logo após "(Código:"
+      const codigoMatch = l.match(/\(c[oó]digo:\s*([^)]+)\)/i);
+      if (codigoMatch) {
+        codigo = codigoMatch[1].trim();
+      } else if (i + 1 < linhas.length) {
+        codigo = linhas[i + 1].replace(')', '').trim();
+      }
+
+      for (let j = i + 1; j < Math.min(i + 20, linhas.length); j++) {
+        const lj = linhas[j].toLowerCase();
+        if (/^qtde\.\s*:/.test(lj)) {
+          const parts = linhas[j].split(':');
+          qtde = parseFloat((parts[1] || '').trim().replace(',', '.')) || 1;
+          if (!qtde && j + 1 < linhas.length) qtde = parseFloat(linhas[j + 1].replace(',', '.')) || 1;
+        } else if (/^un\s*:/.test(lj)) {
+          const parts = linhas[j].split(':');
+          unidade = (parts[1] || '').trim() || (j + 1 < linhas.length ? linhas[j + 1] : 'UN');
+        } else if (/^vl\.\s*unit\./i.test(linhas[j])) {
+          for (let k = j + 1; k < Math.min(j + 5, linhas.length); k++) {
+            vlUnit = parseBRL(linhas[k]);
+            if (vlUnit) break;
+          }
+        } else if (/^vl\.\s*total$/i.test(linhas[j])) {
+          for (let k = j + 1; k < Math.min(j + 5, linhas.length); k++) {
+            vlTotal = parseBRL(linhas[k]);
+            if (vlTotal) break;
+          }
+          i = j; // avança cursor para depois do bloco
+          break;
+        } else if (/^\(c[oó]digo:/i.test(linhas[j]) && j > i + 1) {
+          // Início de próximo produto — encerra bloco atual
+          i = j - 1;
           break;
         }
       }
-    }
 
-    // Detecta início de bloco de produto
-    if (linha && !isKeyword(linha) && linha.length > 3) {
-      const lookahead = Math.min(i + 10, n);
-      const temCodigo = linhas.slice(i + 1, lookahead).some((l) =>
-        l.toLowerCase().includes('(código:') || l.toLowerCase().includes('(codigo:'),
-      );
-
-      if (temCodigo) {
-        let nomeProduto = linha;
-        // Ignorar se a linha é o nome do estabelecimento ou qualquer linha do cabeçalho
-        // (estabelecimento aparece antes do primeiro produto e não tem (Código:) próprio,
-        // mas o lookahead captura o (Código:) do PRÓXIMO item)
-        const nomeLower = nomeProduto.toLowerCase().trim();
-        if (
-          (nomeEstab && nomeLower === nomeEstab.toLowerCase().trim()) ||
-          /^(residencial|supermercado|mercado|hipermercado|atacad|assai|carrefour|extra|walmart|hiper)\b/i.test(nomeProduto)
-        ) {
-          i++;
-          continue;
-        }
-        let codigo = '';
-        let qtde = 1.0;
-        let unidade = 'UN';
-        let vlUnit = 0;
-        let vlTotal = 0;
-
-        let j = i + 1;
-        while (j < Math.min(i + 40, n)) {
-          const lj = linhas[j];
-          const ljL = lj.toLowerCase();
-
-          if (ljL.includes('(código:') || ljL.includes('(codigo:')) {
-            for (let k = j + 1; k < Math.min(j + 5, n); k++) {
-              if (linhas[k]) {
-                codigo = linhas[k].replace(')', '').trim();
-                break;
-              }
-            }
-          } else if (ljL.startsWith('qtde.:')) {
-            const partes = lj.split(':');
-            if (partes[1]?.trim()) {
-              qtde = parseFloat(partes[1].trim().replace(',', '.')) || 1;
-            } else {
-              for (let k = j + 1; k < Math.min(j + 4, n); k++) {
-                if (linhas[k]) {
-                  qtde = parseFloat(linhas[k].replace(',', '.')) || 1;
-                  break;
-                }
-              }
-            }
-          } else if (ljL.startsWith('un:')) {
-            const partes = lj.split(':');
-            if (partes[1]?.trim()) {
-              unidade = partes[1].trim();
-            } else {
-              for (let k = j + 1; k < Math.min(j + 4, n); k++) {
-                if (linhas[k]) {
-                  unidade = linhas[k];
-                  break;
-                }
-              }
-            }
-          } else if (ljL.startsWith('vl. unit.:')) {
-            for (let k = j + 1; k < Math.min(j + 6, n); k++) {
-              const lk = linhas[k].trim();
-              if (lk) {
-                vlUnit = parseBRL(lk);
-                if (vlUnit) break;
-              }
-            }
-          } else if (ljL === 'vl. total') {
-            for (let k = j + 1; k < Math.min(j + 6, n); k++) {
-              const lk = linhas[k].trim();
-              if (lk) {
-                vlTotal = parseBRL(lk);
-                if (vlTotal) break;
-              }
-            }
-            // fim do bloco
-            i = j;
-            break;
-          }
-
-          j++;
-        }
-
-        if (nomeProduto && (vlTotal > 0 || vlUnit > 0)) {
-          itens.push({
-            nome: nomeProduto,
-            codigo,
-            quantidade: qtde,
-            unidade,
-            valor_unitario: vlUnit || (qtde > 0 ? vlTotal / qtde : vlTotal),
-            valor_total: vlTotal,
-          });
-        }
+      if (nomeCandidato && (vlTotal > 0 || vlUnit > 0)) {
+        itens.push({
+          nome: nomeCandidato,
+          codigo,
+          quantidade: qtde,
+          unidade,
+          valor_unitario: vlUnit || (qtde > 0 ? vlTotal / qtde : vlTotal),
+          valor_total: vlTotal,
+        });
       }
     }
-
-    i++;
   }
 
-  return {
-    estabelecimento: { nome: nomeEstab, cnpj: cnpjEstab },
-    itens,
-    total: totalCupom,
-  };
+  return { estabelecimento: { nome: nomeEstab, cnpj: cnpjEstab }, itens, total: totalCupom };
 }
+
+// ── Entry point ───────────────────────────────────────────────────────────────
 
 export async function consultarNFCe(urlQrCode: string): Promise<NfceResult> {
   const response = await fetch(urlQrCode, {
     method: 'GET',
     headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36',
       Accept: 'text/html,application/xhtml+xml,*/*;q=0.9',
       'Accept-Language': 'pt-BR,pt;q=0.9',
     },
@@ -244,11 +242,18 @@ export async function consultarNFCe(urlQrCode: string): Promise<NfceResult> {
     throw new Error('Resposta do SEFAZ muito curta — possível bloqueio ou CAPTCHA');
   }
 
-  const result = parseNfceHtml(html);
+  // Tenta XML inline primeiro (mais confiável)
+  const xmlResult = parseNfceXml(html);
+  if (xmlResult && xmlResult.itens.length > 0) {
+    return xmlResult;
+  }
 
-  if (result.itens.length === 0) {
+  // Fallback: HTML estruturado
+  const htmlResult = parseNfceHtmlFallback(html);
+
+  if (htmlResult.itens.length === 0) {
     throw new Error('Nenhum item encontrado no cupom — formato não reconhecido');
   }
 
-  return result;
+  return htmlResult;
 }

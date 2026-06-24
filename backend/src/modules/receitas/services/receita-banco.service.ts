@@ -118,6 +118,12 @@ export class ReceitaBancoService {
   pesoIngrediente(chave: string, receitaNome: string): number {
     const nomeNorm = this.normalizar(receitaNome);
 
+    // Se o ingrediente (mesmo auxiliar) aparece no nome da receita → protagonista
+    // Ex: "Molho branco com azeite de oliva" → azeite vira peso 3
+    if (nomeNorm.includes(chave) || chave.split(' ').every((w) => w.length > 3 && nomeNorm.includes(w))) {
+      return 3;
+    }
+
     // Context-sensitive: check recipe name keywords
     const ctxKeywords = CONTEXTO_SENSIVEL[chave];
     if (ctxKeywords) {
