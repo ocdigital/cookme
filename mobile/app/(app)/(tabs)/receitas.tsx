@@ -356,7 +356,7 @@ export default function ReceitasScreen() {
       const res = await api.post(`/receitas/${receita.id}/comprar-faltando`);
       const data = res.data;
       Alert.alert(
-        '🛒 Adicionado à lista!',
+        'Adicionado à lista!',
         `${data.ingredientes_adicionados} ingrediente(s) adicionado(s) à lista "${data.lista_titulo}"`,
         [{ text: 'Ótimo!' }],
       );
@@ -364,6 +364,29 @@ export default function ReceitasScreen() {
       Alert.alert('Erro', 'Não foi possível adicionar à lista de compras');
     } finally {
       setComprando(null);
+    }
+  };
+
+  // Adiciona ingrediente individual à lista de compras
+  const comprarIngrediente = async (receita: ReceitaDisponivel, ingrediente: string) => {
+    try {
+      const tituloLista = `Ingredientes para ${receita.titulo}`;
+      await api.post('/listas/adicionar-item-rapido', { titulo_lista: tituloLista, ingrediente });
+      Alert.alert('Adicionado!', `"${ingrediente}" foi para a lista "${tituloLista}"`, [{ text: 'Ok' }]);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível adicionar à lista');
+    }
+  };
+
+  // "Já tenho" — adiciona ingrediente ao inventário sem passar pelo OCR
+  const adicionarIngredienteInventario = async (receitaId: string, ingrediente: string) => {
+    try {
+      await api.post('/inventario/adicionar-manual', { nome: ingrediente, quantidade: 1, unidade: 'un' });
+      // Invalida receitas para recalcular matching
+      queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
+      Alert.alert('Adicionado à despensa!', `"${ingrediente}" foi adicionado ao seu inventário.`, [{ text: 'Ok' }]);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível adicionar ao inventário');
     }
   };
 
@@ -392,16 +415,13 @@ export default function ReceitasScreen() {
     queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) });
   };
 
-  // Quase Lá! = tem protagonista (usuário JÁ TEM o ingrediente principal, faltam complementos)
-  // Sugestão   = sem protagonista (inspiração de compra futura)
-  const quasePossiveis  = quaseReceitas.filter(r => r.tem_protagonista);
-  const sugestoesPrato  = quaseReceitas.filter(r => !r.tem_protagonista);
-
   const urgentes = receitas.filter(r => r.usa_vencendo && r.usa_vencendo.length > 0);
   const urgentesIds = new Set(urgentes.map(r => r.id));
   const disponiveis = receitas.filter(r => r.disponivel && !urgentesIds.has(r.id));
-  const comProtagonista = receitas.filter(r => !r.disponivel && r.tem_protagonista && !urgentesIds.has(r.id));
-  const parciais = receitas.filter(r => !r.disponivel && !r.tem_protagonista && !urgentesIds.has(r.id));
+  // Todas com ingrediente faltando (antes: quase + sugestão + comProtagonista + parciais) — ordenadas por menos faltando
+  const faltandoIngredientes = receitas
+    .filter(r => !r.disponivel && !urgentesIds.has(r.id))
+    .sort((a, b) => (a.faltando?.length ?? 0) - (b.faltando?.length ?? 0));
   const modoInfo = MODO_INFO[modoAlimentar];
 
   // Timestamp da última atualização dos dados de receitas
@@ -494,7 +514,7 @@ export default function ReceitasScreen() {
           <View style={styles.resumo}>
             <MaterialCommunityIcons name="fridge-outline" size={16} color={C.green[600]} />
             <Text style={styles.resumoText}>
-              {totalIngredientes} ingredientes · {disponiveis.length + comProtagonista.length} receitas sugeridas
+              {totalIngredientes} ingredientes · {disponiveis.length + faltandoIngredientes.length} receitas sugeridas
               {dataAtualizada ? ` · ${dataAtualizada}` : ''}
             </Text>
             <TouchableOpacity onPress={() => queryClient.invalidateQueries({ queryKey: queryKeys.receitasDisponiveis(modoAlimentar) })}>
@@ -550,57 +570,12 @@ export default function ReceitasScreen() {
             </>
           )}
 
-          {/* Quase Lá! — tem protagonista, faltam apenas complementos */}
-          {quasePossiveis.length > 0 && (
+          {/* Falta alguns ingredientes — todas com < 100%, ordenadas por menos faltando */}
+          {faltandoIngredientes.length > 0 && (
             <>
-              <View style={styles.quaseHeader}>
-                <View style={styles.quaseHeaderIcon}>
-                  <MaterialCommunityIcons name="cart-heart" size={15} color={C.ink[0]} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.quaseHeaderTitle}>Quase Lá! 🛒</Text>
-                  <Text style={styles.quaseHeaderSub}>Você tem o ingrediente principal — compre só o que falta</Text>
-                </View>
-              </View>
-              {quasePossiveis.map(r => (
-                <QuaseCard
-                  key={`quase-${r.id}`}
-                  receita={r}
-                  comprando={comprando === r.id}
-                  onComprar={() => comprarFaltando(r)}
-                  onPress={() => router.push({ pathname: '/(app)/receita/[id]', params: { id: r.id } })}
-                />
-              ))}
-            </>
-          )}
-
-          {/* Sugestão de prato — sem protagonista, inspiração de compra */}
-          {sugestoesPrato.length > 0 && (
-            <>
-              <View style={styles.sugestaoHeader}>
-                <View style={styles.sugestaoHeaderIcon}>
-                  <MaterialCommunityIcons name="lightbulb-outline" size={15} color={C.ink[0]} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sugestaoHeaderTitle}>Sugestão de prato 💡</Text>
-                  <Text style={styles.sugestaoHeaderSub}>Você já tem parte dos ingredientes — inspire-se!</Text>
-                </View>
-              </View>
-              {sugestoesPrato.map(r => (
-                <SugestaoCard
-                  key={`sugestao-${r.id}`}
-                  receita={r}
-                  onPress={() => router.push({ pathname: '/(app)/receita/[id]', params: { id: r.id } })}
-                />
-              ))}
-            </>
-          )}
-
-          {/* Tem protagonista mas faltam complementos */}
-          {comProtagonista.length > 0 && (
-            <>
-              <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Tem o ingrediente principal</Text>
-              {comProtagonista.map(r => (
+              {disponiveis.length > 0 && <View style={styles.separador} />}
+              <Text style={styles.sectionTitle}>Falta alguns ingredientes</Text>
+              {faltandoIngredientes.map(r => (
                 <ReceitaCard
                   key={r.id}
                   receita={r}
@@ -608,6 +583,8 @@ export default function ReceitasScreen() {
                   onToggleFavorito={() => toggleFavorito(r.id)}
                   onFiz={() => abrirFiz(r)}
                   onFaltando={() => abrirFaltando(r)}
+                  onAdicionarIngrediente={(ingrediente) => adicionarIngredienteInventario(r.id, ingrediente)}
+                  onComprarIngrediente={(ingrediente) => comprarIngrediente(r, ingrediente)}
                   onPress={() => router.push({ pathname: '/(app)/receita/[id]', params: { id: r.id, dados: JSON.stringify(r) } })}
                 />
               ))}
@@ -650,23 +627,6 @@ export default function ReceitasScreen() {
             </>
           )}
 
-          {/* Parciais sem protagonista */}
-          {parciais.length > 0 && (
-            <>
-              <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Faltam alguns ingredientes</Text>
-              {parciais.map(r => (
-                <ReceitaCard
-                  key={r.id}
-                  receita={r}
-                  favoritado={favoritosIds.has(r.id)}
-                  onToggleFavorito={() => toggleFavorito(r.id)}
-                  onFiz={() => abrirFiz(r)}
-                  onFaltando={() => abrirFaltando(r)}
-                  onPress={() => router.push({ pathname: '/(app)/receita/[id]', params: { id: r.id, dados: JSON.stringify(r) } })}
-                />
-              ))}
-            </>
-          )}
         </ScrollView>
       )}
 
@@ -857,7 +817,7 @@ export default function ReceitasScreen() {
 
 // ─── ReceitaCard ─────────────────────────────────────────────────────────────
 
-function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado, onToggleFavorito }: {
+function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado, onToggleFavorito, onAdicionarIngrediente, onComprarIngrediente }: {
   receita: ReceitaDisponivel;
   onFiz: () => void;
   onFaltando: () => void;
@@ -865,17 +825,84 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
   urgente?: boolean;
   favoritado?: boolean;
   onToggleFavorito?: () => void;
+  onAdicionarIngrediente?: (ingrediente: string) => void;
+  onComprarIngrediente?: (ingrediente: string) => void;
 }) {
   const [imageError, setImageError] = useState(false);
   const parcial = !receita.disponivel;
+  const pct = Math.round(receita.cobertura ?? 0);
 
+  // Layout compacto para receitas com ingredientes faltando (< 100%)
+  if (parcial) {
+    return (
+      <TouchableOpacity style={styles.receitaCardCompact} onPress={onPress} activeOpacity={0.9}>
+        {/* Foto pequena */}
+        <View style={styles.receitaImgCompact}>
+          {receita.imagem_url && !imageError ? (
+            <Image source={{ uri: receita.imagem_url }} style={{ width: 64, height: 64, borderRadius: radius.md }} onError={() => setImageError(true)} />
+          ) : (
+            <View style={[{ width: 64, height: 64, borderRadius: radius.md, backgroundColor: C.ink[100], alignItems: 'center', justifyContent: 'center' }]}>
+              <MaterialCommunityIcons name="image-outline" size={22} color={C.ink[300]} />
+            </View>
+          )}
+        </View>
+
+        {/* Info */}
+        <View style={{ flex: 1, gap: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.receitaNomeCompact} numberOfLines={2}>{receita.titulo}</Text>
+            <MaterialCommunityIcons name="chevron-right" size={16} color={C.ink[300]} />
+          </View>
+          {/* Barra de progresso */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${pct}%` as any }]} />
+            </View>
+            <Text style={styles.progressPct}>{pct}%</Text>
+          </View>
+          {/* Ingredientes faltando com botões */}
+          {receita.faltando && receita.faltando.length > 0 && (
+            <View style={{ gap: 4 }}>
+              {receita.faltando.slice(0, 3).map((ing, i) => (
+                <View key={i} style={styles.faltandoRow}>
+                  <MaterialCommunityIcons name="close-circle-outline" size={13} color={C.red[500]} />
+                  <Text style={styles.faltandoIngNome} numberOfLines={1}>{ing}</Text>
+                  <TouchableOpacity
+                    style={styles.btnComprarIng}
+                    onPress={(e) => { e.stopPropagation(); onComprarIngrediente?.(ing); }}
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  >
+                    <MaterialCommunityIcons name="cart-plus" size={12} color={C.green[700]} />
+                    <Text style={styles.btnComprarIngText}>Comprar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.btnJaTenho}
+                    onPress={(e) => { e.stopPropagation(); onAdicionarIngrediente?.(ing); }}
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  >
+                    <MaterialCommunityIcons name="check" size={12} color={C.ink[500]} />
+                    <Text style={styles.btnJaTenhoText}>Já tenho</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {receita.faltando.length > 3 && (
+                <Text style={{ ...T.micro, color: C.ink[400] }}>+{receita.faltando.length - 3} mais...</Text>
+              )}
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  // Layout completo com imagem grande — apenas receitas com 100% dos ingredientes
   return (
     <TouchableOpacity style={styles.receitaCard} onPress={onPress} activeOpacity={0.92}>
       <View style={{ position: 'relative' }}>
         {receita.imagem_url && !imageError ? (
-          <Image source={{ uri: receita.imagem_url }} style={[styles.receitaImg, parcial && { opacity: 0.55 }]} onError={() => setImageError(true)} />
+          <Image source={{ uri: receita.imagem_url }} style={styles.receitaImg} onError={() => setImageError(true)} />
         ) : (
-          <View style={[styles.receitaImgPlaceholder, parcial && { backgroundColor: C.ink[100] }]}>
+          <View style={styles.receitaImgPlaceholder}>
             <MaterialCommunityIcons name="image-outline" size={32} color={C.ink[300]} />
           </View>
         )}
@@ -893,10 +920,14 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
             />
           </TouchableOpacity>
         )}
+        {/* Badge Tem tudo */}
+        <View style={styles.badgeTemTudo}>
+          <MaterialCommunityIcons name="check-circle" size={12} color={C.ink[0]} />
+          <Text style={styles.badgeTemTudoText}>Tem tudo</Text>
+        </View>
       </View>
 
       <View style={styles.receitaBody}>
-        {/* Tags */}
         <View style={styles.tagRow}>
           {urgente && receita.usa_vencendo && receita.usa_vencendo.length > 0 && (
             <View style={styles.tagUrgente}>
@@ -910,21 +941,9 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
               <Text style={styles.tagNovaText}>Nova</Text>
             </View>
           )}
-          <View style={[styles.tagCobertura, { backgroundColor: parcial ? C.amber[50] : C.green[50] }]}>
-            <MaterialCommunityIcons
-              name={parcial ? 'alert-outline' : 'check-circle-outline'}
-              size={11}
-              color={parcial ? C.amber[700] : C.green[700]}
-            />
-            <Text style={[styles.tagCoberturaText, { color: parcial ? C.amber[700] : C.green[700] }]}>
-              {receita.cobertura}% dos ingredientes
-            </Text>
-          </View>
         </View>
 
-        <Text style={[styles.receitaNome, parcial && { color: C.ink[400] }]}>
-          {receita.titulo}
-        </Text>
+        <Text style={styles.receitaNome}>{receita.titulo}</Text>
 
         {receita.url_fonte && (
           <View style={[styles.badgeFonte, { marginBottom: 4 }]}>
@@ -939,18 +958,6 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
           <Text style={styles.receitaDesc} numberOfLines={2}>{receita.descricao}</Text>
         ) : null}
 
-        {/* O que falta — inline */}
-        {parcial && receita.faltando.length > 0 && (
-          <View style={styles.faltandoBox}>
-            <MaterialCommunityIcons name="cart-outline" size={13} color={C.amber[600]} />
-            <Text style={styles.faltandoLabel}>Falta: </Text>
-            <Text style={styles.faltandoItens} numberOfLines={2}>
-              {receita.faltando.join(', ')}
-            </Text>
-          </View>
-        )}
-
-        {/* Meta + Fiz essa */}
         <View style={styles.acoes}>
           <View style={styles.receitaMeta}>
             {receita.tempo_preparo ? (
@@ -966,12 +973,10 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
               </View>
             )}
           </View>
-          {receita.disponivel && (
-            <TouchableOpacity style={styles.btnFiz} onPress={onFiz}>
-              <MaterialCommunityIcons name="check" size={14} color={C.ink[0]} />
-              <Text style={styles.btnFizText}>Fiz essa!</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.btnFiz} onPress={onFiz}>
+            <MaterialCommunityIcons name="check" size={14} color={C.ink[0]} />
+            <Text style={styles.btnFizText}>Fiz essa!</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
@@ -1409,7 +1414,7 @@ const styles = StyleSheet.create({
   },
   tagUrgenteText: { ...T.micro, color: C.ink[0], fontWeight: '700' },
 
-  // Card receita
+  // Card receita — layout completo (100% ingredientes)
   receitaCard: {
     backgroundColor: C.ink[0], borderRadius: radius.lg,
     borderWidth: 1, borderColor: C.ink[150], overflow: 'hidden', ...shadows.sm,
@@ -1425,7 +1430,49 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center', justifyContent: 'center',
   },
+  badgeTemTudo: {
+    position: 'absolute', bottom: 10, left: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.green[600], borderRadius: radius.pill,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  badgeTemTudoText: { ...T.micro, color: C.ink[0], fontWeight: '700' },
   receitaBody: { padding: 14, gap: 6 },
+
+  // Card compacto (< 100% ingredientes)
+  receitaCardCompact: {
+    backgroundColor: C.ink[0], borderRadius: radius.lg,
+    borderWidth: 1, borderColor: C.ink[150], ...shadows.sm,
+    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12,
+  },
+  receitaImgCompact: { borderRadius: radius.md, overflow: 'hidden' },
+  receitaNomeCompact: { ...T.body, fontWeight: '600', color: C.ink[700], lineHeight: 20 },
+  faltandoItensCompact: { ...T.micro, color: C.amber[700], flex: 1 },
+  progressBarBg: {
+    flex: 1, height: 4, backgroundColor: C.ink[150], borderRadius: 2, overflow: 'hidden',
+  },
+  progressBarFill: { height: 4, backgroundColor: C.amber[400], borderRadius: 2 },
+  progressPct: { ...T.micro, color: C.ink[400], fontWeight: '600', minWidth: 28 },
+
+  // Ingredientes faltando com ações inline
+  faltandoRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+  },
+  faltandoIngNome: { ...T.micro, color: C.ink[600], flex: 1 },
+  btnComprarIng: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: C.green[50], borderRadius: radius.pill,
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderWidth: 1, borderColor: C.green[200],
+  },
+  btnComprarIngText: { ...T.micro, color: C.green[700], fontWeight: '600' },
+  btnJaTenho: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: C.ink[50], borderRadius: radius.pill,
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderWidth: 1, borderColor: C.ink[200],
+  },
+  btnJaTenhoText: { ...T.micro, color: C.ink[600], fontWeight: '600' },
 
   tagRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   tagNova: {

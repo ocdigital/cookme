@@ -69,6 +69,24 @@ export class ListaController {
     return { message: 'Itens comprados removidos' };
   }
 
+  // Adiciona item a uma lista pelo título — cria lista se não existir
+  @Post('adicionar-item-rapido')
+  async adicionarItemRapido(
+    @Body() body: { titulo_lista: string; ingrediente: string },
+    @Req() req: any,
+  ) {
+    const listas = await this.listaService.listarListasUsuario(req.user.id);
+    let lista = listas.find((l) => l.titulo === body.titulo_lista);
+    if (!lista) {
+      lista = await this.listaService.criarLista(req.user.id, { titulo: body.titulo_lista } as any);
+    }
+    return this.listaService.adicionarItem(lista.id, req.user.id, {
+      nome: body.ingrediente,
+      quantidade: 1,
+      unidade: 'un',
+    } as any);
+  }
+
   // ==================== ITENS ====================
 
   @Post(':listaId/itens')
