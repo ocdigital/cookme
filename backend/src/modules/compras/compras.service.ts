@@ -420,8 +420,10 @@ IMPORTANTE:
       valor?: number;
       codigo_barras?: string;
     }>,
+    localCompra?: string,
   ) {
     const itensSalvos: Inventario[] = [];
+    const metaPorProdutoId = new Map<string, { nome: string; valor: number }>();
 
     for (const item of itens) {
       try {
@@ -535,6 +537,10 @@ IMPORTANTE:
           salvo = await this.inventarioRepository.save(novoInventario);
         }
         itensSalvos.push(salvo as Inventario);
+        metaPorProdutoId.set(salvo.produto_id, {
+          nome: produto?.nome_display || produto?.nome || item.nome,
+          valor: item.valor ?? 0,
+        });
       } catch (error) {
         console.error(`Erro ao salvar item "${item.nome}":`, error);
         // Continuar com próximos itens
@@ -547,6 +553,7 @@ IMPORTANTE:
         const compra = this.compraRepository.create({
           usuario_id: usuarioId,
           data_compra: new Date(),
+          local_compra: localCompra,
           metodo_cadastro: MetodoCadastro.CUPOM_SAT,
         });
         const savedCompra = await this.compraRepository.save(compra);
@@ -556,9 +563,10 @@ IMPORTANTE:
             this.compraItemRepository.create({
               compra_id: savedCompra.id,
               produto_id: inv.produto_id,
-              nome_ocr: '',
-              nome_display: '',
+              nome_ocr: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
+              nome_display: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
               quantidade: inv.quantidade_disponivel,
+              preco_total: metaPorProdutoId.get(inv.produto_id)?.valor ?? 0,
               unidade: inv.unidade as unknown as UnidadeMedida,
               adicionado_inventario: true,
             } as any),
