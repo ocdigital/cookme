@@ -408,6 +408,21 @@ IMPORTANTE:
     return resultado;
   }
 
+  private normalizarUnidade(raw?: string): UnidadeMedida {
+    if (!raw) return UnidadeMedida.UN;
+    const map: Record<string, UnidadeMedida> = {
+      kg: UnidadeMedida.KG, kilo: UnidadeMedida.KG, quilograma: UnidadeMedida.KG,
+      g: UnidadeMedida.G, gr: UnidadeMedida.G, grama: UnidadeMedida.G,
+      mg: UnidadeMedida.MG,
+      l: UnidadeMedida.L, lt: UnidadeMedida.L, litro: UnidadeMedida.L, ltr: UnidadeMedida.L,
+      ml: UnidadeMedida.ML, mililitro: UnidadeMedida.ML,
+      un: UnidadeMedida.UN, und: UnidadeMedida.UN, unid: UnidadeMedida.UN, pc: UnidadeMedida.UN,
+      pct: UnidadeMedida.PCT, pacote: UnidadeMedida.PCT,
+      cx: UnidadeMedida.CX, caixa: UnidadeMedida.CX,
+    };
+    return map[raw.toLowerCase().trim()] ?? UnidadeMedida.UN;
+  }
+
   /**
    * Salva itens extraídos do cupom no inventário do usuário
    * Cria produtos automaticamente se não existirem
@@ -424,7 +439,7 @@ IMPORTANTE:
     localCompra?: string,
   ) {
     const itensSalvos: Inventario[] = [];
-    const metaPorProdutoId = new Map<string, { nome: string; valor: number; unidade: string }>();
+    const metaPorProdutoId = new Map<string, { nome: string; valor: number; unidade: UnidadeMedida }>();
 
     for (const item of itens) {
       try {
@@ -530,7 +545,7 @@ IMPORTANTE:
             usuario_id: usuarioId,
             produto_id: produto!.id,
             quantidade_disponivel: quantidade,
-            unidade: (item.unidade as unknown as UnidadeMedida) ?? UnidadeMedida.UN,
+            unidade: this.normalizarUnidade(item.unidade),
             data_validade: dataValidade,
             metodo_atualizacao: MetodoCadastro.OCR_NOTA,
             localizacao: 'Adicionado via OCR',
@@ -541,7 +556,7 @@ IMPORTANTE:
         metaPorProdutoId.set(salvo.produto_id, {
           nome: produto?.nome_display || produto?.nome || item.nome,
           valor: item.valor ?? 0,
-          unidade: item.unidade ?? 'UN',
+          unidade: this.normalizarUnidade(item.unidade),
         });
       } catch (error) {
         console.error(`Erro ao salvar item "${item.nome}":`, error);
@@ -569,7 +584,7 @@ IMPORTANTE:
               nome_display: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
               quantidade: inv.quantidade_disponivel,
               preco_total: metaPorProdutoId.get(inv.produto_id)?.valor ?? 0,
-              unidade: (metaPorProdutoId.get(inv.produto_id)?.unidade ?? 'UN') as unknown as UnidadeMedida,
+              unidade: metaPorProdutoId.get(inv.produto_id)?.unidade ?? UnidadeMedida.UN,
               adicionado_inventario: true,
             } as any),
           );

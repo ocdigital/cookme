@@ -118,7 +118,7 @@ function parseNfceHtmlFallback(html: string): NfceResult {
     if (/CNPJ\s*:/i.test(l)) {
       cnpjEstab = l.replace(/CNPJ\s*:/i, '').trim();
     }
-    if (!nomeEstab && j >= 1 && l.length > 3 && !/CNPJ|CPF|IE:|Inscrição|Endereço|Rua|Av\.|Tel|Fone|CEP|\d{2}\/\d{2}\/\d{4}|http/i.test(l)) {
+    if (!nomeEstab && j >= 1 && l.length > 3 && !/CNPJ|CPF|IE:|Inscrição|Endereço|Rua|Av\.|Tel|Fone|CEP|\d{2}\/\d{2}\/\d{4}|http|DOCUMENTO|AUXILIAR|NOTA FISCAL|CONSUMIDOR|NFC-e|SAT|DANFE/i.test(l)) {
       nomeEstab = l;
     }
   }
