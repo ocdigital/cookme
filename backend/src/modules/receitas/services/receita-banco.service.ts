@@ -293,7 +293,7 @@ export class ReceitaBancoService {
         const limiteMinimo = temProtagonista ? 0.4 : 0.5;
         if (cobertura < limiteMinimo) return null;
 
-        return { receita, cobertura, disponivel: cobertura >= 0.7, temProtagonista, faltando };
+        return { receita, cobertura, disponivel: faltando.length === 0, temProtagonista, faltando };
       })
       .filter((r): r is ItemResultado => r !== null)
       // Ordena: disponíveis > protagonista presente > maior cobertura

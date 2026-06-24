@@ -57,6 +57,7 @@ export class ReceitasUsuarioController {
     ]);
 
     const modoAlimentar = pref?.modo_alimentar || 'normal';
+    this.logger.log(`ingredientesDisponiveis (${ingredientes.length}): ${ingredientes.slice(0, 20).join(', ')}`);
     const resultado = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes);
 
     // Banco com poucas receitas → gerar via Haiku em background + buscar previews web em paralelo
@@ -203,17 +204,16 @@ export class ReceitasUsuarioController {
     if (!item) return { ok: false, motivo: 'Receita não encontrada ou já disponível' };
     if (item.faltando.length === 0) return { ok: false, motivo: 'Nenhum ingrediente faltando' };
 
-    // Busca ou cria lista ativa
+    // Busca ou cria lista específica para esta receita
     let lista;
     if (listaId) {
       lista = await this.listaService.obterLista(listaId, user.id);
     } else {
+      const tituloLista = `Ingredientes para ${item.receita.nome}`;
       const listas = await this.listaService.listarListasUsuario(user.id);
-      lista = listas.find((l) => (l as any).status === 'ativa') || listas[0];
+      lista = listas.find((l) => l.titulo === tituloLista);
       if (!lista) {
-        lista = await this.listaService.criarLista(user.id, {
-          titulo: `Ingredientes para ${item.receita.nome}`,
-        } as any);
+        lista = await this.listaService.criarLista(user.id, { titulo: tituloLista } as any);
       }
     }
 

@@ -533,11 +533,8 @@ export default function HomeScreen() {
 
   const sugestoes: ReceitaSimples[] = useMemo(() =>
     [...todasReceitas]
-      .sort((a: any, b: any) => {
-        if (a.disponivel && !b.disponivel) return -1;
-        if (!a.disponivel && b.disponivel) return 1;
-        return (b.cobertura || 0) - (a.cobertura || 0);
-      })
+      .filter((r: any) => r.disponivel)
+      .sort((a: any, b: any) => (b.cobertura || 0) - (a.cobertura || 0))
       .slice(0, 5),
   [todasReceitas]);
 
