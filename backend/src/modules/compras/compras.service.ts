@@ -433,6 +433,18 @@ IMPORTANTE:
           continue;
         }
 
+        // Rejeitar não-alimentos por padrão (higiene, limpeza, descartáveis, pet food, salgadinhos)
+        const NAO_ALIMENTO_RE = /^(toalha|papel (hig|toalha|alum)|pap (hig|alum|toalha)|saco (lixo|microfreez|microfreezer|freezer|geladeira)|sacola|vassoura|rodo|esponja|espon|detergente|det |sabao em po|sab po|amaciante|amac |alvejante|agua san|desinf|multiuso|limpa |inset|repelente|desodorante|desod|shampoo|sh |condicionador|cond cap|creme trat|cr trat|trat cap|sabonete|sab |escova (dente|cabelo)|esc (dent|cab)|pasta dent|creme dent|cr dent|gel dental|fio dental|absorv|fralda|hastes|algodao|luva descart|isqueiro|pilha |lampada|vela arom|palito|cera auto|lava auto|proauto|lustra|flanela|pano (limpeza|multiuso)|fibra limp|esponja mag|bisc pedigree|bisc dog|racao |ração |pet food|salg |salgadinho|saco microfreez)\b/i;
+        if (NAO_ALIMENTO_RE.test(nomeValido)) {
+          console.warn(`[ComprasService] Item ignorado (não-alimento): "${nomeValido}"`);
+          // Marcar produto existente como não-ingrediente se já foi criado
+          const prodExist = await this.produtoRepository.findOne({ where: { nome: nomeValido } });
+          if (prodExist && prodExist.ingrediente_receita !== false) {
+            await this.produtoRepository.update(prodExist.id, { ingrediente_receita: false, nome_display: undefined });
+          }
+          continue;
+        }
+
         // 1. Buscar ou criar produto
         let produto: Produto | null = null;
 
