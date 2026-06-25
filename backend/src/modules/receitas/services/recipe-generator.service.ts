@@ -6,6 +6,9 @@ import Groq from 'groq-sdk';
 import { ReceitaBancoService } from './receita-banco.service';
 import { RecipeValidationService } from './recipe-validation.service';
 import { RecipeRagService } from './recipe-rag.service';
+import { ReceitaArrayLLMSchema } from '../schemas/receita-llm.schema';
+import { retryWithBackoff, isTransientError } from '@common/utils/retry.util';
+import { getRequestId } from '@common/request-context';
 
 export interface Receita {
   titulo: string;
@@ -121,15 +124,27 @@ export class RecipeGeneratorService {
     const resultado = [...receitasBancoFormatadas, ...receitasIA].slice(0, 5);
 
     this.logger.log(
-      `✨ Total: ${resultado.length} receita(s) (${receitasDoBanco.length} banco + ${receitasIA.length} IA)`,
+      `[${getRequestId()}] ✨ Total: ${resultado.length} receita(s) (${receitasDoBanco.length} banco + ${receitasIA.length} IA)`,
     );
     return resultado;
   }
 
-  private buildPromptReceitas(ingredientes: string[], quantidade: number): string {
-    return `Você é um chef brasileiro. Crie ${quantidade} receitas usando principalmente estes ingredientes: ${ingredientes.slice(0, 12).join(', ')}.
+  private buildPromptReceitas(ingredientes: string[], quantidade: number): { system: string; user: string } {
+    const system = `Você é um chef brasileiro especializado em receitas do dia a dia. Sua única função é retornar receitas em formato JSON. Nunca adicione explicações, comentários ou markdown — apenas o JSON puro.`;
 
-Retorne APENAS um array JSON válido (sem markdown):
+    const user = `Crie ${quantidade} receitas brasileiras usando principalmente os ingredientes disponíveis abaixo.
+
+<ingredientes_disponiveis>
+${ingredientes.slice(0, 12).join(', ')}
+</ingredientes_disponiveis>
+
+Regras:
+- Use ingredientes da lista como base — pode adicionar temperos básicos (sal, azeite, alho, cebola)
+- modo_preparo: passos numerados, completo e executável
+- tags_dieta: array com "vegetariano", "vegano" ou "fitness" se aplicável, senão []
+- Receitas simples e saborosas do cotidiano brasileiro
+
+Retorne APENAS um array JSON válido com exatamente ${quantidade} receitas:
 [
   {
     "titulo": "Nome da Receita",
@@ -141,45 +156,44 @@ Retorne APENAS um array JSON válido (sem markdown):
     "rendimento": "4 porções",
     "tags_dieta": []
   }
-]
+]`;
 
-Regras:
-- Use ingredientes da lista como base — pode adicionar temperos básicos (sal, azeite, alho, cebola)
-- modo_preparo: passos numerados, completo e executável
-- tags_dieta: array com "vegetariano", "vegano" ou "fitness" se aplicável, senão []
-- Receitas brasileiras do dia a dia, simples e saborosas`;
+    return { system, user };
   }
 
   private parseReceitasJson(raw: string, quantidade: number): Receita[] {
     const clean = raw.trim().replace(/```json\n?|\n?```/g, '').trim();
     const parsed = JSON.parse(clean);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.slice(0, quantidade).map((r: any) => ({
-      titulo: r.titulo ?? 'Receita',
-      descricao: r.descricao ?? '',
-      ingredientes: Array.isArray(r.ingredientes) ? r.ingredientes : [],
-      modo_preparo: r.modo_preparo ?? '',
-      tempo_preparo: r.tempo_preparo ?? '30 minutos',
-      dificuldade: r.dificuldade ?? 'médio',
-      rendimento: r.rendimento ?? '4 porções',
-      tags_dieta: Array.isArray(r.tags_dieta) ? r.tags_dieta : [],
-    }));
+    const array = Array.isArray(parsed) ? parsed : (parsed?.receitas ?? []);
+    const result = ReceitaArrayLLMSchema.safeParse(array.slice(0, quantidade));
+    if (!result.success) {
+      this.logger.warn(`Zod: schema inválido no retorno do LLM — ${result.error.issues.map((i) => i.message).join('; ')}`);
+      return [];
+    }
+    return result.data as Receita[];
   }
 
   private async gerarComHaiku(ingredientes: string[], quantidade: number): Promise<Receita[]> {
-    const prompt = this.buildPromptReceitas(ingredientes, quantidade);
+    const { system, user } = this.buildPromptReceitas(ingredientes, quantidade);
 
-    // Tenta Haiku primeiro
+    // Tenta Haiku primeiro, com retry em erros transitórios (429, 503, timeout)
     if (this.anthropic) {
       try {
-        const msg = await this.anthropic.messages.create({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2000,
-          messages: [{ role: 'user', content: prompt }],
-        });
+        const msg = await retryWithBackoff(
+          () => this.anthropic!.messages.create({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 2000,
+            system,
+            messages: [{ role: 'user', content: user }],
+          }),
+          { maxAttempts: 3, initialDelayMs: 500, shouldRetry: isTransientError },
+        );
+        this.logger.log(
+          `[${getRequestId()}] Haiku tokens — input: ${msg.usage.input_tokens}, output: ${msg.usage.output_tokens}`,
+        );
         return this.parseReceitasJson((msg.content[0] as any).text, quantidade);
       } catch (err: any) {
-        this.logger.warn(`Haiku falhou (${err.status ?? err.message}) — tentando Groq...`);
+        this.logger.warn(`Haiku falhou após retries (${err.status ?? err.message}) — tentando Groq...`);
       }
     }
 
@@ -192,8 +206,8 @@ Regras:
           max_tokens: 2000,
           response_format: { type: 'json_object' },
           messages: [
-            { role: 'system', content: 'Você é um chef brasileiro. Responda APENAS com JSON válido.' },
-            { role: 'user', content: prompt + '\n\nIMPORTANTE: responda com objeto JSON {"receitas": [...]}' },
+            { role: 'system', content: system },
+            { role: 'user', content: user + '\n\nIMPORTANTE: responda com objeto JSON {"receitas": [...]}' },
           ],
         });
         const raw = resp.choices[0]?.message?.content ?? '{}';

@@ -352,10 +352,23 @@ IMPORTANTE:
     }
   }
 
+  // Remove CPF (11 dígitos) e CNPJ (14 dígitos) de strings — LGPD: PII não deve vazar em logs
+  private removerPIITexto(texto: string): string {
+    return texto
+      .replace(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, '[CPF]')   // CPF formatado
+      .replace(/\b\d{11}\b/g, '[CPF]')                         // CPF sem formatação
+      .replace(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, '[CNPJ]') // CNPJ formatado
+      .replace(/\b\d{14}\b/g, '[CNPJ]');                       // CNPJ sem formatação
+  }
+
   /**
    * Normaliza os dados extraídos do cupom
    */
   private normalizarDadosCupom(dados: any): any {
+    // Remove CPF do comprador que pode aparecer em campos como consumidor/cpf
+    if (dados?.consumidor?.cpf) delete dados.consumidor.cpf;
+    if (dados?.informacoes_fiscais?.cpf_consumidor) delete dados.informacoes_fiscais.cpf_consumidor;
+
     const itensProcessados: any[] = [];
 
     // Processar itens
@@ -397,8 +410,11 @@ IMPORTANTE:
       totais.total = total.toFixed(2);
     }
 
+    const estab = dados?.estabelecimento || {};
+    if (estab.endereco) estab.endereco = this.removerPIITexto(estab.endereco);
+
     const resultado = {
-      estabelecimento: dados?.estabelecimento || {},
+      estabelecimento: estab,
       itens: itensProcessados,
       totais,
       informacoes_fiscais: dados?.informacoes_fiscais || {},

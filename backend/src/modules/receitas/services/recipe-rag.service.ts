@@ -3,13 +3,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
+import { createHash } from 'crypto';
 import { Receita } from '../entities/receita.entity';
+import { ReceitaRAGSchema } from '../schemas/receita-llm.schema';
+import { getRequestId } from '@common/request-context';
+
+const RAG_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 @Injectable()
 export class RecipeRagService {
   private readonly logger = new Logger(RecipeRagService.name);
   private anthropic: Anthropic | null = null;
   private geminiApiKey: string | null = null;
+  private readonly similaresCache = new Map<string, { result: Receita[]; expiresAt: number }>();
 
   constructor(
     @InjectRepository(Receita)
@@ -95,6 +101,16 @@ export class RecipeRagService {
   // apenasPublicas=false → RAG usa tudo como contexto interno (incluindo scrapeadas se existirem)
   // apenasPublicas=true  → apenas receitas CookMe para exibir ao usuário
   async buscarSimilares(ingredientes: string[], limite = 5, tagsDieta?: string[], apenasPublicas = false): Promise<Receita[]> {
+    const cacheKey = createHash('md5')
+      .update(JSON.stringify({ ingredientes: [...ingredientes].sort(), limite, tagsDieta, apenasPublicas }))
+      .digest('hex');
+
+    const cached = this.similaresCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      this.logger.log('RAG cache hit — pulando embedding API');
+      return cached.result;
+    }
+
     const query = `ingredientes disponíveis: ${ingredientes.join(', ')}`;
     const embedding = await this.gerarEmbedding(query);
     if (!embedding) {
@@ -124,6 +140,7 @@ export class RecipeRagService {
     params.push(limite);
 
     const resultados = await this.dataSource.query(sql, params);
+    this.similaresCache.set(cacheKey, { result: resultados, expiresAt: Date.now() + RAG_CACHE_TTL_MS });
     return resultados;
   }
 
@@ -187,6 +204,9 @@ Responda em JSON:
           max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }],
         });
+        this.logger.log(
+          `[${getRequestId()}] RAG Haiku tokens — input: ${response.usage.input_tokens}, output: ${response.usage.output_tokens}`,
+        );
         texto = (response.content[0] as any).text;
       } catch (err: any) {
         this.logger.warn('Haiku indisponível para RAG, usando Gemini:', err?.message);
@@ -212,10 +232,15 @@ Responda em JSON:
     try {
       const jsonMatch = texto.match(/\{[\s\S]*\}/);
       if (!jsonMatch) return null;
-      const receita = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      const result = ReceitaRAGSchema.safeParse(parsed);
+      if (!result.success) {
+        this.logger.warn(`RAG Zod: schema inválido — ${result.error.issues.map((i) => i.message).join('; ')}`);
+        return null;
+      }
       return {
-        receita,
-        fonte: `RAG (baseada em: ${receita.baseada_em || similares[0]?.nome})`,
+        receita: result.data,
+        fonte: `RAG (baseada em: ${result.data.baseada_em || similares[0]?.nome})`,
       };
     } catch (err) {
       this.logger.error('Erro ao parsear JSON do RAG:', err);
