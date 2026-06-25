@@ -8,7 +8,6 @@ import { Usuario } from '@modules/usuarios/entities/usuario.entity';
 import { Preferencia } from '@modules/usuarios/entities/preferencia.entity';
 import { ReceitaBancoService } from '../services/receita-banco.service';
 import { RecipeGeneratorService } from '../services/recipe-generator.service';
-import { RecipeSearchService } from '../services/recipe-search.service';
 import { AprendizadoService } from '../services/aprendizado.service';
 import { InventarioService } from '@modules/inventario/inventario.service';
 import { ListaService } from '@modules/listas/services/lista.service';
@@ -28,7 +27,6 @@ export class ReceitasUsuarioController {
     private readonly receitaBancoService: ReceitaBancoService,
     private readonly inventarioService: InventarioService,
     private readonly recipeGeneratorService: RecipeGeneratorService,
-    private readonly recipeSearchService: RecipeSearchService,
     private readonly listaService: ListaService,
     private readonly aprendizadoService: AprendizadoService,
     @InjectRepository(ReceitaExecutada)
@@ -60,17 +58,13 @@ export class ReceitasUsuarioController {
     this.logger.log(`ingredientesDisponiveis (${ingredientes.length}): ${ingredientes.slice(0, 20).join(', ')}`);
     const resultado = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes);
 
-    // Banco com poucas receitas → gerar via Haiku em background + buscar previews web em paralelo
+    // Banco com poucas receitas → gerar via Haiku em background
     let previewsWeb: Array<{ titulo: string; url: string; site: string }> = [];
     if (resultado.length < 8 && ingredientes.length > 0) {
-      this.logger.log(`Banco tem ${resultado.length} receitas — gerando IA + buscando previews web`);
-      const [, previews] = await Promise.allSettled([
-        this.recipeGeneratorService.gerarReceitas(ingredientes).catch((err) =>
-          this.logger.error(`Erro na geração background: ${err.message}`),
-        ),
-        this.recipeSearchService.buscarPreviewsNaWeb(ingredientes, 6),
-      ]);
-      if (previews.status === 'fulfilled') previewsWeb = previews.value ?? [];
+      this.logger.log(`Banco tem ${resultado.length} receitas — gerando IA em background`);
+      this.recipeGeneratorService.gerarReceitas(ingredientes).catch((err) =>
+        this.logger.error(`Erro na geração background: ${err.message}`),
+      );
     }
 
     // Aplica filtro/sort baseado no modo alimentar do usuário
@@ -83,21 +77,12 @@ export class ReceitasUsuarioController {
     if (modoAlimentar === 'vegetariano') {
       const filtrado = resultado.filter((r) => contemTag(r, 'vegetariano', 'vegano'));
       resultadoModo = filtrado.length >= 4 ? filtrado : resultado;
-      if (filtrado.length < 8) {
-        this.recipeGeneratorService.popularModoAlimentar('vegetariano').catch(() => {});
-      }
     } else if (modoAlimentar === 'vegano') {
       const filtrado = resultado.filter((r) => contemTag(r, 'vegano'));
       resultadoModo = filtrado.length >= 4 ? filtrado : resultado;
-      if (filtrado.length < 8) {
-        this.recipeGeneratorService.popularModoAlimentar('vegano').catch(() => {});
-      }
     } else if (modoAlimentar === 'fitness') {
       const filtrado = resultado.filter((r) => contemTag(r, 'fitness', 'fit', 'proteico', 'low-carb'));
       resultadoModo = filtrado.length >= 4 ? filtrado : resultado;
-      if (filtrado.length < 8) {
-        this.recipeGeneratorService.popularModoAlimentar('fitness').catch(() => {});
-      }
     }
 
     // Nomes normalizados dos ingredientes vencendo (só food items, não esgotados)

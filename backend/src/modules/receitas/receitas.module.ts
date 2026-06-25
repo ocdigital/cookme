@@ -24,9 +24,6 @@ import { RecipeExecutionService } from './services/recipe-execution.service';
 import { RecipeGeneratorService } from './services/recipe-generator.service';
 import { ReceitaBancoService } from './services/receita-banco.service';
 import { RecipeSearchService } from './services/recipe-search.service';
-import { TudoGostosoScraperService } from './services/tudogostoso-scraper.service';
-import { ReceiteriaCrawlerService } from './services/receiteria-scraper.service';
-import { RecipeCrawlerService } from './services/recipe-crawler.service';
 import { RecipeValidationService } from './services/recipe-validation.service';
 import { IngredientNormalizerService } from './services/ingredient-normalizer.service';
 import { ModeracaoService } from './services/moderacao.service';
@@ -75,9 +72,8 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     ReceitasService, IAReceitasService, MOIEngineService,
     ReceiptOcrService, ProductClassifierService, ReceiptImportService,
     RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService,
-    IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, TudoGostosoScraperService, SocialRecipeExtractorService,
-
-    ReceiteriaCrawlerService, RecipeCrawlerService, RecipeValidationService,
+    IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, SocialRecipeExtractorService,
+    RecipeValidationService,
     InventarioService, PushNotificationService,
     ModeracaoService,
     AvaliacaoService,
@@ -99,7 +95,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     ReceiptImportService, RecipeSuggestionService, RecipeExecutionService,
     RecipeGeneratorService, ReceitaBancoService, IngredientNormalizerService, CronLogService,
     ProductClassificationModule, ModeracaoService, ReceitaClassificacaoService,
-    RecipeCrawlerService, RecipeSearchService, RecipeRagService, IngredientCleanerService,
+    RecipeSearchService, RecipeRagService, IngredientCleanerService,
   ],
 })
 export class ReceitasModule {}

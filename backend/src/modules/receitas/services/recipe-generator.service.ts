@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import Groq from 'groq-sdk';
 import { ReceitaBancoService } from './receita-banco.service';
-import { RecipeSearchService } from './recipe-search.service';
 import { RecipeValidationService } from './recipe-validation.service';
 import { RecipeRagService } from './recipe-rag.service';
 
@@ -35,7 +34,6 @@ export class RecipeGeneratorService {
   constructor(
     private readonly configService: ConfigService,
     private readonly receitaBancoService: ReceitaBancoService,
-    private readonly recipeSearchService: RecipeSearchService,
     private readonly validationService: RecipeValidationService,
     private readonly ragService: RecipeRagService,
   ) {
@@ -211,65 +209,6 @@ Regras:
     return [];
   }
 
-  async importarReceitaPorUrl(url: string, proprietarioId?: string): Promise<{ receita: any; nova: boolean }> {
-    const scraped = await this.recipeSearchService.scraparUrl(url);
-    if (!scraped) throw new Error(`Não foi possível extrair receita de: ${url}`);
-
-    const enriquecida = await this.enriquecerReceita(scraped);
-    if (!enriquecida) throw new Error(`Receita "${scraped.titulo}" rejeitada pela validação automática`);
-    const salva = await this.receitaBancoService.salvarReceitaGerada(enriquecida, proprietarioId);
-    this.logger.log(`Importado "${salva.nome}" de ${url}${proprietarioId ? ` (privado: ${proprietarioId})` : ''}`);
-    return { receita: this.receitaBancoService.entidadeParaFormato(salva), nova: true };
-  }
-
-  async popularReceitasFitness(): Promise<number> {
-    return this.popularModoAlimentar('fitness');
-  }
-
-  async popularModoAlimentar(modo: 'normal' | 'fitness' | 'vegetariano' | 'vegano'): Promise<number> {
-    const LABEL = { normal: '🍽️', fitness: '🏋️', vegetariano: '🥗', vegano: '🌱' }[modo];
-    this.logger.log(`${LABEL} Populando banco: receitas ${modo} do TudoGostoso...`);
-
-    let receitas: Receita[];
-    if (modo === 'normal') {
-      receitas = await this.recipeSearchService.buscarReceitasNormais(100);
-    } else if (modo === 'fitness') {
-      receitas = await this.recipeSearchService.buscarReceitasFitness(50);
-    } else if (modo === 'vegetariano') {
-      receitas = await this.recipeSearchService.buscarReceitasVegetarianas(50);
-    } else {
-      receitas = await this.recipeSearchService.buscarReceitasVeganas(40);
-    }
-
-    if (receitas.length === 0) return 0;
-
-    let salvas = 0;
-    let descartadas = 0;
-    await Promise.allSettled(
-      receitas.map(async (r) => {
-        // Validação determinística obrigatória antes de salvar
-        const det = this.validationService.validarDeterministico({
-          titulo: r.titulo,
-          ingredientes: r.ingredientes,
-          modo_preparo: r.modo_preparo,
-        });
-        if (!det.ok) {
-          this.logger.warn(`🚫 Descartando "${r.titulo}": ${det.motivo}`);
-          descartadas++;
-          return;
-        }
-        if (!r.imagem_url) r.imagem_url = await this.buscarImagemReceita(r.titulo);
-        // Salva sem validação IA — moderação manual pelo admin ou batch posterior
-        r.validation_score = null;
-        r.validation_issues = [];
-        await this.receitaBancoService.salvarReceitaGerada(r);
-        salvas++;
-      }),
-    );
-
-    this.logger.log(`✅ ${salvas} receitas ${modo} salvas, ${descartadas} descartadas`);
-    return salvas;
-  }
 
   async enriquecerReceita(receita: Receita): Promise<Receita | null> {
     const [imagem_url, validacao] = await Promise.all([

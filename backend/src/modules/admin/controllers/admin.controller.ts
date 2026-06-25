@@ -467,40 +467,6 @@ export class AdminController {
     return this.receitaClassificacaoService.reclassificarTodas();
   }
 
-  @Post('receitas/popular-banco')
-  @Throttle({ default: { limit: 2, ttl: 3600000 } })
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Popula banco com receitas do TudoGostoso para todos os modos alimentares' })
-  async popularBanco(@Body('modos') modos?: string[]) {
-    const todosOsModos = ['normal', 'fitness', 'vegetariano', 'vegano'] as const;
-    const modosAlvo = (modos?.length ? modos : todosOsModos) as Array<'normal' | 'fitness' | 'vegetariano' | 'vegano'>;
-
-    const resultado: Record<string, number> = {};
-    for (const modo of modosAlvo) {
-      try {
-        resultado[modo] = await this.recipeGeneratorService.popularModoAlimentar(modo);
-      } catch (err: any) {
-        resultado[modo] = 0;
-      }
-    }
-
-    const total = Object.values(resultado).reduce((a, b) => a + b, 0);
-    return { ok: true, total, porModo: resultado };
-  }
-
-  @Post('receitas/popular-banco/:modo')
-  @Throttle({ default: { limit: 2, ttl: 3600000 } })
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Popula banco com receitas de um modo alimentar específico' })
-  async popularBancoModo(@Param('modo') modo: string) {
-    const modosValidos = ['normal', 'fitness', 'vegetariano', 'vegano'];
-    if (!modosValidos.includes(modo)) {
-      return { ok: false, erro: `Modo inválido. Use: ${modosValidos.join(', ')}` };
-    }
-    const total = await this.recipeGeneratorService.popularModoAlimentar(modo as any);
-    return { ok: true, modo, total };
-  }
-
   @Post('receitas/rag/indexar')
   @ApiOperation({ summary: 'Gera embeddings das receitas sem índice vetorial (RAG)' })
   async indexarReceitas(@Body() body: { limite?: number }) {
