@@ -92,7 +92,9 @@ export class RecipeRagService {
 
   // ── Busca semântica ─────────────────────────────────────────────────────────
 
-  async buscarSimilares(ingredientes: string[], limite = 5, tagsDieta?: string[]): Promise<Receita[]> {
+  // apenasPublicas=false → RAG usa tudo como contexto interno (incluindo scrapeadas se existirem)
+  // apenasPublicas=true  → apenas receitas CookMe para exibir ao usuário
+  async buscarSimilares(ingredientes: string[], limite = 5, tagsDieta?: string[], apenasPublicas = false): Promise<Receita[]> {
     const query = `ingredientes disponíveis: ${ingredientes.join(', ')}`;
     const embedding = await this.gerarEmbedding(query);
     if (!embedding) {
@@ -107,6 +109,10 @@ export class RecipeRagService {
         AND status_moderacao = 'ok'
     `;
     const params: any[] = [`[${embedding.join(',')}]`];
+
+    if (apenasPublicas) {
+      sql += ` AND (url_fonte IS NULL OR autor_id IS NOT NULL)`;
+    }
 
     if (tagsDieta && tagsDieta.length > 0) {
       const dieta = tagsDieta[0];

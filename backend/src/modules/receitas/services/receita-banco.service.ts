@@ -157,11 +157,13 @@ export class ReceitaBancoService {
     if (normalizados.length === 0) return [];
 
     // Busca receitas que têm ingredientes_chave preenchidos e status ok
+    // url_fonte IS NULL = apenas receitas geradas pelo CookMe (não scrapeadas)
     const receitas = await this.receitaRepo
       .createQueryBuilder('r')
       .where('r.ingredientes_chave IS NOT NULL')
       .andWhere("r.status_moderacao = 'ok'")
       .andWhere("array_length(r.ingredientes_chave, 1) >= 2")
+      .andWhere('(r.url_fonte IS NULL OR r.autor_id IS NOT NULL)')
       .orderBy('r.vezes_executada', 'DESC')
       .addOrderBy('r.avaliacao_media', 'DESC')
       .limit(200)
@@ -224,6 +226,7 @@ export class ReceitaBancoService {
       .where('r.ingredientes_chave IS NOT NULL')
       .andWhere("r.status_moderacao = 'ok'")
       .andWhere('r.autor_id IS NULL')
+      .andWhere('r.url_fonte IS NULL')
       .andWhere("array_length(r.ingredientes_chave, 1) >= 2")
       .orderBy('r.vezes_executada', 'DESC')
       .addOrderBy('r.avaliacao_media', 'DESC')
