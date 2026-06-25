@@ -18,6 +18,7 @@ import { ReceitaClassificacaoService } from '../../receitas/services/receita-cla
 import { RecipeCrawlerService } from '../../receitas/services/recipe-crawler.service';
 import { RecipeExecutionService } from '../../receitas/services/recipe-execution.service';
 import { ReceitaBancoService } from '../../receitas/services/receita-banco.service';
+import { RecipeRagService } from '../../receitas/services/recipe-rag.service';
 import { InventarioService } from '../../inventario/inventario.service';
 import { ComprasService } from '../../compras/compras.service';
 import { ProductClassificationService } from '../../product-classification/services/product-classification.service';
@@ -60,6 +61,7 @@ export class AdminController {
     private readonly produtoRepo: Repository<Produto>,
     private readonly notificacaoTriggers: NotificacaoTriggersService,
     private readonly cronLogService: CronLogService,
+    private readonly recipeRagService: RecipeRagService,
   ) {}
 
   @Get('produtos')
@@ -495,6 +497,34 @@ export class AdminController {
     }
     const total = await this.recipeGeneratorService.popularModoAlimentar(modo as any);
     return { ok: true, modo, total };
+  }
+
+  @Post('receitas/rag/indexar')
+  @ApiOperation({ summary: 'Gera embeddings das receitas sem índice vetorial (RAG)' })
+  async indexarReceitas(@Body() body: { limite?: number }) {
+    const indexadas = await this.recipeRagService.indexarReceitas(body.limite ?? 50);
+    const status = await this.recipeRagService.totalIndexadas();
+    return { ok: true, indexadas, ...status };
+  }
+
+  @Get('receitas/rag/status')
+  @ApiOperation({ summary: 'Status do índice vetorial RAG' })
+  async ragStatus() {
+    return this.recipeRagService.totalIndexadas();
+  }
+
+  @Post('receitas/rag/testar')
+  @ApiOperation({ summary: 'Testar busca RAG com ingredientes' })
+  async testarRag(@Body() body: { ingredientes: string[]; modo_alimentar?: string; tipo_refeicao?: string }) {
+    const similares = await this.recipeRagService.buscarSimilares(body.ingredientes, 5);
+    const resultado = await this.recipeRagService.gerarComRAG(body.ingredientes, body.modo_alimentar, body.tipo_refeicao);
+    return {
+      similares_encontrados: similares.map((r: any) => ({
+        nome: r.nome,
+        similaridade: r.similaridade ? `${(r.similaridade * 100).toFixed(1)}%` : null,
+      })),
+      receita_gerada: resultado,
+    };
   }
 
   @Post('receitas/gerar-ia')

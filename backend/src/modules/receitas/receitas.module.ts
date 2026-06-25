@@ -35,6 +35,7 @@ import { RecipeCleanupJob } from './jobs/recipe-cleanup.job';
 import { AprendizadoService } from './services/aprendizado.service';
 import { ReceitaClassificacaoService } from './services/receita-classificacao.service';
 import { SocialRecipeExtractorService } from './services/social-recipe-extractor.service';
+import { RecipeRagService } from './services/recipe-rag.service';
 import { PreferenciaAprendida } from '../usuarios/entities/preferencia-aprendida.entity';
 import { ReceitasController } from './receitas.controller';
 import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
@@ -82,6 +83,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     AprendizadoService,
     ReceitaClassificacaoService,
     RecipeCleanupJob,
+    RecipeRagService,
   ],
   controllers: [
     ReceitasUsuarioController, ModeracaoUsuarioController,
@@ -95,7 +97,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     ReceiptImportService, RecipeSuggestionService, RecipeExecutionService,
     RecipeGeneratorService, ReceitaBancoService, IngredientNormalizerService, CronLogService,
     ProductClassificationModule, ModeracaoService, ReceitaClassificacaoService,
-    RecipeCrawlerService, RecipeSearchService,
+    RecipeCrawlerService, RecipeSearchService, RecipeRagService,
   ],
 })
 export class ReceitasModule {}
