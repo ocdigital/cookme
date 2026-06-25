@@ -106,6 +106,7 @@ export class ComprasController {
         quantidade?: number;
         unidade?: string;
         valor?: number;
+        valor_unitario?: number;
         codigo_barras?: string;
       }>;
       estabelecimento?: {

@@ -38,10 +38,6 @@ export class Compra {
     })
     metodo_cadastro: MetodoCadastro;
 
-    // URL da nota fiscal (se OCR)
-    @Column({ nullable: true })
-    nota_fiscal_url: string;
-
     // Tempo que levou para cadastrar (analytics UX)
     @Column({ type: 'int', nullable: true })
     tempo_cadastro_segundos: number;

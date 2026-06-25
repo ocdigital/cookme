@@ -65,6 +65,10 @@ export class Preferencia {
     })
     refeicoes_planejamento: 'almoco_jantar' | 'almoco' | 'jantar';
 
+    // LGPD: registro de consentimento explícito para dados de saúde (restricoes, tags_dieta)
+    @Column({ type: 'timestamp', nullable: true })
+    consentimento_dados_saude_em: Date | null;
+
     @CreateDateColumn()
     criado_em: Date;
 

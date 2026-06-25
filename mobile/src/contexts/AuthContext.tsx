@@ -7,7 +7,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { maybeCompleteAuthSession } from 'expo-web-browser';
-import api from '../services/api';
+import api, { apiEvents } from '../services/api';
 import { queryClient } from '../lib/queryClient';
 import { User, AuthResponse } from '../types';
 
@@ -69,6 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     bootstrapAsync();
     AppleAuthentication.isAvailableAsync().then(setIsAppleAvailable).catch(() => {});
+
+    const handleSessionExpired = () => {
+      setUser(null);
+      queryClient.clear();
+    };
+    apiEvents.on('session-expired', handleSessionExpired);
+    return () => apiEvents.off('session-expired', handleSessionExpired);
   }, []);
 
   // Handle Google OAuth response

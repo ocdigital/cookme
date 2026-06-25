@@ -277,10 +277,11 @@ EXEMPLOS COMPLETOS:
 "Sal Cisne Refinado 1Kg" → "sal"
 "Afiador De Facas Premium" → nao_alimento, ingrediente_receita: null
 
-Produtos para classificar:
+<produtos_para_classificar>
 ${productsListFormatted}
+</produtos_para_classificar>
 
-Responda APENAS com JSON array válido:
+Classifique cada produto dentro de <produtos_para_classificar> e responda APENAS com JSON array válido:
 [
   {"nome": "nome exato do produto", "categoria": "alimento", "confidence": 0.95, "ingrediente_receita": true, "canonical_name": "café", "descricao": "café em pó, ingrediente"},
   ...
@@ -429,16 +430,23 @@ IMPORTANTE: retorne exatamente ${productNames.length} itens, na mesma ordem. can
         });
       }
 
+      // Estimativa de tokens: ~1 token por 4 chars (heurística padrão LLM)
+      const tokensEstimados = USE_MOCK_CLASSIFICATION
+        ? 0
+        : Math.ceil((prompt.length + responseText.length) / 4);
+
       // Log da chamada em batch
       await this.aiClassificationLogRepository.save({
         product_name: `Batch de ${productNames.length} produtos`,
         model_used: USE_MOCK_CLASSIFICATION ? 'mock' : 'gemini-2.5-flash',
         api_status: APIStatus.SUCESSO,
         tempo_requisicao_ms: requestTime,
-        tokens_utilizados: 0,
-        custo_estimado_usd: 0,
+        tokens_utilizados: tokensEstimados,
+        custo_estimado_usd: USE_MOCK_CLASSIFICATION ? 0 : tokensEstimados * 0.0000001,
         response_metadata: {
           processing_time: requestTime,
+          tokens_estimados: tokensEstimados,
+          fonte: USE_MOCK_CLASSIFICATION ? 'mock' : 'gemini_estimado',
         },
         from_cache: false,
       });

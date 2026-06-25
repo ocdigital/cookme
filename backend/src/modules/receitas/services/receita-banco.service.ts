@@ -157,11 +157,13 @@ export class ReceitaBancoService {
     if (normalizados.length === 0) return [];
 
     // Busca receitas que têm ingredientes_chave preenchidos e status ok
+    // url_fonte IS NULL = apenas receitas geradas pelo CookMe (não scrapeadas)
     const receitas = await this.receitaRepo
       .createQueryBuilder('r')
       .where('r.ingredientes_chave IS NOT NULL')
       .andWhere("r.status_moderacao = 'ok'")
       .andWhere("array_length(r.ingredientes_chave, 1) >= 2")
+      .andWhere('(r.url_fonte IS NULL OR r.autor_id IS NOT NULL)')
       .orderBy('r.vezes_executada', 'DESC')
       .addOrderBy('r.avaliacao_media', 'DESC')
       .limit(200)
@@ -224,6 +226,7 @@ export class ReceitaBancoService {
       .where('r.ingredientes_chave IS NOT NULL')
       .andWhere("r.status_moderacao = 'ok'")
       .andWhere('r.autor_id IS NULL')
+      .andWhere('r.url_fonte IS NULL')
       .andWhere("array_length(r.ingredientes_chave, 1) >= 2")
       .orderBy('r.vezes_executada', 'DESC')
       .addOrderBy('r.avaliacao_media', 'DESC')
@@ -367,8 +370,8 @@ export class ReceitaBancoService {
       origem: (receita as any).url_fonte ? 'internet' : 'ia_gerada',
       url_fonte: (receita as any).url_fonte || null,
       avaliacao_media: (receita as any).avaliacao || 0,
-      // Receitas do usuário (importadas) → ok direto; geradas pela IA → só ok se score ≥ 70, senão arquivar
-      status_moderacao: proprietarioId ? 'ok' : ((receita.validation_score != null && receita.validation_score >= 70) ? 'ok' : 'arquivado'),
+      // Receitas do usuário (importadas) → ok direto; scrapeadas (url_fonte) → ok direto; geradas pela IA sem score → arquivar
+      status_moderacao: (proprietarioId || (receita as any).url_fonte) ? 'ok' : ((receita.validation_score != null && receita.validation_score >= 70) ? 'ok' : 'arquivado'),
       validation_score: receita.validation_score ?? null,
       validation_issues: receita.validation_issues?.join(' | ') ?? null,
       tags_dieta: this.classificacao.classificarTags(ingredientesChave, receita.tags_dieta || [], receita.titulo) || undefined,

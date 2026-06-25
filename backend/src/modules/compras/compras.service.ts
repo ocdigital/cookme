@@ -352,10 +352,23 @@ IMPORTANTE:
     }
   }
 
+  // Remove CPF (11 dígitos) e CNPJ (14 dígitos) de strings — LGPD: PII não deve vazar em logs
+  private removerPIITexto(texto: string): string {
+    return texto
+      .replace(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, '[CPF]')   // CPF formatado
+      .replace(/\b\d{11}\b/g, '[CPF]')                         // CPF sem formatação
+      .replace(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, '[CNPJ]') // CNPJ formatado
+      .replace(/\b\d{14}\b/g, '[CNPJ]');                       // CNPJ sem formatação
+  }
+
   /**
    * Normaliza os dados extraídos do cupom
    */
   private normalizarDadosCupom(dados: any): any {
+    // Remove CPF do comprador que pode aparecer em campos como consumidor/cpf
+    if (dados?.consumidor?.cpf) delete dados.consumidor.cpf;
+    if (dados?.informacoes_fiscais?.cpf_consumidor) delete dados.informacoes_fiscais.cpf_consumidor;
+
     const itensProcessados: any[] = [];
 
     // Processar itens
@@ -397,8 +410,11 @@ IMPORTANTE:
       totais.total = total.toFixed(2);
     }
 
+    const estab = dados?.estabelecimento || {};
+    if (estab.endereco) estab.endereco = this.removerPIITexto(estab.endereco);
+
     const resultado = {
-      estabelecimento: dados?.estabelecimento || {},
+      estabelecimento: estab,
       itens: itensProcessados,
       totais,
       informacoes_fiscais: dados?.informacoes_fiscais || {},
@@ -406,6 +422,21 @@ IMPORTANTE:
     };
 
     return resultado;
+  }
+
+  private normalizarUnidade(raw?: string): UnidadeMedida {
+    if (!raw) return UnidadeMedida.UN;
+    const map: Record<string, UnidadeMedida> = {
+      kg: UnidadeMedida.KG, kilo: UnidadeMedida.KG, quilograma: UnidadeMedida.KG,
+      g: UnidadeMedida.G, gr: UnidadeMedida.G, grama: UnidadeMedida.G,
+      mg: UnidadeMedida.MG,
+      l: UnidadeMedida.L, lt: UnidadeMedida.L, litro: UnidadeMedida.L, ltr: UnidadeMedida.L,
+      ml: UnidadeMedida.ML, mililitro: UnidadeMedida.ML,
+      un: UnidadeMedida.UN, und: UnidadeMedida.UN, unid: UnidadeMedida.UN, pc: UnidadeMedida.UN,
+      pct: UnidadeMedida.PCT, pacote: UnidadeMedida.PCT,
+      cx: UnidadeMedida.CX, caixa: UnidadeMedida.CX,
+    };
+    return map[raw.toLowerCase().trim()] ?? UnidadeMedida.UN;
   }
 
   /**
@@ -419,12 +450,13 @@ IMPORTANTE:
       quantidade?: number;
       unidade?: string;
       valor?: number;
+      valor_unitario?: number;
       codigo_barras?: string;
     }>,
     localCompra?: string,
   ) {
     const itensSalvos: Inventario[] = [];
-    const metaPorProdutoId = new Map<string, { nome: string; valor: number; unidade: string }>();
+    const metaPorProdutoId = new Map<string, { nome: string; valor: number; valor_unitario: number; unidade: UnidadeMedida }>();
 
     for (const item of itens) {
       try {
@@ -530,7 +562,7 @@ IMPORTANTE:
             usuario_id: usuarioId,
             produto_id: produto!.id,
             quantidade_disponivel: quantidade,
-            unidade: (item.unidade as unknown as UnidadeMedida) ?? UnidadeMedida.UN,
+            unidade: this.normalizarUnidade(item.unidade),
             data_validade: dataValidade,
             metodo_atualizacao: MetodoCadastro.OCR_NOTA,
             localizacao: 'Adicionado via OCR',
@@ -541,7 +573,8 @@ IMPORTANTE:
         metaPorProdutoId.set(salvo.produto_id, {
           nome: produto?.nome_display || produto?.nome || item.nome,
           valor: item.valor ?? 0,
-          unidade: item.unidade ?? 'UN',
+          valor_unitario: item.valor_unitario ?? (item.valor && quantidade ? item.valor / quantidade : 0),
+          unidade: this.normalizarUnidade(item.unidade),
         });
       } catch (error) {
         console.error(`Erro ao salvar item "${item.nome}":`, error);
@@ -568,8 +601,9 @@ IMPORTANTE:
               nome_ocr: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
               nome_display: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
               quantidade: inv.quantidade_disponivel,
+              preco_unitario: metaPorProdutoId.get(inv.produto_id)?.valor_unitario ?? 0,
               preco_total: metaPorProdutoId.get(inv.produto_id)?.valor ?? 0,
-              unidade: (metaPorProdutoId.get(inv.produto_id)?.unidade ?? 'UN') as unknown as UnidadeMedida,
+              unidade: metaPorProdutoId.get(inv.produto_id)?.unidade ?? UnidadeMedida.UN,
               adicionado_inventario: true,
             } as any),
           );

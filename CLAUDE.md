@@ -76,8 +76,11 @@ PATCH  /usuarios/preferencias
 GET    /receitas/disponiveis          # lista com modo_alimentar aplicado
 POST   /receitas/gerar                # gera via IA (Claude/Gemini)
 POST   /receitas/popular-banco        # popula banco com TudoGostoso (admin, legado)
-POST   /admin/receitas/popular-banco        # popula todos os modos (body: {modos?: string[]})
-POST   /admin/receitas/popular-banco/:modo  # popula um modo: normal|fitness|vegetariano|vegano
+POST   /admin/receitas/rag/indexar           # indexa embeddings (RAG)
+GET    /admin/receitas/rag/status            # status índice vetorial
+POST   /admin/receitas/rag/testar           # testa busca semântica
+POST   /admin/receitas/ingredientes/limpar  # limpa ingredientes_chave sujos
+GET    /admin/receitas/ingredientes/status  # receitas com fragmentos
 
 GET    /planejamento?semana=N
 POST   /planejamento/gerar-aleatoria  # gera semana completa respeitando modo_alimentar
@@ -94,14 +97,39 @@ GET    /compras                       # histórico OCR
 POST   /compras/upload-nota           # upload nota fiscal
 ```
 
-### Scraping TudoGostoso
-- `TudoGostosoScraperService` — scrapa receitas individuais
-- `RecipeSearchService` — agrega por keyword ou categoria
-  - `buscarReceitasFitness(n)` — URL `/categorias/1340-fitness`
-  - `buscarReceitasVegetarianas(n)` — keyword `"receita vegetariana"`
-  - `buscarReceitasVeganas(n)` — keyword `"receita vegana"`
-- `RecipeGeneratorService.popularModoAlimentar(modo)` — popula banco (30 fitness, 30 veg, 20 vegano)
-- Imagens: Puppeteer/Freepik → fallback Google → fallback Unsplash
+### Geração de Receitas — Fluxo Atual (sem scraping autônomo)
+O banco público contém APENAS receitas geradas pelo CookMe (origem `ia_gerada`). Zero scraping autônomo.
+
+```
+POST /receitas/gerar {ingredientes}
+  1. Banco local (buscarPorIngredientes, matching ponderado, url_fonte IS NULL)
+     ≥ 5 receitas → retorna direto
+  2. RAG (RecipeRagService) — busca semântica pgvector + Gemini embedding
+     Haiku adapta receita similar para os ingredientes do usuário
+  3. Haiku gera receitas originais do zero (conhecimento próprio)
+  Combina banco + RAG + Haiku → até 5 resultados
+  Receitas novas salvas no banco (cache compartilhado)
+```
+
+- `RecipeRagService` — embeddings Gemini `gemini-embedding-001` (768 dims, HNSW index)
+- `IngredientCleanerService` — limpeza batch de ingredientes_chave sujos
+- Imagens: Unsplash API + 3 placeholders fallback
+- **Scraping proibido no fluxo principal** — apenas importação explícita do usuário (risco autoral)
+
+### Importação pelo usuário (scraping intencional)
+- `SocialRecipeExtractorService` — TikTok/YouTube/Reddit/Pinterest/URL genérica
+- Badge "fonte" na receita, visível só para o usuário que importou
+- `RecipeSearchService.scraparUrl()` — usado só na importação por URL do usuário
+
+### Admin RAG
+```
+POST /admin/receitas/rag/indexar  {limite: 200}  # gera embeddings
+GET  /admin/receitas/rag/status                   # indexadas/total
+POST /admin/receitas/rag/testar   {ingredientes}  # testa busca semântica
+
+POST /admin/receitas/ingredientes/limpar  {limite, usar_ia}  # limpa fragmentos
+GET  /admin/receitas/ingredientes/status                     # receitas com fragmentos
+```
 
 ### ⚠️ Gotchas TypeORM / PostgreSQL
 - `simple-array` armazena como CSV — **não filtrar com LIKE no SQL**, filtrar em JS depois do `find()`
@@ -208,9 +236,33 @@ npx ts-node -r tsconfig-paths/register src/database/seeds/seed-usuarios-teste.ts
 - **Remover antes do deploy**: `POST /notificacoes/test/trigger`
 
 ### Geração de Receitas IA
-- Cadeia: Claude API → Gemini → mock recipes
+- Cadeia: banco → RAG (Gemini embedding + Haiku adapta) → Haiku geração pura
 - Endpoint: `POST /receitas/gerar` com `ingredientes[]` no body
-- `RecipeGeneratorService` no backend
+- `RecipeGeneratorService` → `RecipeRagService` → Haiku
+
+---
+
+## LGPD — Conformidade
+
+### O que coletamos e base legal
+| Dado | Base legal | Retenção |
+|------|-----------|---------|
+| E-mail, nome, telefone | Contrato (Art. 7, V) | Até exclusão da conta |
+| Modo alimentar, restrições | Consentimento explícito (Art. 11) | Até exclusão da conta |
+| Itens do cupom fiscal | Contrato | Até exclusão da conta |
+| IP, user_agent (audit_log) | Legítimo interesse (segurança) | **90 dias** (purge automático) |
+| Foto da nota fiscal | **NÃO coletamos** — fica só no device | — |
+
+### Direitos implementados
+- **Exclusão** `DELETE /usuarios/me` — cascata 12 tabelas + anonimiza audit_logs
+- **Consentimento dados de saúde** — step no onboarding, timestamp em `preferencias.consentimento_dados_saude_em`
+- **Purge automático** — `AuditLogService` @Cron 3am deleta logs >90 dias
+- **Transparência** — onboarding lista o que é coletado e por quê
+
+### ⚠️ Nunca adicionar
+- Armazenamento de imagem da nota fiscal no servidor
+- Scraping autônomo de receitas (risco de violação Lei 9.610/98)
+- Dados de localização GPS sem consentimento específico
 
 ---
 

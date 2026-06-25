@@ -4,8 +4,11 @@ import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import Groq from 'groq-sdk';
 import { ReceitaBancoService } from './receita-banco.service';
-import { RecipeSearchService } from './recipe-search.service';
 import { RecipeValidationService } from './recipe-validation.service';
+import { RecipeRagService } from './recipe-rag.service';
+import { ReceitaArrayLLMSchema } from '../schemas/receita-llm.schema';
+import { retryWithBackoff, isTransientError } from '@common/utils/retry.util';
+import { getRequestId } from '@common/request-context';
 
 export interface Receita {
   titulo: string;
@@ -34,8 +37,8 @@ export class RecipeGeneratorService {
   constructor(
     private readonly configService: ConfigService,
     private readonly receitaBancoService: ReceitaBancoService,
-    private readonly recipeSearchService: RecipeSearchService,
     private readonly validationService: RecipeValidationService,
+    private readonly ragService: RecipeRagService,
   ) {
     const anthropicKey = this.configService.get<string>('CLAUDE_API_KEY') ||
                          this.configService.get<string>('ANTHROPIC_API_KEY');
@@ -65,14 +68,39 @@ export class RecipeGeneratorService {
       this.logger.log(`🔄 forcarIA=true — pulando banco, buscando novas na web`);
     }
 
-    this.logger.log(`⚡ Banco retornou ${receitasDoBanco.length} receita(s) — gerando com Haiku...`);
+    this.logger.log(`⚡ Banco retornou ${receitasDoBanco.length} receita(s) — tentando RAG...`);
 
-    // 2. Geração via Claude Haiku com os ingredientes do usuário
-    const quantidadeGerar = forcarIA ? 5 : Math.max(2, 5 - receitasDoBanco.length);
+    // 2. RAG: busca semântica + adaptação com LLM (melhor qualidade que geração pura)
+    let receitaRAG: Receita | null = null;
+    try {
+      const ragResult = await this.ragService.gerarComRAG(ingredientes);
+      if (ragResult?.receita) {
+        receitaRAG = {
+          titulo: ragResult.receita.nome,
+          descricao: ragResult.receita.descricao || '',
+          ingredientes: ragResult.receita.ingredientes || [],
+          modo_preparo: ragResult.receita.modo_preparo || '',
+          tempo_preparo: ragResult.receita.tempo_preparo || '30 minutos',
+          dificuldade: ragResult.receita.dificuldade || 'médio',
+          rendimento: ragResult.receita.rendimento || '4 porções',
+          tags_dieta: [],
+          is_nova: true,
+        };
+        this.logger.log(`RAG gerou: "${receitaRAG.titulo}" (${ragResult.fonte})`);
+      }
+    } catch (err: any) {
+      this.logger.warn('RAG indisponível:', err?.message);
+    }
+
+    // 3. Geração via Claude Haiku com os ingredientes do usuário
+    const jaTemRAG = receitaRAG ? 1 : 0;
+    const quantidadeGerar = forcarIA ? 5 : Math.max(1, 5 - receitasDoBanco.length - jaTemRAG);
     let receitasIA = await this.gerarComHaiku(ingredientes, quantidadeGerar);
 
+    if (receitaRAG) receitasIA = [receitaRAG, ...receitasIA];
+
     if (receitasIA.length === 0) {
-      this.logger.warn('⚠️ Haiku não gerou receitas — retornando banco');
+      this.logger.warn('⚠️ Nenhuma receita gerada — retornando banco');
       return receitasDoBanco.map((r) => this.receitaBancoService.entidadeParaFormato(r));
     }
 
@@ -96,15 +124,27 @@ export class RecipeGeneratorService {
     const resultado = [...receitasBancoFormatadas, ...receitasIA].slice(0, 5);
 
     this.logger.log(
-      `✨ Total: ${resultado.length} receita(s) (${receitasDoBanco.length} banco + ${receitasIA.length} IA)`,
+      `[${getRequestId()}] ✨ Total: ${resultado.length} receita(s) (${receitasDoBanco.length} banco + ${receitasIA.length} IA)`,
     );
     return resultado;
   }
 
-  private buildPromptReceitas(ingredientes: string[], quantidade: number): string {
-    return `Você é um chef brasileiro. Crie ${quantidade} receitas usando principalmente estes ingredientes: ${ingredientes.slice(0, 12).join(', ')}.
+  private buildPromptReceitas(ingredientes: string[], quantidade: number): { system: string; user: string } {
+    const system = `Você é um chef brasileiro especializado em receitas do dia a dia. Sua única função é retornar receitas em formato JSON. Nunca adicione explicações, comentários ou markdown — apenas o JSON puro.`;
 
-Retorne APENAS um array JSON válido (sem markdown):
+    const user = `Crie ${quantidade} receitas brasileiras usando principalmente os ingredientes disponíveis abaixo.
+
+<ingredientes_disponiveis>
+${ingredientes.slice(0, 12).join(', ')}
+</ingredientes_disponiveis>
+
+Regras:
+- Use ingredientes da lista como base — pode adicionar temperos básicos (sal, azeite, alho, cebola)
+- modo_preparo: passos numerados, completo e executável
+- tags_dieta: array com "vegetariano", "vegano" ou "fitness" se aplicável, senão []
+- Receitas simples e saborosas do cotidiano brasileiro
+
+Retorne APENAS um array JSON válido com exatamente ${quantidade} receitas:
 [
   {
     "titulo": "Nome da Receita",
@@ -116,45 +156,44 @@ Retorne APENAS um array JSON válido (sem markdown):
     "rendimento": "4 porções",
     "tags_dieta": []
   }
-]
+]`;
 
-Regras:
-- Use ingredientes da lista como base — pode adicionar temperos básicos (sal, azeite, alho, cebola)
-- modo_preparo: passos numerados, completo e executável
-- tags_dieta: array com "vegetariano", "vegano" ou "fitness" se aplicável, senão []
-- Receitas brasileiras do dia a dia, simples e saborosas`;
+    return { system, user };
   }
 
   private parseReceitasJson(raw: string, quantidade: number): Receita[] {
     const clean = raw.trim().replace(/```json\n?|\n?```/g, '').trim();
     const parsed = JSON.parse(clean);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.slice(0, quantidade).map((r: any) => ({
-      titulo: r.titulo ?? 'Receita',
-      descricao: r.descricao ?? '',
-      ingredientes: Array.isArray(r.ingredientes) ? r.ingredientes : [],
-      modo_preparo: r.modo_preparo ?? '',
-      tempo_preparo: r.tempo_preparo ?? '30 minutos',
-      dificuldade: r.dificuldade ?? 'médio',
-      rendimento: r.rendimento ?? '4 porções',
-      tags_dieta: Array.isArray(r.tags_dieta) ? r.tags_dieta : [],
-    }));
+    const array = Array.isArray(parsed) ? parsed : (parsed?.receitas ?? []);
+    const result = ReceitaArrayLLMSchema.safeParse(array.slice(0, quantidade));
+    if (!result.success) {
+      this.logger.warn(`Zod: schema inválido no retorno do LLM — ${result.error.issues.map((i) => i.message).join('; ')}`);
+      return [];
+    }
+    return result.data as Receita[];
   }
 
   private async gerarComHaiku(ingredientes: string[], quantidade: number): Promise<Receita[]> {
-    const prompt = this.buildPromptReceitas(ingredientes, quantidade);
+    const { system, user } = this.buildPromptReceitas(ingredientes, quantidade);
 
-    // Tenta Haiku primeiro
+    // Tenta Haiku primeiro, com retry em erros transitórios (429, 503, timeout)
     if (this.anthropic) {
       try {
-        const msg = await this.anthropic.messages.create({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2000,
-          messages: [{ role: 'user', content: prompt }],
-        });
+        const msg = await retryWithBackoff(
+          () => this.anthropic!.messages.create({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 2000,
+            system,
+            messages: [{ role: 'user', content: user }],
+          }),
+          { maxAttempts: 3, initialDelayMs: 500, shouldRetry: isTransientError },
+        );
+        this.logger.log(
+          `[${getRequestId()}] Haiku tokens — input: ${msg.usage.input_tokens}, output: ${msg.usage.output_tokens}`,
+        );
         return this.parseReceitasJson((msg.content[0] as any).text, quantidade);
       } catch (err: any) {
-        this.logger.warn(`Haiku falhou (${err.status ?? err.message}) — tentando Groq...`);
+        this.logger.warn(`Haiku falhou após retries (${err.status ?? err.message}) — tentando Groq...`);
       }
     }
 
@@ -167,8 +206,8 @@ Regras:
           max_tokens: 2000,
           response_format: { type: 'json_object' },
           messages: [
-            { role: 'system', content: 'Você é um chef brasileiro. Responda APENAS com JSON válido.' },
-            { role: 'user', content: prompt + '\n\nIMPORTANTE: responda com objeto JSON {"receitas": [...]}' },
+            { role: 'system', content: system },
+            { role: 'user', content: user + '\n\nIMPORTANTE: responda com objeto JSON {"receitas": [...]}' },
           ],
         });
         const raw = resp.choices[0]?.message?.content ?? '{}';
@@ -184,65 +223,6 @@ Regras:
     return [];
   }
 
-  async importarReceitaPorUrl(url: string, proprietarioId?: string): Promise<{ receita: any; nova: boolean }> {
-    const scraped = await this.recipeSearchService.scraparUrl(url);
-    if (!scraped) throw new Error(`Não foi possível extrair receita de: ${url}`);
-
-    const enriquecida = await this.enriquecerReceita(scraped);
-    if (!enriquecida) throw new Error(`Receita "${scraped.titulo}" rejeitada pela validação automática`);
-    const salva = await this.receitaBancoService.salvarReceitaGerada(enriquecida, proprietarioId);
-    this.logger.log(`Importado "${salva.nome}" de ${url}${proprietarioId ? ` (privado: ${proprietarioId})` : ''}`);
-    return { receita: this.receitaBancoService.entidadeParaFormato(salva), nova: true };
-  }
-
-  async popularReceitasFitness(): Promise<number> {
-    return this.popularModoAlimentar('fitness');
-  }
-
-  async popularModoAlimentar(modo: 'normal' | 'fitness' | 'vegetariano' | 'vegano'): Promise<number> {
-    const LABEL = { normal: '🍽️', fitness: '🏋️', vegetariano: '🥗', vegano: '🌱' }[modo];
-    this.logger.log(`${LABEL} Populando banco: receitas ${modo} do TudoGostoso...`);
-
-    let receitas: Receita[];
-    if (modo === 'normal') {
-      receitas = await this.recipeSearchService.buscarReceitasNormais(100);
-    } else if (modo === 'fitness') {
-      receitas = await this.recipeSearchService.buscarReceitasFitness(50);
-    } else if (modo === 'vegetariano') {
-      receitas = await this.recipeSearchService.buscarReceitasVegetarianas(50);
-    } else {
-      receitas = await this.recipeSearchService.buscarReceitasVeganas(40);
-    }
-
-    if (receitas.length === 0) return 0;
-
-    let salvas = 0;
-    let descartadas = 0;
-    await Promise.allSettled(
-      receitas.map(async (r) => {
-        // Validação determinística obrigatória antes de salvar
-        const det = this.validationService.validarDeterministico({
-          titulo: r.titulo,
-          ingredientes: r.ingredientes,
-          modo_preparo: r.modo_preparo,
-        });
-        if (!det.ok) {
-          this.logger.warn(`🚫 Descartando "${r.titulo}": ${det.motivo}`);
-          descartadas++;
-          return;
-        }
-        if (!r.imagem_url) r.imagem_url = await this.buscarImagemReceita(r.titulo);
-        // Salva sem validação IA — moderação manual pelo admin ou batch posterior
-        r.validation_score = null;
-        r.validation_issues = [];
-        await this.receitaBancoService.salvarReceitaGerada(r);
-        salvas++;
-      }),
-    );
-
-    this.logger.log(`✅ ${salvas} receitas ${modo} salvas, ${descartadas} descartadas`);
-    return salvas;
-  }
 
   async enriquecerReceita(receita: Receita): Promise<Receita | null> {
     const [imagem_url, validacao] = await Promise.all([

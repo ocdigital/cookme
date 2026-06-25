@@ -4,13 +4,20 @@ import * as Sentry from '@sentry/react-native';
 
 // Mini event emitter sem dependência Node
 type PaywallPayload = { feature?: string; descricao?: string };
-const listeners: Array<(p: PaywallPayload) => void> = [];
+type EventMap = { paywall: PaywallPayload; 'session-expired': void };
+const listenerMap: { [K in keyof EventMap]?: Array<(p: any) => void> } = {};
 export const apiEvents = {
-  on: (_: 'paywall', fn: (p: PaywallPayload) => void) => { listeners.push(fn); },
-  off: (_: 'paywall', fn: (p: PaywallPayload) => void) => {
-    const i = listeners.indexOf(fn); if (i !== -1) listeners.splice(i, 1);
+  on: <K extends keyof EventMap>(event: K, fn: (p: EventMap[K]) => void) => {
+    if (!listenerMap[event]) listenerMap[event] = [];
+    listenerMap[event]!.push(fn);
   },
-  emit: (_: 'paywall', p: PaywallPayload) => { listeners.forEach(fn => fn(p)); },
+  off: <K extends keyof EventMap>(event: K, fn: (p: EventMap[K]) => void) => {
+    const arr = listenerMap[event]; if (!arr) return;
+    const i = arr.indexOf(fn); if (i !== -1) arr.splice(i, 1);
+  },
+  emit: <K extends keyof EventMap>(event: K, p?: EventMap[K]) => {
+    listenerMap[event]?.forEach(fn => fn(p));
+  },
 };
 
 // Use fixed IP for celular real na mesma rede WiFi
@@ -112,8 +119,7 @@ api.interceptors.response.use(
         console.error('Token refresh failed:', refreshError);
         await SecureStore.deleteItemAsync('accessToken');
         await SecureStore.deleteItemAsync('refreshToken');
-
-        // Return rejection to trigger login screen
+        apiEvents.emit('session-expired');
         return Promise.reject(new Error('Session expired. Please login again.'));
       }
     }

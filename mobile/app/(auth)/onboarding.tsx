@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Linking, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -18,12 +18,12 @@ const MODOS: { value: ModoAlimentar; label: string; desc: string; icon: string }
   { value: 'vegano',      label: 'Vegano',      desc: 'Sem produtos de origem animal',icon: 'sprout' },
 ];
 
-const STEPS = ['modo', 'scan', 'pronto'] as const;
+const STEPS = ['consentimento', 'modo', 'scan', 'pronto'] as const;
 type Step = typeof STEPS[number];
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>('modo');
+  const [step, setStep] = useState<Step>('consentimento');
   const [modo, setModo] = useState<ModoAlimentar>('normal');
   const [saving, setSaving] = useState(false);
 
@@ -68,6 +68,64 @@ export default function OnboardingScreen() {
       <TouchableOpacity style={styles.skipBtn} onPress={pularParaApp}>
         <Text style={styles.skipText}>Pular</Text>
       </TouchableOpacity>
+
+      {/* ─── Step 0: Consentimento LGPD ─── */}
+      {step === 'consentimento' && (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <MaterialCommunityIcons name="shield-check-outline" size={52} color={C.green[500]} style={styles.stepIcon} />
+          <Text style={styles.stepTitle}>Seus dados, seu controle</Text>
+          <Text style={styles.stepSubtitle}>
+            Para personalizar suas receitas, o CookMe coleta algumas informações. Veja o que usamos e por quê.
+          </Text>
+
+          <View style={styles.consentList}>
+            {[
+              { icon: 'email-outline',      title: 'E-mail e nome',         desc: 'Para criar sua conta e identificá-lo.' },
+              { icon: 'food-apple-outline', title: 'Modo alimentar e restrições', desc: 'Dado de saúde — usado exclusivamente para filtrar receitas adequadas a você.' },
+              { icon: 'cart-outline',       title: 'Itens do cupom fiscal', desc: 'Para montar sua despensa. A foto fica só no seu celular — nunca enviamos a imagem.' },
+              { icon: 'history',            title: 'Histórico de receitas', desc: 'Para melhorar sugestões futuras.' },
+            ].map((item) => (
+              <View key={item.title} style={styles.consentItem}>
+                <View style={styles.consentIcon}>
+                  <MaterialCommunityIcons name={item.icon as any} size={20} color={C.green[600]} />
+                </View>
+                <View style={styles.consentText}>
+                  <Text style={styles.consentTitle}>{item.title}</Text>
+                  <Text style={styles.consentDesc}>{item.desc}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.lgpdNote}>
+            Você pode excluir sua conta e todos os dados a qualquer momento em Configurações → Excluir conta.{' '}
+            <Text style={styles.lgpdLink} onPress={() => router.push('/(app)/privacidade' as any)}>
+              Ver Política de Privacidade
+            </Text>
+          </Text>
+
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={async () => {
+              // Registra consentimento explícito para dados de saúde (LGPD Art. 11)
+              await api.patch('/usuarios/preferencias', {
+                consentimento_dados_saude_em: new Date().toISOString(),
+              }).catch(() => {}); // não bloqueia fluxo se falhar
+              setStep('modo');
+            }}
+          >
+            <MaterialCommunityIcons name="check-circle-outline" size={18} color={C.ink[0]} />
+            <Text style={styles.primaryBtnText}>Entendi e aceito</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() => Linking.openURL('mailto:privacidade@cookme.com.br')}
+          >
+            <Text style={styles.secondaryBtnText}>Falar sobre privacidade</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
 
       {/* ─── Step 1: Modo alimentar ─── */}
       {step === 'modo' && (
@@ -277,6 +335,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   benefitText: { ...T.body, color: C.ink[700], flex: 1 },
+
+  // Consentimento
+  consentList: { width: '100%', gap: 14, marginVertical: 8 },
+  consentItem: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  consentIcon: {
+    width: 36, height: 36, borderRadius: radius.sm,
+    backgroundColor: C.green[50],
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 2, flexShrink: 0,
+  },
+  consentText: { flex: 1, gap: 2 },
+  consentTitle: { ...T.body, color: C.ink[800], fontWeight: '600' },
+  consentDesc: { ...T.small, color: C.ink[500], lineHeight: 18 },
+  lgpdNote: { ...T.small, color: C.ink[400], textAlign: 'center', lineHeight: 18, marginTop: 4 },
+  lgpdLink: { color: C.green[600], fontWeight: '600', textDecorationLine: 'underline' },
 
   // Buttons
   primaryBtn: {

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, LessThan } from 'typeorm';
 import { AuditLog } from './entities/audit-log.entity';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
 
@@ -114,5 +115,16 @@ export class AuditLogService {
     ]);
 
     return { total, todayMutations, errors };
+  }
+
+  // LGPD: audit_logs contêm IP e user_agent — retenção máxima 90 dias
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async purgarLogsAntigos(): Promise<void> {
+    const corte = new Date();
+    corte.setDate(corte.getDate() - 90);
+    const resultado = await this.repo.delete({ created_at: LessThan(corte) });
+    if ((resultado.affected ?? 0) > 0) {
+      console.log(`[AuditLog] Purge LGPD: ${resultado.affected} logs >90 dias removidos`);
+    }
   }
 }

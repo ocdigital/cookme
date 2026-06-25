@@ -18,6 +18,8 @@ import { ReceitaClassificacaoService } from '../../receitas/services/receita-cla
 import { RecipeCrawlerService } from '../../receitas/services/recipe-crawler.service';
 import { RecipeExecutionService } from '../../receitas/services/recipe-execution.service';
 import { ReceitaBancoService } from '../../receitas/services/receita-banco.service';
+import { RecipeRagService } from '../../receitas/services/recipe-rag.service';
+import { IngredientCleanerService } from '../../receitas/services/ingredient-cleaner.service';
 import { InventarioService } from '../../inventario/inventario.service';
 import { ComprasService } from '../../compras/compras.service';
 import { ProductClassificationService } from '../../product-classification/services/product-classification.service';
@@ -60,6 +62,8 @@ export class AdminController {
     private readonly produtoRepo: Repository<Produto>,
     private readonly notificacaoTriggers: NotificacaoTriggersService,
     private readonly cronLogService: CronLogService,
+    private readonly recipeRagService: RecipeRagService,
+    private readonly ingredientCleanerService: IngredientCleanerService,
   ) {}
 
   @Get('produtos')
@@ -463,38 +467,44 @@ export class AdminController {
     return this.receitaClassificacaoService.reclassificarTodas();
   }
 
-  @Post('receitas/popular-banco')
-  @Throttle({ default: { limit: 2, ttl: 3600000 } })
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Popula banco com receitas do TudoGostoso para todos os modos alimentares' })
-  async popularBanco(@Body('modos') modos?: string[]) {
-    const todosOsModos = ['normal', 'fitness', 'vegetariano', 'vegano'] as const;
-    const modosAlvo = (modos?.length ? modos : todosOsModos) as Array<'normal' | 'fitness' | 'vegetariano' | 'vegano'>;
-
-    const resultado: Record<string, number> = {};
-    for (const modo of modosAlvo) {
-      try {
-        resultado[modo] = await this.recipeGeneratorService.popularModoAlimentar(modo);
-      } catch (err: any) {
-        resultado[modo] = 0;
-      }
-    }
-
-    const total = Object.values(resultado).reduce((a, b) => a + b, 0);
-    return { ok: true, total, porModo: resultado };
+  @Post('receitas/rag/indexar')
+  @ApiOperation({ summary: 'Gera embeddings das receitas sem índice vetorial (RAG)' })
+  async indexarReceitas(@Body() body: { limite?: number }) {
+    const indexadas = await this.recipeRagService.indexarReceitas(body.limite ?? 50);
+    const status = await this.recipeRagService.totalIndexadas();
+    return { ok: true, indexadas, ...status };
   }
 
-  @Post('receitas/popular-banco/:modo')
-  @Throttle({ default: { limit: 2, ttl: 3600000 } })
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Popula banco com receitas de um modo alimentar específico' })
-  async popularBancoModo(@Param('modo') modo: string) {
-    const modosValidos = ['normal', 'fitness', 'vegetariano', 'vegano'];
-    if (!modosValidos.includes(modo)) {
-      return { ok: false, erro: `Modo inválido. Use: ${modosValidos.join(', ')}` };
-    }
-    const total = await this.recipeGeneratorService.popularModoAlimentar(modo as any);
-    return { ok: true, modo, total };
+  @Get('receitas/rag/status')
+  @ApiOperation({ summary: 'Status do índice vetorial RAG' })
+  async ragStatus() {
+    return this.recipeRagService.totalIndexadas();
+  }
+
+  @Post('receitas/rag/testar')
+  @ApiOperation({ summary: 'Testar busca RAG com ingredientes' })
+  async testarRag(@Body() body: { ingredientes: string[]; modo_alimentar?: string; tipo_refeicao?: string }) {
+    const similares = await this.recipeRagService.buscarSimilares(body.ingredientes, 5);
+    const resultado = await this.recipeRagService.gerarComRAG(body.ingredientes, body.modo_alimentar, body.tipo_refeicao);
+    return {
+      similares_encontrados: similares.map((r: any) => ({
+        nome: r.nome,
+        similaridade: r.similaridade ? `${(r.similaridade * 100).toFixed(1)}%` : null,
+      })),
+      receita_gerada: resultado,
+    };
+  }
+
+  @Get('receitas/ingredientes/status')
+  @ApiOperation({ summary: 'Status da qualidade dos ingredientes_chave no banco' })
+  async statusIngredientes() {
+    return this.ingredientCleanerService.statusLimpeza();
+  }
+
+  @Post('receitas/ingredientes/limpar')
+  @ApiOperation({ summary: 'Limpa ingredientes_chave sujos (fragmentos, "X e Y", instruções)' })
+  async limparIngredientes(@Body() body: { limite?: number; usar_ia?: boolean }) {
+    return this.ingredientCleanerService.limparBanco(body.limite ?? 30, body.usar_ia ?? true);
   }
 
   @Post('receitas/gerar-ia')

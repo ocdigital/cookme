@@ -8,6 +8,7 @@ import { Usuario } from '@modules/usuarios/entities/usuario.entity';
 import { RecipeGeneratorService } from '../services/recipe-generator.service';
 import { InventarioService } from '@modules/inventario/inventario.service';
 import { PushNotificationService } from '@modules/notificacoes/services/push-notification.service';
+import { runWithRequestId } from '@common/request-context';
 
 @ApiTags('Receitas')
 @Controller('receitas/gerar')
@@ -36,9 +37,9 @@ export class RecipeGeneratorController {
       : disponiveis;
 
     const forcarIA = body.forcar_ia === true;
-    const receitas = await this.recipeGeneratorService.gerarReceitas(
-      ingredientes.length > 0 ? ingredientes : disponiveis,
-      forcarIA,
+    const ingredientesFinais = ingredientes.length > 0 ? ingredientes : disponiveis;
+    const receitas = await runWithRequestId(() =>
+      this.recipeGeneratorService.gerarReceitas(ingredientesFinais, forcarIA),
     );
 
     if (receitas.length > 0) {
