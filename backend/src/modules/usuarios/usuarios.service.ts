@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Usuario } from './entities/usuario.entity';
 import { Preferencia } from './entities/preferencia.entity';
@@ -20,6 +20,7 @@ export class UsuariosService {
     private readonly usuarioRepository: Repository<Usuario>,
     @InjectRepository(Preferencia)
     private readonly preferenciaRepository: Repository<Preferencia>,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
@@ -79,17 +80,19 @@ export class UsuariosService {
     return this.usuarioRepository.save(usuario);
   }
 
-  /**
-   * Remove usuário (soft delete poderia ser implementado)
-   */
+  // LGPD Art. 18 — direito ao esquecimento
+  // Cascata via FK: compras, inventario, listas, preferencias, receitas_executadas, etc.
+  // audit_logs sem FK: anonimiza (mantém estatísticas, remove dados pessoais)
   async remove(id: string): Promise<void> {
     const usuario = await this.findById(id);
+    // Anonimiza audit_logs antes de deletar (sem FK, sem cascata automática)
+    await this.dataSource.query(
+      `UPDATE audit_logs SET user_id = NULL, user_email = '[removido]', ip_address = NULL, user_agent = NULL, request_body = NULL WHERE user_id = $1`,
+      [id],
+    );
     await this.usuarioRepository.remove(usuario);
   }
 
-  /**
-   * Alias para remove() - mantém consistência com nomenclatura de delete
-   */
   async delete(id: string): Promise<void> {
     return this.remove(id);
   }
