@@ -34,6 +34,8 @@ import { ReceitaClassificacaoService } from './services/receita-classificacao.se
 import { SocialRecipeExtractorService } from './services/social-recipe-extractor.service';
 import { RecipeRagService } from './services/recipe-rag.service';
 import { IngredientCleanerService } from './services/ingredient-cleaner.service';
+import { TudoGostosoScraperService } from './services/tudogostoso-scraper.service';
+import { ReceiteriaCrawlerService } from './services/receiteria-scraper.service';
 import { PreferenciaAprendida } from '../usuarios/entities/preferencia-aprendida.entity';
 import { ReceitasController } from './receitas.controller';
 import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
@@ -73,6 +75,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     ReceiptOcrService, ProductClassifierService, ReceiptImportService,
     RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService,
     IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, SocialRecipeExtractorService,
+    TudoGostosoScraperService, ReceiteriaCrawlerService,
     RecipeValidationService,
     InventarioService, PushNotificationService,
     ModeracaoService,
