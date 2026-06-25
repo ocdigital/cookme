@@ -6,6 +6,7 @@ import Groq from 'groq-sdk';
 import { ReceitaBancoService } from './receita-banco.service';
 import { RecipeSearchService } from './recipe-search.service';
 import { RecipeValidationService } from './recipe-validation.service';
+import { RecipeRagService } from './recipe-rag.service';
 
 export interface Receita {
   titulo: string;
@@ -36,6 +37,7 @@ export class RecipeGeneratorService {
     private readonly receitaBancoService: ReceitaBancoService,
     private readonly recipeSearchService: RecipeSearchService,
     private readonly validationService: RecipeValidationService,
+    private readonly ragService: RecipeRagService,
   ) {
     const anthropicKey = this.configService.get<string>('CLAUDE_API_KEY') ||
                          this.configService.get<string>('ANTHROPIC_API_KEY');
@@ -65,14 +67,39 @@ export class RecipeGeneratorService {
       this.logger.log(`🔄 forcarIA=true — pulando banco, buscando novas na web`);
     }
 
-    this.logger.log(`⚡ Banco retornou ${receitasDoBanco.length} receita(s) — gerando com Haiku...`);
+    this.logger.log(`⚡ Banco retornou ${receitasDoBanco.length} receita(s) — tentando RAG...`);
 
-    // 2. Geração via Claude Haiku com os ingredientes do usuário
-    const quantidadeGerar = forcarIA ? 5 : Math.max(2, 5 - receitasDoBanco.length);
+    // 2. RAG: busca semântica + adaptação com LLM (melhor qualidade que geração pura)
+    let receitaRAG: Receita | null = null;
+    try {
+      const ragResult = await this.ragService.gerarComRAG(ingredientes);
+      if (ragResult?.receita) {
+        receitaRAG = {
+          titulo: ragResult.receita.nome,
+          descricao: ragResult.receita.descricao || '',
+          ingredientes: ragResult.receita.ingredientes || [],
+          modo_preparo: ragResult.receita.modo_preparo || '',
+          tempo_preparo: ragResult.receita.tempo_preparo || '30 minutos',
+          dificuldade: ragResult.receita.dificuldade || 'médio',
+          rendimento: ragResult.receita.rendimento || '4 porções',
+          tags_dieta: [],
+          is_nova: true,
+        };
+        this.logger.log(`RAG gerou: "${receitaRAG.titulo}" (${ragResult.fonte})`);
+      }
+    } catch (err: any) {
+      this.logger.warn('RAG indisponível:', err?.message);
+    }
+
+    // 3. Geração via Claude Haiku com os ingredientes do usuário
+    const jaTemRAG = receitaRAG ? 1 : 0;
+    const quantidadeGerar = forcarIA ? 5 : Math.max(1, 5 - receitasDoBanco.length - jaTemRAG);
     let receitasIA = await this.gerarComHaiku(ingredientes, quantidadeGerar);
 
+    if (receitaRAG) receitasIA = [receitaRAG, ...receitasIA];
+
     if (receitasIA.length === 0) {
-      this.logger.warn('⚠️ Haiku não gerou receitas — retornando banco');
+      this.logger.warn('⚠️ Nenhuma receita gerada — retornando banco');
       return receitasDoBanco.map((r) => this.receitaBancoService.entidadeParaFormato(r));
     }
 

@@ -19,6 +19,7 @@ import { RecipeCrawlerService } from '../../receitas/services/recipe-crawler.ser
 import { RecipeExecutionService } from '../../receitas/services/recipe-execution.service';
 import { ReceitaBancoService } from '../../receitas/services/receita-banco.service';
 import { RecipeRagService } from '../../receitas/services/recipe-rag.service';
+import { IngredientCleanerService } from '../../receitas/services/ingredient-cleaner.service';
 import { InventarioService } from '../../inventario/inventario.service';
 import { ComprasService } from '../../compras/compras.service';
 import { ProductClassificationService } from '../../product-classification/services/product-classification.service';
@@ -62,6 +63,7 @@ export class AdminController {
     private readonly notificacaoTriggers: NotificacaoTriggersService,
     private readonly cronLogService: CronLogService,
     private readonly recipeRagService: RecipeRagService,
+    private readonly ingredientCleanerService: IngredientCleanerService,
   ) {}
 
   @Get('produtos')
@@ -525,6 +527,18 @@ export class AdminController {
       })),
       receita_gerada: resultado,
     };
+  }
+
+  @Get('receitas/ingredientes/status')
+  @ApiOperation({ summary: 'Status da qualidade dos ingredientes_chave no banco' })
+  async statusIngredientes() {
+    return this.ingredientCleanerService.statusLimpeza();
+  }
+
+  @Post('receitas/ingredientes/limpar')
+  @ApiOperation({ summary: 'Limpa ingredientes_chave sujos (fragmentos, "X e Y", instruções)' })
+  async limparIngredientes(@Body() body: { limite?: number; usar_ia?: boolean }) {
+    return this.ingredientCleanerService.limparBanco(body.limite ?? 30, body.usar_ia ?? true);
   }
 
   @Post('receitas/gerar-ia')

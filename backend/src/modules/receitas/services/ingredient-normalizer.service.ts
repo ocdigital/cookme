@@ -430,12 +430,36 @@ export class IngredientNormalizerService {
   extrairChaves(ingredientesRaw: string[]): string[] {
     const chaves = new Set<string>();
     for (const raw of ingredientesRaw) {
-      const norm = this.normalizar(raw);
-      if (norm && !norm.aGosto) {
-        chaves.add(norm.nomeCanônico);
+      // Expande alternativas antes de normalizar: "leite ou água" → ["leite", "água"]
+      const partes = this.expandirAlternativas(raw);
+      for (const parte of partes) {
+        const norm = this.normalizar(parte);
+        if (norm && !norm.aGosto) {
+          chaves.add(norm.nomeCanônico);
+        }
       }
     }
     return [...chaves].sort();
+  }
+
+  // Divide "X e Y" / "X ou Y" em ingredientes separados
+  private expandirAlternativas(texto: string): string[] {
+    // Detecta padrão "ingrediente1 e/ou ingrediente2" onde ambos são ingredientes
+    // Ex: "alho e cebola" → ["alho", "cebola"]
+    // Ex: "leite ou água" → ["leite", "água"]
+    // Não divide: "arroz branco e integral" (modificador), "creme de leite" (nome composto)
+    const separadores = /\s+(?:e|ou)\s+/i;
+    if (!separadores.test(texto)) return [texto];
+
+    // Só divide se resultado de cada parte tem ≥ 2 chars e ≤ 4 palavras (ingrediente, não frase)
+    const partes = texto.split(separadores).map(p => p.trim()).filter(p => p.length >= 2);
+    if (partes.length <= 1) return [texto];
+
+    // Verifica se parece ingrediente ou instrução (instrução tem verbos, pontuação)
+    const ehInstrucao = /\b(para|com|sem|até|quando|após|antes|durante|enquanto)\b/i;
+    if (ehInstrucao.test(texto)) return [texto];
+
+    return partes;
   }
 
   /**
