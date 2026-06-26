@@ -10,21 +10,29 @@ export const PLANOS_STRIPE = {
 
 @Injectable()
 export class StripeService {
-  private readonly stripe: InstanceType<typeof Stripe>;
+  private stripe: InstanceType<typeof Stripe> | null = null;
   private readonly logger = new Logger(StripeService.name);
 
   constructor(private readonly config: ConfigService) {
-    this.stripe = new Stripe(this.config.get<string>('STRIPE_SECRET_KEY') || '');
+    const key = this.config.get<string>('STRIPE_SECRET_KEY');
+    if (key) this.stripe = new Stripe(key);
+    else this.logger.warn('STRIPE_SECRET_KEY não configurada — pagamentos desabilitados');
+  }
+
+  private getStripe(): InstanceType<typeof Stripe> {
+    if (!this.stripe) throw new Error('Stripe não configurado — adicione STRIPE_SECRET_KEY');
+    return this.stripe;
   }
 
   async criarOuBuscarCliente(usuarioId: string, email: string, nome: string): Promise<string> {
-    const existing = await this.stripe.customers.search({
+    const stripe = this.getStripe();
+    const existing = await stripe.customers.search({
       query: `metadata['usuario_id']:'${usuarioId}'`,
     });
 
     if (existing.data.length > 0) return existing.data[0].id;
 
-    const customer = await this.stripe.customers.create({
+    const customer = await stripe.customers.create({
       email,
       name: nome,
       metadata: { usuario_id: usuarioId },
@@ -40,7 +48,7 @@ export class StripeService {
     successUrl: string;
     cancelUrl: string;
   }): Promise<string> {
-    const session = await this.stripe.checkout.sessions.create({
+    const session = await this.getStripe().checkout.sessions.create({
       customer: params.stripeCustomerId,
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -55,13 +63,13 @@ export class StripeService {
   }
 
   async buscarSubscription(subscriptionId: string) {
-    return this.stripe.subscriptions.retrieve(subscriptionId, {
+    return this.getStripe().subscriptions.retrieve(subscriptionId, {
       expand: ['items.data.price'],
     });
   }
 
   async criarPortalSession(stripeCustomerId: string, returnUrl: string): Promise<string> {
-    const session = await this.stripe.billingPortal.sessions.create({
+    const session = await this.getStripe().billingPortal.sessions.create({
       customer: stripeCustomerId,
       return_url: returnUrl,
     });
@@ -71,7 +79,7 @@ export class StripeService {
 
   construirEvento(rawBody: Buffer, signature: string): ReturnType<InstanceType<typeof Stripe>['webhooks']['constructEvent']> {
     const secret = this.config.get<string>('STRIPE_WEBHOOK_SECRET') || '';
-    return this.stripe.webhooks.constructEvent(rawBody, signature, secret);
+    return this.getStripe().webhooks.constructEvent(rawBody, signature, secret);
   }
 
   getPriceId(plano: keyof typeof PLANOS_STRIPE): string {

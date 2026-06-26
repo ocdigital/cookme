@@ -36,6 +36,7 @@ import { RecipeRagService } from './services/recipe-rag.service';
 import { IngredientCleanerService } from './services/ingredient-cleaner.service';
 import { TudoGostosoScraperService } from './services/tudogostoso-scraper.service';
 import { ReceiteriaCrawlerService } from './services/receiteria-scraper.service';
+import { RecipeCrawlerService } from './services/recipe-crawler.service';
 import { PreferenciaAprendida } from '../usuarios/entities/preferencia-aprendida.entity';
 import { ReceitasController } from './receitas.controller';
 import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
@@ -75,7 +76,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     ReceiptOcrService, ProductClassifierService, ReceiptImportService,
     RecipeSuggestionService, RecipeExecutionService, RecipeGeneratorService,
     IngredientNormalizerService, ReceitaBancoService, RecipeSearchService, SocialRecipeExtractorService,
-    TudoGostosoScraperService, ReceiteriaCrawlerService,
+    TudoGostosoScraperService, ReceiteriaCrawlerService, RecipeCrawlerService,
     RecipeValidationService,
     InventarioService, PushNotificationService,
     ModeracaoService,
@@ -98,7 +99,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     ReceiptImportService, RecipeSuggestionService, RecipeExecutionService,
     RecipeGeneratorService, ReceitaBancoService, IngredientNormalizerService, CronLogService,
     ProductClassificationModule, ModeracaoService, ReceitaClassificacaoService,
-    RecipeSearchService, RecipeRagService, IngredientCleanerService,
+    RecipeSearchService, RecipeRagService, IngredientCleanerService, RecipeCrawlerService,
   ],
 })
 export class ReceitasModule {}
