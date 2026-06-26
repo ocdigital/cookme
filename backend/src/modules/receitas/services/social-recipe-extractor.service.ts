@@ -22,10 +22,11 @@ const UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, 
 @Injectable()
 export class SocialRecipeExtractorService {
   private readonly logger = new Logger(SocialRecipeExtractorService.name);
-  private readonly anthropic: Anthropic;
+  private readonly anthropic: Anthropic | null = null;
 
   constructor(private readonly config: ConfigService) {
-    this.anthropic = new Anthropic({ apiKey: config.get('CLAUDE_API_KEY') });
+    const apiKey = config.get<string>('CLAUDE_API_KEY') || config.get<string>('ANTHROPIC_API_KEY');
+    if (apiKey) this.anthropic = new Anthropic({ apiKey });
   }
 
   async extrairReceita(url: string): Promise<ReceitaGerada | null> {
@@ -287,6 +288,11 @@ Regras:
 - tags_dieta: array com "fitness", "vegetariano" e/ou "vegano" se aplicável, ou []
 - Se o conteúdo NÃO contiver receita culinária, retorne: {"erro": "sem receita"}
 - Traduzir para português se necessário`;
+
+    if (!this.anthropic) {
+      this.logger.warn('Anthropic API key não configurada — importação por URL indisponível');
+      return null;
+    }
 
     const msg = await this.anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',

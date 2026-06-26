@@ -1,3 +1,4 @@
+import 'module-alias/register';
 import './instrument';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';

@@ -23,12 +23,12 @@ export interface ClassificationResult {
 @Injectable()
 export class ProductClassifierService {
   private readonly logger = new Logger(ProductClassifierService.name);
-  private readonly anthropic: Anthropic;
+  private readonly anthropic: Anthropic | null = null;
 
   constructor() {
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
+    if (process.env.ANTHROPIC_API_KEY) {
+      this.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    }
   }
 
   /**
@@ -96,6 +96,7 @@ REGRAS:
 - Limpeza, higiene: eh_ingrediente: false
 - Confiança: 100 se tem certeza, 80 se menos certo, 60 se incerto`;
 
+      if (!this.anthropic) throw new Error('Anthropic API key não configurada');
       const message = await this.anthropic.messages.create({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 2000,
