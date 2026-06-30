@@ -241,7 +241,9 @@ export class ReceitasController {
       throw new BadRequestException('URL inválida');
     }
     await this.subscriptionService.verificarPremium(user.id, 'Importar receitas');
-    return this.recipeGeneratorService.importarReceitaPorUrl(url, user.id);
+    const receita = await this.recipeSearchService.scraparUrl(url);
+    if (!receita) throw new BadRequestException('Não foi possível extrair receita desta URL');
+    return { receita, nova: true };
   }
 
   @Delete(':id')

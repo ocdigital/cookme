@@ -408,14 +408,6 @@ export class ReceitasUsuarioController {
       return FITNESS_TAGS.some((tag) => tagsStr.includes(tag));
     });
 
-    // Banco com poucas receitas fitness → scraping em background
-    if (receitasFitness.length < 8) {
-      this.logger.log(`Apenas ${receitasFitness.length} receitas fitness — populando em background`);
-      this.recipeGeneratorService.popularReceitasFitness().catch((err) =>
-        this.logger.error(`Erro ao popular fitness: ${err.message}`),
-      );
-    }
-
     // Calcula cobertura se tiver inventário
     const ingredientes = await this.inventarioService.ingredientesDisponiveis(user.id);
     let coberturaMap: Map<string, { cobertura: number; disponivel: boolean; faltando: string[] }> = new Map();

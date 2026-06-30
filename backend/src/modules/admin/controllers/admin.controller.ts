@@ -472,7 +472,7 @@ export class AdminController {
   async indexarReceitas(@Body() body: { limite?: number }) {
     const indexadas = await this.recipeRagService.indexarReceitas(body.limite ?? 50);
     const status = await this.recipeRagService.totalIndexadas();
-    return { ok: true, indexadas, ...status };
+    return { ok: true, ...status, indexadas };
   }
 
   @Get('receitas/rag/status')
@@ -544,8 +544,7 @@ export class AdminController {
   async importarReceitaPorUrl(@Body() body: { url: string }) {
     if (!body.url) return { ok: false, erro: 'URL é obrigatória' };
     try {
-      const resultado = await this.recipeGeneratorService.importarReceitaPorUrl(body.url);
-      return { ok: true, ...resultado };
+      throw new Error('importarReceitaPorUrl removido — use POST /admin/receitas/importar-url com SocialRecipeExtractorService');
     } catch (err: any) {
       return { ok: false, erro: err.message };
     }
