@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   ActivityIndicator, Alert, Linking,
 } from 'react-native';
+import * as ExpoLinking from 'expo-linking';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -132,7 +133,9 @@ export default function PlanosScreen() {
   const handleAssinar = async (plano: PlanoId) => {
     setAssinando(plano);
     try {
-      const res = await api.post('/stripe/checkout', { plano });
+      const successUrl = ExpoLinking.createURL('planos', { queryParams: { checkout: 'success' } });
+      const cancelUrl  = ExpoLinking.createURL('planos', { queryParams: { checkout: 'cancelled' } });
+      const res = await api.post('/stripe/checkout', { plano, successUrl, cancelUrl });
       const url: string = res.data?.url;
       if (!url) throw new Error('URL de checkout não retornada');
       await Linking.openURL(url);

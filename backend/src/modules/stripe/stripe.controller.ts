@@ -32,7 +32,7 @@ export class StripeController {
   @ApiOperation({ summary: 'Criar sessão de checkout Stripe' })
   async criarCheckout(
     @Request() req: any,
-    @Body() body: { plano: keyof typeof PLANOS_STRIPE },
+    @Body() body: { plano: keyof typeof PLANOS_STRIPE; successUrl?: string; cancelUrl?: string },
   ) {
     const { id: usuarioId, email, nome } = req.user;
 
@@ -51,8 +51,8 @@ export class StripeController {
       stripeCustomerId,
       priceId,
       usuarioId,
-      successUrl: `${APP_SCHEME}://planos?checkout=success`,
-      cancelUrl:  `${APP_SCHEME}://planos?checkout=cancelled`,
+      successUrl: body.successUrl ?? `${APP_SCHEME}://planos?checkout=success`,
+      cancelUrl:  body.cancelUrl  ?? `${APP_SCHEME}://planos?checkout=cancelled`,
     });
 
     return { url: checkoutUrl };
