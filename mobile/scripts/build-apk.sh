@@ -9,6 +9,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MOBILE_DIR="$(dirname "$SCRIPT_DIR")"
 ANDROID_DIR="$MOBILE_DIR/android"
 
+# Carrega variáveis de ambiente para o build
+# Release usa .env.production, debug usa .env.local
+if [ "$VARIANT" = "debug" ] && [ -f "$MOBILE_DIR/.env.local" ]; then
+  set -a; source "$MOBILE_DIR/.env.local"; set +a
+elif [ -f "$MOBILE_DIR/.env.production" ]; then
+  set -a; source "$MOBILE_DIR/.env.production"; set +a
+fi
+echo "API URL: ${EXPO_PUBLIC_API_URL:-não definida}"
+
 # Valida ambiente
 if ! command -v java &>/dev/null; then
   echo "❌ Java não encontrado. Rode: bash scripts/setup-android-build.sh"
