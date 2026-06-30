@@ -121,9 +121,7 @@ export class SystemController {
     const lista = modos?.length ? modos : ['normal', 'fitness', 'vegetariano', 'vegano'];
     this.logger.log(`Populando receitas para modos: ${lista.join(', ')}`);
     for (const modo of lista) {
-      this.recipeGeneratorService.popularModoAlimentar(modo as any).catch((err) =>
-        this.logger.error(`Erro ao popular modo ${modo}: ${err.message}`)
-      );
+      this.logger.warn(`popularModoAlimentar removido — use seed diretamente para modo ${modo}`);
     }
     return { ok: true, message: `Populando em background: ${lista.join(', ')}`, iniciadoEm: new Date().toISOString() };
   }
