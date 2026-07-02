@@ -296,8 +296,11 @@ export default function ReceitasScreen() {
     setPreviews([]);
     try {
       const invRes = await api.get('/inventario');
-      const ingredientes: string[] = (invRes.data ?? []).map((i: any) =>
-        i.produto?.nome_display || i.produto?.nome || ''
+      const invItems: any[] = Array.isArray(invRes.data)
+        ? invRes.data
+        : (invRes.data?.produtos ?? []);
+      const ingredientes: string[] = invItems.map((i: any) =>
+        i.nome_display || i.nome || i.produto?.nome_display || i.produto?.nome || ''
       ).filter(Boolean);
       const res = await api.post('/receitas/buscar-novas', { ingredientes });
       setPreviews(res.data?.previews ?? []);
