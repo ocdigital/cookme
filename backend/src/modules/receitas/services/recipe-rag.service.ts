@@ -151,7 +151,7 @@ export class RecipeRagService {
     modoAlimentar?: string,
     tipoRefeicao?: string,
   ): Promise<{ receita: any; fonte: string } | null> {
-    if (!this.anthropic) return null;
+    if (!this.anthropic && !this.geminiApiKey) return null;
 
     const tagsDieta = modoAlimentar && modoAlimentar !== 'normal' ? [modoAlimentar] : undefined;
     const similares = await this.buscarSimilares(ingredientes, 5, tagsDieta);

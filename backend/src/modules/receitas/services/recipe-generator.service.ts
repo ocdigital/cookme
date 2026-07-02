@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ReceitaBancoService } from './receita-banco.service';
 import { RecipeValidationService } from './recipe-validation.service';
 import { RecipeRagService } from './recipe-rag.service';
@@ -32,6 +33,7 @@ export interface Receita {
 export class RecipeGeneratorService {
   private readonly logger = new Logger('RecipeGeneratorService');
   private anthropic: Anthropic | null = null;
+  private gemini: any | null = null;
   private groq: Groq | null = null;
 
   constructor(
@@ -44,6 +46,11 @@ export class RecipeGeneratorService {
                          this.configService.get<string>('ANTHROPIC_API_KEY');
     if (anthropicKey) {
       this.anthropic = new Anthropic({ apiKey: anthropicKey });
+    }
+    const geminiKey = this.configService.get<string>('GEMINI_API_KEY');
+    if (geminiKey) {
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      this.gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     }
     const groqKey = this.configService.get<string>('GROQ_API_KEY');
     if (groqKey) {
@@ -197,7 +204,20 @@ Retorne APENAS um array JSON válido com exatamente ${quantidade} receitas:
       }
     }
 
-    // Fallback: Groq (Llama 3.3 70B) — gratuito
+    // Fallback 1: Gemini Flash
+    if (this.gemini) {
+      try {
+        this.logger.log('⚡ Gerando com Gemini Flash...');
+        const prompt = `${system}\n\n${user}`;
+        const result = await this.gemini.generateContent(prompt);
+        const raw = result.response.text();
+        return this.parseReceitasJson(raw, quantidade);
+      } catch (err: any) {
+        this.logger.warn(`Gemini falhou (${err.message}) — tentando Groq...`);
+      }
+    }
+
+    // Fallback 2: Groq (Llama 3.3 70B) — gratuito
     if (this.groq) {
       try {
         this.logger.log('⚡ Gerando com Groq Llama 3.3 70B...');

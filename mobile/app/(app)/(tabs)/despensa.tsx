@@ -222,8 +222,11 @@ export default function DespensaScreen() {
     queryClient.invalidateQueries({ queryKey: queryKeys.inventario() });
   }, [queryClient]);
 
-  // Recarrega ao focar
-  useFocusEffect(useCallback(() => { invalidateInventario(); }, []));
+  // Recarrega ao focar — invalidate + refetch garante dados frescos mesmo com offlineFirst
+  useFocusEffect(useCallback(() => {
+    invalidateInventario();
+    refetch();
+  }, []));
 
   // Recarrega quando app volta do background
   const appState = useRef(AppState.currentState);

@@ -455,163 +455,192 @@ IMPORTANTE:
     }>,
     localCompra?: string,
   ) {
+    const PALAVRAS_ESTABELECIMENTO = /^(residencial|supermercado|mercado|hipermercado|atacadao|atacado|assai|carrefour|extra|walmart|hiper|loja|comercio|comercial|cnpj|chave|protocolo|consumidor|nota|fiscal|nfc|sat|documento)\b/i;
+    const NAO_INGREDIENTE_RE = /(sanit|agua\s+san|água\s+san|desinf|multiuso|limpador|detergente|sabao\b|sabão\b|amaciante|alvejante|esponja|vassoura\b|rodo\b|sacola|saco\s+(lixo|freezer|microfreez)|toalha\s+(papel|cozinha)|papel\s+(hig|toalha|alum)|shampoo|condicionador|sabonete|desodorante|pasta\s+dent|creme\s+dent|fio\s+dental|absorvent|fralda|hastes\s+flex|pilha\s+|lampada|isqueiro|inseticida|repelente|cera\s+auto|lava\s+auto|flanela|pano\s+(de\s+|multiuso|limpeza)|fibra\s+limp|bifinho|racao\s+|ração\s+|pet\s+food)/i;
+
+    // Filtrar itens válidos
+    const itensValidos = itens.filter((item) => {
+      const nome = String(item.nome || '').trim();
+      return nome && nome.length >= 2 && !/^[\d.,\s]+$/.test(nome) && !PALAVRAS_ESTABELECIMENTO.test(nome);
+    });
+
+    if (itensValidos.length === 0) {
+      return { total: itens.length, salvos: 0, itens: [] };
+    }
+
+    // FASE 1 — buscar produtos existentes em batch (1 query) + criar novos em batch
+    const nomes = itensValidos.map((i) => i.nome);
+    const codigosBarras = itensValidos.map((i) => i.codigo_barras).filter(Boolean) as string[];
+
+    const produtosExistentes = await this.produtoRepository
+      .createQueryBuilder('p')
+      .where('p.nome IN (:...nomes)', { nomes })
+      .orWhere(codigosBarras.length > 0 ? 'p.codigo_barras IN (:...codigos)' : '1=0', { codigos: codigosBarras })
+      .getMany();
+
+    const porNome = new Map(produtosExistentes.map((p) => [p.nome, p]));
+    const porCodigo = new Map(produtosExistentes.filter((p) => p.codigo_barras).map((p) => [p.codigo_barras!, p]));
+
+    // Criar produtos novos em batch
+    const novos: Produto[] = [];
+    for (const item of itensValidos) {
+      const existe = (item.codigo_barras && porCodigo.get(item.codigo_barras)) || porNome.get(item.nome);
+      if (!existe) {
+        novos.push(this.produtoRepository.create({
+          nome: item.nome,
+          tipo: ProductType.ALIMENTO,
+          codigo_barras: item.codigo_barras || undefined,
+          unidade_padrao: UnidadeMedida.UN,
+        }));
+      }
+    }
+    if (novos.length > 0) {
+      const salvos = await this.produtoRepository.save(novos);
+      salvos.forEach((p) => porNome.set(p.nome, p));
+    }
+
+    // Montar mapa de meta por produto_id
+    const metaPorProduto = new Map<string, {
+      produto: Produto;
+      nome: string;
+      quantidade: number;
+      unidade: UnidadeMedida;
+      valor: number;
+      valor_unitario: number;
+    }>();
+
+    for (const item of itensValidos) {
+      const produto = (item.codigo_barras && porCodigo.get(item.codigo_barras)) || porNome.get(item.nome);
+      if (!produto) continue;
+      const quantidade = item.quantidade || 1;
+      metaPorProduto.set(produto.id, {
+        produto,
+        nome: produto.nome_display || produto.nome || item.nome,
+        quantidade,
+        unidade: this.normalizarUnidade(item.unidade),
+        valor: item.valor ?? 0,
+        valor_unitario: item.valor_unitario ?? (item.valor && quantidade ? item.valor / quantidade : 0),
+      });
+    }
+
+    // Disparar normalização e imagens em background para produtos novos (não bloqueia)
+    if (novos.length > 0) {
+      Promise.allSettled(novos.map((p) =>
+        this.ocrAliasService.resolverNomeCanônico(p.nome)
+          .then((nd) => { if (nd && nd !== p.nome.toLowerCase()) this.produtoRepository.update(p.id, { nome_display: nd }).catch(() => {}); })
+          .catch(() => {})
+      )).catch(() => {});
+    }
+
+    // FASE 2 — salvar compra + compra_itens em batch com TODOS os itens válidos
+    let savedCompra: Compra | null = null;
+    try {
+      const valorTotalCompra = [...metaPorProduto.values()].reduce((s, m) => s + m.valor, 0);
+      const compra = this.compraRepository.create({
+        usuario_id: usuarioId,
+        data_compra: new Date(),
+        local_compra: localCompra,
+        metodo_cadastro: MetodoCadastro.CUPOM_SAT,
+        valor_total: valorTotalCompra > 0 ? Math.round(valorTotalCompra * 100) / 100 : undefined,
+      });
+      savedCompra = await this.compraRepository.save(compra);
+
+      // Salvar todos os compra_itens via INSERT batch (evita N queries do .save())
+      const compraItensValues = [...metaPorProduto.values()].map((meta) => ({
+        compra_id: savedCompra!.id,
+        produto_id: meta.produto.id,
+        nome_ocr: meta.produto.nome,
+        nome_display: meta.nome,
+        quantidade: meta.quantidade,
+        preco_unitario: meta.valor_unitario,
+        preco_total: meta.valor,
+        unidade: meta.unidade,
+        adicionado_inventario: false,
+      }));
+      await this.dataSource
+        .createQueryBuilder()
+        .insert()
+        .into('compra_itens')
+        .values(compraItensValues)
+        .execute();
+    } catch (err) {
+      console.warn('[ComprasService] Erro ao registrar compra no histórico:', err);
+    }
+
+    // FASE 3 — inventário: apenas ingredientes, em background (não bloqueia o retorno)
+    const dataValidade = new Date();
+    dataValidade.setDate(dataValidade.getDate() + 30);
+
     const itensSalvos: Inventario[] = [];
-    const metaPorProdutoId = new Map<string, { nome: string; valor: number; valor_unitario: number; unidade: UnidadeMedida }>();
+    const metasIngredientes = [...metaPorProduto.values()].filter(
+      (m) => m.produto.ingrediente_receita !== false && !NAO_INGREDIENTE_RE.test(m.produto.nome)
+    );
 
-    for (const item of itens) {
+    for (const meta of metasIngredientes) {
       try {
-        // Rejeitar nomes inválidos (números, preços, vazios, ou claramente nomes de estabelecimento)
-        const nomeValido = String(item.nome || '').trim();
-        const PALAVRAS_ESTABELECIMENTO = /^(residencial|supermercado|mercado|hipermercado|atacadao|atacado|assai|carrefour|extra|walmart|hiper|loja|comercio|comercial|cnpj|chave|protocolo|consumidor|nota|fiscal|nfc|sat|documento)\b/i;
-        if (!nomeValido || /^[\d.,\s]+$/.test(nomeValido) || nomeValido.length < 2 || PALAVRAS_ESTABELECIMENTO.test(nomeValido)) {
-          console.warn(`[ComprasService] Item ignorado (nome inválido/estabelecimento): "${item.nome}"`);
-          continue;
-        }
-
-        // Rejeitar não-alimentos por padrão (higiene, limpeza, descartáveis, pet food, salgadinhos)
-        const NAO_ALIMENTO_RE = /^(toalha|papel (hig|toalha|alum)|pap (hig|alum|toalha)|saco (lixo|microfreez|microfreezer|freezer|geladeira)|sacola|vassoura|rodo|esponja|espon|detergente|det |sabao em po|sab po|amaciante|amac |alvejante|agua san|desinf|multiuso|limpa |inset|repelente|desodorante|desod|shampoo|sh |condicionador|cond cap|creme trat|cr trat|trat cap|sabonete|sab |escova (dente|cabelo)|esc (dent|cab)|pasta dent|creme dent|cr dent|gel dental|fio dental|absorv|fralda|hastes|algodao|luva descart|isqueiro|pilha |lampada|vela arom|palito|cera auto|lava auto|proauto|lustra|flanela|pano (limpeza|multiuso)|fibra limp|esponja mag|bisc pedigree|bisc dog|racao |ração |pet food|salg |salgadinho|saco microfreez)\b/i;
-        if (NAO_ALIMENTO_RE.test(nomeValido)) {
-          console.warn(`[ComprasService] Item ignorado (não-alimento): "${nomeValido}"`);
-          // Marcar produto existente como não-ingrediente se já foi criado
-          const prodExist = await this.produtoRepository.findOne({ where: { nome: nomeValido } });
-          if (prodExist && prodExist.ingrediente_receita !== false) {
-            await this.produtoRepository.update(prodExist.id, { ingrediente_receita: false, nome_display: undefined });
-          }
-          continue;
-        }
-
-        // 1. Buscar ou criar produto
-        let produto: Produto | null = null;
-
-        // Tentar buscar por código de barras se disponível
-        if (item.codigo_barras) {
-          produto = await this.produtoRepository.findOne({
-            where: { codigo_barras: item.codigo_barras },
-          });
-        }
-
-        // Se não encontrou por código, buscar por nome
-        if (!produto) {
-          produto = await this.produtoRepository.findOne({
-            where: { nome: item.nome },
-          });
-        }
-
-        // Se ainda não existe, criar novo produto
-        if (!produto) {
-          const novoProduto = this.produtoRepository.create({
-            nome: item.nome,
-            tipo: ProductType.ALIMENTO,
-            codigo_barras: item.codigo_barras || undefined,
-            unidade_padrao: UnidadeMedida.UN,
-          });
-          produto = await this.produtoRepository.save(novoProduto);
-
-          // Normalizar nome OCR → nome_display canônico em background
-          const produtoRef = produto;
-          this.ocrAliasService
-            .resolverNomeCanônico(item.nome)
-            .then((nomeDisplay) => {
-              if (nomeDisplay && nomeDisplay !== item.nome.toLowerCase()) {
-                return this.produtoRepository.update(produtoRef.id, { nome_display: nomeDisplay });
-              }
-            })
-            .catch(() => {});
-
-          // Buscar imagem automaticamente em background (não bloqueia)
-          this.productImageService
-            .fetchAndSaveProductImage(produto!.id)
-            .catch((err) => {
-              console.error(
-                `Erro ao buscar imagem para produto ${produto!.nome}:`,
-                err,
-              );
-            });
-        } else if (!produto.nome_display) {
-          // Produto existente sem nome_display — normalizar também
-          const produtoRef = produto;
-          this.ocrAliasService
-            .resolverNomeCanônico(produto.nome)
-            .then((nomeDisplay) => {
-              if (nomeDisplay && nomeDisplay !== produto!.nome.toLowerCase()) {
-                return this.produtoRepository.update(produtoRef.id, { nome_display: nomeDisplay });
-              }
-            })
-            .catch(() => {});
-        }
-
-        // 2. Upsert no inventário — somar quantidade se já existe com mesma validade
-        const quantidade = item.quantidade || 1;
-        const dataValidade = new Date();
-        dataValidade.setDate(dataValidade.getDate() + 30);
-
         const existente = await this.inventarioRepository.findOne({
-          where: {
-            usuario_id: usuarioId,
-            produto_id: produto!.id,
-            data_validade: dataValidade,
-          },
+          where: { usuario_id: usuarioId, produto_id: meta.produto.id, data_validade: dataValidade },
         });
-
         let salvo: Inventario;
         if (existente) {
-          existente.quantidade_disponivel = parseFloat(String(existente.quantidade_disponivel)) + parseFloat(String(quantidade));
+          existente.quantidade_disponivel = parseFloat(String(existente.quantidade_disponivel)) + meta.quantidade;
           salvo = await this.inventarioRepository.save(existente);
         } else {
-          const novoInventario = this.inventarioRepository.create({
-            usuario_id: usuarioId,
-            produto_id: produto!.id,
-            quantidade_disponivel: quantidade,
-            unidade: this.normalizarUnidade(item.unidade),
-            data_validade: dataValidade,
-            metodo_atualizacao: MetodoCadastro.OCR_NOTA,
-            localizacao: 'Adicionado via OCR',
-          });
-          salvo = await this.inventarioRepository.save(novoInventario);
+          salvo = await this.inventarioRepository.save(
+            this.inventarioRepository.create({
+              usuario_id: usuarioId,
+              produto_id: meta.produto.id,
+              quantidade_disponivel: meta.quantidade,
+              unidade: meta.unidade,
+              data_validade: dataValidade,
+              metodo_atualizacao: MetodoCadastro.OCR_NOTA,
+              localizacao: 'Adicionado via OCR',
+            }),
+          );
         }
         itensSalvos.push(salvo as Inventario);
-        metaPorProdutoId.set(salvo.produto_id, {
-          nome: produto?.nome_display || produto?.nome || item.nome,
-          valor: item.valor ?? 0,
-          valor_unitario: item.valor_unitario ?? (item.valor && quantidade ? item.valor / quantidade : 0),
-          unidade: this.normalizarUnidade(item.unidade),
-        });
       } catch (error) {
-        console.error(`Erro ao salvar item "${item.nome}":`, error);
-        // Continuar com próximos itens
+        console.error(`Erro ao salvar inventário para "${meta.produto.nome}":`, error);
       }
     }
 
-    // Registrar compra no histórico se algum item foi salvo
-    if (itensSalvos.length > 0) {
-      try {
-        const compra = this.compraRepository.create({
-          usuario_id: usuarioId,
-          data_compra: new Date(),
-          local_compra: localCompra,
-          metodo_cadastro: MetodoCadastro.CUPOM_SAT,
-        });
-        const savedCompra = await this.compraRepository.save(compra);
+    // Marcar adicionado_inventario em batch
+    if (savedCompra && itensSalvos.length > 0) {
+      const idsIngredientes = metasIngredientes.map((m) => m.produto.id);
+      await this.dataSource.query(
+        `UPDATE compra_itens SET adicionado_inventario = true WHERE compra_id = $1 AND produto_id = ANY($2)`,
+        [savedCompra.id, idsIngredientes]
+      );
+    }
 
-        for (const inv of itensSalvos) {
-          await this.compraItemRepository.save(
-            this.compraItemRepository.create({
-              compra_id: savedCompra.id,
-              produto_id: inv.produto_id,
-              nome_ocr: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
-              nome_display: metaPorProdutoId.get(inv.produto_id)?.nome ?? '',
-              quantidade: inv.quantidade_disponivel,
-              preco_unitario: metaPorProdutoId.get(inv.produto_id)?.valor_unitario ?? 0,
-              preco_total: metaPorProdutoId.get(inv.produto_id)?.valor ?? 0,
-              unidade: metaPorProdutoId.get(inv.produto_id)?.unidade ?? UnidadeMedida.UN,
-              adicionado_inventario: true,
-            } as any),
-          );
-        }
-      } catch (err) {
-        // Não falhar o inventário por erro no histórico
-        console.warn('[ComprasService] Erro ao registrar compra no histórico:', err);
-      }
+    // Classificação IA em background
+    const nomesParaClassificar = [...metaPorProduto.values()].map((m) => m.produto.nome);
+    if (nomesParaClassificar.length > 0) {
+      this.productClassificationService
+        .classificarEmBatch(nomesParaClassificar, usuarioId)
+        .then(async (classificacoes) => {
+          for (const clf of classificacoes) {
+            if (clf.ingrediente_receita == null) continue;
+            const entry = [...metaPorProduto.values()].find((m) => m.produto.nome === clf.produto);
+            if (entry) {
+              const updates: Record<string, any> = { ingrediente_receita: clf.ingrediente_receita };
+              if (clf.canonical_name) {
+                // Verificar se é UTF-8 válido; se não, tentar re-encode Latin-1→UTF-8
+                const raw = clf.canonical_name as string;
+                let nd = raw;
+                try {
+                  const buf = Buffer.from(raw, 'utf8');
+                  if (buf.toString('utf8') !== raw) {
+                    nd = Buffer.from(raw, 'latin1').toString('utf8');
+                  }
+                } catch { /* manter original */ }
+                updates.nome_display = nd;
+              }
+              await this.produtoRepository.update(entry.produto.id, updates).catch(() => {});
+            }
+          }
+        })
+        .catch(() => {});
     }
 
     return {
