@@ -691,12 +691,6 @@ export default function ReceitasScreen() {
                       </View>
                     ) : (
                       <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-                        {!isPremium && (
-                          <View style={styles.premiumBanner}>
-                            <MaterialCommunityIcons name="star-circle" size={16} color="#7C3AED" />
-                            <Text style={styles.premiumBannerTxt}>Importar receitas é exclusivo do plano Premium</Text>
-                          </View>
-                        )}
                         {previews.map((p, i) => (
                           <View key={p.url + i} style={styles.previewItem}>
                             <View style={{ flex: 1 }}>
@@ -707,14 +701,11 @@ export default function ReceitasScreen() {
                               </View>
                             </View>
                             <TouchableOpacity
-                              style={[styles.previewImportarBtn, !isPremium && styles.previewImportarBtnLocked]}
+                              style={styles.previewImportarBtn}
                               onPress={() => handleImportarPreview(p)}
                               activeOpacity={0.8}
                             >
-                              {!isPremium
-                                ? <MaterialCommunityIcons name="lock-outline" size={16} color="#7C3AED" />
-                                : <Text style={styles.previewImportarBtnTxt}>Importar</Text>
-                              }
+                              <Text style={styles.previewImportarBtnTxt}>Importar</Text>
                             </TouchableOpacity>
                           </View>
                         ))}
