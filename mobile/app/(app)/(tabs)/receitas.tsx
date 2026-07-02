@@ -71,6 +71,8 @@ interface ReceitaDisponivel {
   tags_dieta?: string[];
   url_fonte?: string | null;
   autor_id?: string | null;
+  fonte_tipo?: 'cookme' | 'web' | 'usuario';
+  fonte_site?: string | null;
 }
 
 // ─── extração de ingrediente (igual despensa) ─────────────────────────────────
@@ -923,12 +925,22 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
 
         <Text style={styles.receitaNome}>{receita.titulo}</Text>
 
-        {receita.url_fonte && (
+        {receita.fonte_tipo === 'web' && (
           <View style={[styles.badgeFonte, { marginBottom: 4 }]}>
-            <MaterialCommunityIcons name="download-outline" size={11} color="#D97706" />
-            <Text style={styles.badgeFonteTxt}>
-              {(() => { try { return new URL(receita.url_fonte).hostname.replace('www.', ''); } catch { return 'importada'; } })()}
-            </Text>
+            <MaterialCommunityIcons name="web" size={11} color="#D97706" />
+            <Text style={styles.badgeFonteTxt}>{receita.fonte_site ?? 'Web'}</Text>
+          </View>
+        )}
+        {receita.fonte_tipo === 'usuario' && (
+          <View style={[styles.badgeFonte, { marginBottom: 4, backgroundColor: '#ede9fe', borderColor: '#c4b5fd' }]}>
+            <MaterialCommunityIcons name="account" size={11} color="#7c3aed" />
+            <Text style={[styles.badgeFonteTxt, { color: '#7c3aed' }]}>Comunidade</Text>
+          </View>
+        )}
+        {receita.fonte_tipo === 'cookme' && (
+          <View style={[styles.badgeFonte, { marginBottom: 4, backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}>
+            <MaterialCommunityIcons name="chef-hat" size={11} color="#16a34a" />
+            <Text style={[styles.badgeFonteTxt, { color: '#16a34a' }]}>CookMe</Text>
           </View>
         )}
 

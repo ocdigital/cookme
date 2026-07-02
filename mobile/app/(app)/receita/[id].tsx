@@ -15,6 +15,14 @@ import ScreenWrapper from '@/components/ScreenWrapper';
 import { queryKeys } from '@/lib/queryKeys';
 import { STALE_TIMES, GC_TIMES } from '@/lib/queryClient';
 
+interface ReceitaFonte {
+  tipo: 'cookme' | 'web' | 'usuario';
+  site?: string;
+  url?: string;
+  autor_nome?: string;
+  autor_avatar?: string;
+}
+
 interface Receita {
   id: string;
   titulo: string;
@@ -30,6 +38,7 @@ interface Receita {
   faltando?: string[];
   vezes_executada?: number;
   avaliacao_media?: number;
+  fonte?: ReceitaFonte;
 }
 
 interface Comentario {
@@ -39,6 +48,50 @@ interface Comentario {
   autor_nome: string;
   autor_avatar: string | null;
   criado_em: string;
+}
+
+function BadgeFonte({ fonte }: { fonte: ReceitaFonte }) {
+  if (fonte.tipo === 'cookme') {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 }}>
+        <MaterialCommunityIcons name="chef-hat" size={14} color="#16a34a" />
+        <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: '600' }}>Receita CookMe</Text>
+      </View>
+    );
+  }
+  if (fonte.tipo === 'web' && fonte.url) {
+    const { Linking } = require('react-native');
+    return (
+      <TouchableOpacity
+        onPress={() => Linking.openURL(fonte.url!)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 }}
+        activeOpacity={0.7}
+      >
+        <MaterialCommunityIcons name="web" size={14} color="#D97706" />
+        <Text style={{ fontSize: 12, color: '#D97706', fontWeight: '600' }}>
+          {fonte.site ?? 'Ver receita original'}
+        </Text>
+        <MaterialCommunityIcons name="open-in-new" size={11} color="#D97706" />
+      </TouchableOpacity>
+    );
+  }
+  if (fonte.tipo === 'usuario') {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        {fonte.autor_avatar ? (
+          <Image source={{ uri: fonte.autor_avatar }} style={{ width: 18, height: 18, borderRadius: 9 }} />
+        ) : (
+          <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 9, fontWeight: '700', color: '#4f46e5' }}>
+              {(fonte.autor_nome ?? 'U').charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <Text style={{ fontSize: 12, color: '#4f46e5', fontWeight: '600' }}>{fonte.autor_nome}</Text>
+      </View>
+    );
+  }
+  return null;
 }
 
 function parsearPassos(modoPreparo?: string): string[] {
@@ -386,6 +439,9 @@ export default function ReceitaDetalheScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Badge de fonte */}
+          {receita.fonte && <BadgeFonte fonte={receita.fonte} />}
 
           {/* Avaliação média + botão avaliar */}
           <View style={styles.avaliacaoRow}>

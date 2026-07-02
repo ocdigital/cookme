@@ -39,6 +39,8 @@ export class ReceitasUsuarioController {
     private readonly ingredienteRepo: Repository<ReceitaIngrediente>,
     @InjectRepository(Preferencia)
     private readonly preferenciaRepo: Repository<Preferencia>,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepo: Repository<Usuario>,
   ) {}
 
   /**
@@ -56,7 +58,7 @@ export class ReceitasUsuarioController {
 
     const modoAlimentar = pref?.modo_alimentar || 'normal';
     this.logger.log(`ingredientesDisponiveis (${ingredientes.length}): ${ingredientes.slice(0, 20).join(', ')}`);
-    const resultado = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes);
+    const resultado = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes, 50, user.id);
 
     // Banco com poucas receitas → gerar via Haiku em background
     let previewsWeb: Array<{ titulo: string; url: string; site: string }> = [];
@@ -110,6 +112,10 @@ export class ReceitasUsuarioController {
         tags_dieta: r.receita.tags_dieta,
         url_fonte: r.receita.url_fonte ?? null,
         autor_id: r.receita.autor_id ?? null,
+        fonte_tipo: r.receita.url_fonte && r.receita.autor_id ? 'web'
+          : r.receita.autor_id ? 'usuario'
+          : 'cookme',
+        fonte_site: r.receita.url_fonte ? (() => { try { return new URL(r.receita.url_fonte!).hostname.replace(/^www\./, ''); } catch { return null; } })() : null,
       };
     });
 
@@ -452,6 +458,26 @@ export class ReceitasUsuarioController {
     const todas = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes);
     const match = todas.find((r) => r.receita.id === receitaId);
 
+    // Badge de fonte: extrai domínio limpo da url_fonte
+    let fonte: { tipo: 'cookme' | 'web' | 'usuario'; site?: string; url?: string; autor_nome?: string; autor_avatar?: string } = { tipo: 'cookme' };
+
+    if ((receita as any).url_fonte && (receita as any).autor_id) {
+      // Importada pelo usuário de um site externo
+      try {
+        const hostname = new URL((receita as any).url_fonte).hostname.replace(/^www\./, '');
+        fonte = { tipo: 'web', site: hostname, url: (receita as any).url_fonte };
+      } catch {
+        fonte = { tipo: 'web', url: (receita as any).url_fonte };
+      }
+    } else if ((receita as any).autor_id) {
+      // Criada por um usuário CookMe
+      const autor = await this.usuarioRepo.findOne({
+        where: { id: (receita as any).autor_id },
+        select: ['id', 'nome', 'avatar_url'],
+      });
+      fonte = { tipo: 'usuario', autor_nome: autor?.nome ?? 'Usuário CookMe', autor_avatar: autor?.avatar_url ?? undefined };
+    }
+
     return {
       receita: {
         ...this.receitaBancoService.entidadeParaFormato(receita),
@@ -462,6 +488,7 @@ export class ReceitasUsuarioController {
         faltando: match ? match.faltando : [],
         vezes_executada: receita.vezes_executada,
         avaliacao_media: receita.avaliacao_media,
+        fonte,
       },
     };
   }
