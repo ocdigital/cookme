@@ -137,30 +137,36 @@ export class RecipeGeneratorService {
   }
 
   private buildPromptReceitas(ingredientes: string[], quantidade: number): { system: string; user: string } {
-    const system = `Você é um chef brasileiro especializado em receitas do dia a dia. Sua única função é retornar receitas em formato JSON. Nunca adicione explicações, comentários ou markdown — apenas o JSON puro.`;
+    const system = `Você é um chef brasileiro apaixonado por culinária regional. Especialista em transformar ingredientes simples em pratos memoráveis.
 
-    const user = `Crie ${quantidade} receitas brasileiras usando principalmente os ingredientes disponíveis abaixo.
+REGRAS ABSOLUTAS:
+- Títulos SEMPRE específicos e apetitosos. PROIBIDO: "Arroz com Frango", "Bolo Simples", "Macarrão ao Molho". OBRIGATÓRIO: especificar o preparo, toque especial, textura ou aroma. Ex: "Peito de Frango Selado ao Molho Rústico de Passata com Alho Confit"
+- Descrições DESPERTAM FOME: mencionar textura ("crocante por fora, cremoso por dentro"), aroma ("perfumado com alho dourado"), sabor ("agridoce com toque de limão")
+- Modo de preparo com TÉCNICAS reais: temperatura, tempo preciso, ponto visual ("até soltar do fundo"), dicas de chef
+- Retornar APENAS JSON puro, sem markdown, sem texto extra`;
 
-<ingredientes_disponiveis>
-${ingredientes.slice(0, 12).join(', ')}
-</ingredientes_disponiveis>
+    const exemplos = `EXEMPLOS do padrão de qualidade esperado (não use esses títulos, inspire-se no estilo):
+- "Canjica Cremosa de Panela com Leite Condensado e Canela em Pau" / "Grãos macios banhados em creme aveludado, perfumado com canela e cravo"
+- "Peito de Frango Selado ao Molho Rústico de Passata com Alho Confit" / "Crosta dourada por fora, suculento por dentro, molho encorpado reduzido lentamente"
+- "Espaguete ao Creme de Queijo Mineiro com Abobrinha Grelhada" / "Massa al dente envolta em creme sedoso, abobrinha com marcas de grelha e pimenta-do-reino"`;
 
-Regras:
-- Use ingredientes da lista como base — pode adicionar temperos básicos (sal, azeite, alho, cebola)
-- modo_preparo: passos numerados, completo e executável
-- tags_dieta: array com "vegetariano", "vegano" ou "fitness" se aplicável, senão []
-- Receitas simples e saborosas do cotidiano brasileiro
+    const user = `INGREDIENTES DISPONÍVEIS NA DESPENSA:
+${ingredientes.slice(0, 15).join(', ')}
 
-Retorne APENAS um array JSON válido com exatamente ${quantidade} receitas:
+${exemplos}
+
+Crie ${quantidade} receitas originais, cada uma com combinação e técnica DIFERENTE. Varie as categorias (almoço, jantar, café da manhã, lanche, sobremesa).
+
+Retorne APENAS array JSON com exatamente ${quantidade} receitas:
 [
   {
-    "titulo": "Nome da Receita",
-    "descricao": "Descrição em 1 frase",
-    "ingredientes": ["2 xícaras de arroz", "1 dente de alho picado"],
-    "modo_preparo": "Passo 1. ... Passo 2. ...",
-    "tempo_preparo": "30 minutos",
+    "titulo": "Título Específico e Apetitoso",
+    "descricao": "Uma frase que desperta fome — textura, sabor ou aroma",
+    "ingredientes": ["2 xícaras de canjica branca lavada e de molho 8h", "1 lata de leite condensado gelado"],
+    "modo_preparo": "Passo 1. ...\nPasso 2. ...",
+    "tempo_preparo": "45 minutos",
     "dificuldade": "fácil",
-    "rendimento": "4 porções",
+    "rendimento": "6 porções",
     "tags_dieta": []
   }
 ]`;
@@ -289,7 +295,7 @@ ${modoOriginal}
 Retorne APENAS o modo de preparo reescrito, sem título, sem comentários.`;
 
       const msg = await this.anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 600,
         messages: [{ role: 'user', content: prompt }],
       });

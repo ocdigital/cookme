@@ -118,31 +118,35 @@ const GRUPOS: { nome: string; ingredientes: string[]; categoria: string; tags_di
   },
 ];
 
-const PROMPT_SYSTEM = `Você é um chef brasileiro especializado em receitas do dia a dia. Retorna APENAS JSON válido, sem markdown, sem texto extra.`;
+const PROMPT_SYSTEM = `Você é um chef brasileiro apaixonado por culinária regional. Especialista em transformar ingredientes simples em pratos memoráveis.
+
+REGRAS ABSOLUTAS:
+- Títulos SEMPRE específicos e apetitosos. PROIBIDO: "Arroz com Frango", "Bolo Simples", "Macarrão ao Molho". OBRIGATÓRIO: especificar o preparo, toque especial, textura ou aroma. Ex: "Canjica Cremosa de Panela com Leite Condensado e Canela em Pau"
+- Descrições DESPERTAM FOME: mencionar textura, aroma, sabor
+- Modo de preparo com TÉCNICAS reais: temperatura, tempo preciso, ponto visual, dicas de chef
+- Retornar APENAS JSON puro, sem markdown, sem texto extra`;
 
 function buildPrompt(grupo: typeof GRUPOS[0]): string {
-  return `Crie 4 receitas brasileiras diferentes usando principalmente estes ingredientes: ${grupo.ingredientes.join(', ')}.
+  return `INGREDIENTES DISPONÍVEIS: ${grupo.ingredientes.join(', ')}
 
-Tema: ${grupo.nome}
-Categoria: ${grupo.categoria}
+Tema: ${grupo.nome} | Categoria sugerida: ${grupo.categoria}
 
-Regras:
-- Foco nos ingredientes listados. Pode adicionar sal, pimenta, temperos básicos.
-- Receitas práticas do cotidiano brasileiro — não haute cuisine.
-- modo_preparo: passos numerados, completo, executável.
-- Ingredientes variados entre as 4 receitas (não repetir a mesma combinação).
-- tags_dieta: ["vegetariano"] ou ["vegano"] se aplicável, senão [].
+EXEMPLOS do padrão esperado (não reutilize estes, inspire-se):
+- "Canjica Cremosa de Panela com Leite Condensado e Canela em Pau" / "Grãos macios banhados em creme aveludado, perfumado com canela e cravo"
+- "Frango Selado ao Molho Rústico de Passata com Alho Confitado" / "Crosta dourada por fora, suculento por dentro, molho encorpado reduzido lentamente"
 
-Retorne APENAS array JSON com exatamente 4 receitas:
+Crie 4 receitas DIFERENTES entre si, cada uma com combinação/técnica diferente. Mínimo 5 passos por receita.
+
+Retorne APENAS JSON {"receitas": [...]} com exatamente 4 receitas:
 [
   {
-    "titulo": "Nome da Receita",
-    "descricao": "Uma frase descrevendo o prato",
-    "ingredientes": ["2 xícaras de arroz", "1 dente de alho picado"],
-    "modo_preparo": "Passo 1. ... Passo 2. ...",
-    "tempo_preparo": "30 minutos",
+    "titulo": "Título Específico e Apetitoso",
+    "descricao": "Uma frase que desperta fome — textura, sabor ou aroma",
+    "ingredientes": ["2 xícaras de canjica branca lavada e de molho 8h", "1 lata de leite condensado gelado"],
+    "modo_preparo": "Passo 1. De véspera, deixe a canjica de molho em água fria por pelo menos 8 horas — isso acelera o cozimento e deixa os grãos macios por igual.\nPasso 2. ...",
+    "tempo_preparo": "45 minutos",
     "dificuldade": "fácil",
-    "rendimento": "4 porções",
+    "rendimento": "6 porções",
     "tags_dieta": []
   }
 ]`;
