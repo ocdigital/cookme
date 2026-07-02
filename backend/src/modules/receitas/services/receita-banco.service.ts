@@ -181,7 +181,8 @@ export class ReceitaBancoService {
       for (const chave of chaves) {
         const peso = this.pesoIngrediente(chave, receita.nome);
         pesoTotal += peso;
-        if (normalizados.some((n) => n.includes(chave) || chave.includes(n))) {
+        if (normalizados.some((n) => n.includes(chave) || chave.includes(n)) ||
+            [...PROTAGONISTAS].some((prot) => chave.includes(prot) && normalizados.some((n) => n.includes(prot)))) {
           pesoEncontrado += peso;
         }
       }
@@ -286,7 +287,10 @@ export class ReceitaBancoService {
           }
 
           pesoTotal += peso;
-          const presente = normalizados.some((n) => n.includes(chave) || chave.includes(n));
+          // Match direto OU via protagonista compartilhado
+          // Ex: chave="coxas de frango", inv="frango coxinha da asa" → ambos contêm "frango" → match
+          const presente = normalizados.some((n) => n.includes(chave) || chave.includes(n)) ||
+            [...PROTAGONISTAS].some((prot) => chave.includes(prot) && normalizados.some((n) => n.includes(prot)));
           if (presente) {
             pesoEncontrado += peso;
             // Marca se algum protagonista está presente
@@ -370,8 +374,8 @@ export class ReceitaBancoService {
       origem: (receita as any).url_fonte ? 'internet' : 'ia_gerada',
       url_fonte: (receita as any).url_fonte || null,
       avaliacao_media: (receita as any).avaliacao || 0,
-      // Receitas do usuário (importadas) → ok direto; scrapeadas (url_fonte) → ok direto; geradas pela IA sem score → arquivar
-      status_moderacao: (proprietarioId || (receita as any).url_fonte) ? 'ok' : ((receita.validation_score != null && receita.validation_score >= 70) ? 'ok' : 'arquivado'),
+      // Receitas do usuário (importadas) → ok direto; geradas pela IA: score>=70 ok, score<70 em_revisao, null (erro API) em_revisao
+      status_moderacao: (proprietarioId || (receita as any).url_fonte) ? 'ok' : (receita.validation_score != null ? (receita.validation_score >= 70 ? 'ok' : 'em_revisao') : 'em_revisao'),
       validation_score: receita.validation_score ?? null,
       validation_issues: receita.validation_issues?.join(' | ') ?? null,
       tags_dieta: this.classificacao.classificarTags(ingredientesChave, receita.tags_dieta || [], receita.titulo) || undefined,
