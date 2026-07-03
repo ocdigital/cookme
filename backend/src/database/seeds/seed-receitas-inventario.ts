@@ -116,6 +116,25 @@ const GRUPOS: { nome: string; ingredientes: string[]; categoria: string; tags_di
     categoria: 'almoco',
     tags_dieta: ['vegetariano'],
   },
+  // Carnes bovinas (novos ingredientes do inventário)
+  {
+    nome: 'Acém Bovino',
+    ingredientes: ['acém bovino', 'cebola', 'alho', 'tomate', 'passata de tomate', 'azeite de oliva extra virgem', 'batata'],
+    categoria: 'almoco',
+    tags_dieta: [],
+  },
+  {
+    nome: 'Coxão Mole',
+    ingredientes: ['coxão mole', 'cebola', 'alho', 'tomate', 'limão taiti', 'azeite de oliva extra virgem', 'mostarda'],
+    categoria: 'almoco',
+    tags_dieta: [],
+  },
+  {
+    nome: 'Carne Bovina com Molho',
+    ingredientes: ['coxão mole', 'acém bovino', 'passata de tomate', 'cebola', 'alho', 'azeite de oliva extra virgem', 'manteiga com sal'],
+    categoria: 'almoco',
+    tags_dieta: [],
+  },
 ];
 
 const PROMPT_SYSTEM = `Você é um chef brasileiro apaixonado por culinária regional. Especialista em transformar ingredientes simples em pratos memoráveis.

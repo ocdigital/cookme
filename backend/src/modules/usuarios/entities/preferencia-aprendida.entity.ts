@@ -15,6 +15,7 @@ export enum TipoPreferencia {
     INGREDIENTE_AVERSAO = 'ingrediente_aversao',
     CATEGORIA_FAVORITA = 'categoria_favorita',
     CATEGORIA_AVERSAO = 'categoria_aversao',
+    RECEITA_URL_IGNORADA = 'receita_url_ignorada',
 }
 
 @Entity('preferencias_aprendidas')

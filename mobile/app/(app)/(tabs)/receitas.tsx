@@ -304,7 +304,7 @@ export default function ReceitasScreen() {
       const ingredientes: string[] = invItems.map((i: any) =>
         i.nome_display || i.nome || i.produto?.nome_display || i.produto?.nome || ''
       ).filter(Boolean);
-      const res = await api.post('/receitas/buscar-novas', { ingredientes });
+      const res = await api.post('/receitas/web/buscar', { ingredientes });
       setPreviews(res.data?.previews ?? []);
     } catch {
       Alert.alert('Erro', 'Falha ao buscar receitas na web');
@@ -322,6 +322,15 @@ export default function ReceitasScreen() {
       Alert.alert('Importada!', `"${preview.titulo}" salva na sua biblioteca.`);
     } catch (e: any) {
       Alert.alert('Erro', e?.response?.data?.message || 'Não foi possível importar esta receita.');
+    }
+  };
+
+  const handleIgnorarPreview = async (preview: Preview) => {
+    setPreviews(prev => prev.filter(p => p.url !== preview.url));
+    try {
+      await api.post('/receitas/web/ignorar', { url: preview.url });
+    } catch {
+      // falha silenciosa — já removeu da lista localmente
     }
   };
 
@@ -701,17 +710,27 @@ export default function ReceitasScreen() {
                             <View style={{ flex: 1 }}>
                               <Text style={styles.previewTitulo} numberOfLines={2}>{p.titulo}</Text>
                               <View style={styles.badgeFonte}>
-                                <MaterialCommunityIcons name="download-outline" size={11} color="#D97706" />
+                                <MaterialCommunityIcons name="web" size={11} color="#D97706" />
                                 <Text style={styles.badgeFonteTxt}>{p.site}</Text>
                               </View>
                             </View>
-                            <TouchableOpacity
-                              style={styles.previewImportarBtn}
-                              onPress={() => handleImportarPreview(p)}
-                              activeOpacity={0.8}
-                            >
-                              <Text style={styles.previewImportarBtnTxt}>Importar</Text>
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                              <TouchableOpacity
+                                style={styles.previewImportarBtn}
+                                onPress={() => handleImportarPreview(p)}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={styles.previewImportarBtnTxt}>Importar</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                onPress={() => handleIgnorarPreview(p)}
+                                activeOpacity={0.7}
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
+                              >
+                                <MaterialCommunityIcons name="close" size={11} color={C.ink[400]} />
+                                <Text style={{ fontSize: 11, color: C.ink[400] }}>Ignorar</Text>
+                              </TouchableOpacity>
+                            </View>
                           </View>
                         ))}
                       </ScrollView>

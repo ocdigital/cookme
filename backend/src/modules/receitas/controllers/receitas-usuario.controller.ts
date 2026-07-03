@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards, ForbiddenException, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, UseGuards, ForbiddenException, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { Receita } from '../entities/receita.entity';
 import { ReceitaFavorita } from '../entities/receita-favorita.entity';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -6,8 +6,10 @@ import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Usuario } from '@modules/usuarios/entities/usuario.entity';
 import { Preferencia } from '@modules/usuarios/entities/preferencia.entity';
+import { PreferenciaAprendida, TipoPreferencia } from '@modules/usuarios/entities/preferencia-aprendida.entity';
 import { ReceitaBancoService } from '../services/receita-banco.service';
 import { RecipeGeneratorService } from '../services/recipe-generator.service';
+import { RecipeSearchService } from '../services/recipe-search.service';
 import { AprendizadoService } from '../services/aprendizado.service';
 import { InventarioService } from '@modules/inventario/inventario.service';
 import { ListaService } from '@modules/listas/services/lista.service';
@@ -41,6 +43,9 @@ export class ReceitasUsuarioController {
     private readonly preferenciaRepo: Repository<Preferencia>,
     @InjectRepository(Usuario)
     private readonly usuarioRepo: Repository<Usuario>,
+    @InjectRepository(PreferenciaAprendida)
+    private readonly prefAprendidaRepo: Repository<PreferenciaAprendida>,
+    private readonly recipeSearchService: RecipeSearchService,
   ) {}
 
   /**
@@ -548,5 +553,56 @@ export class ReceitasUsuarioController {
   @ApiOperation({ summary: 'Retorna o progresso de aprendizado do CookMe sobre o usuário' })
   async perfilAprendizado(@CurrentUser() user: Usuario) {
     return this.aprendizadoService.perfilAprendizado(user.id);
+  }
+
+  // ── Busca web personalizada ───────────────────────────────────────────────
+
+  @Post('web/buscar')
+  @ApiOperation({ summary: 'Busca previews na web filtrando já importadas e ignoradas pelo usuário' })
+  async buscarNaWeb(
+    @CurrentUser() user: Usuario,
+    @Body() body: { ingredientes: string[] },
+  ) {
+    const ingredientes = body.ingredientes ?? [];
+
+    // URLs já importadas pelo usuário
+    const importadas = await this.receitaRepo.find({
+      where: { autor_id: user.id },
+      select: ['url_fonte'] as any,
+    });
+    const urlsImportadas = new Set(importadas.map((r: any) => r.url_fonte).filter(Boolean));
+
+    // URLs ignoradas pelo usuário
+    const ignoradas = await this.prefAprendidaRepo.find({
+      where: { usuario_id: user.id, tipo: TipoPreferencia.RECEITA_URL_IGNORADA },
+      select: ['valor'],
+    });
+    const urlsIgnoradas = new Set(ignoradas.map((p) => p.valor));
+
+    const previews = await this.recipeSearchService.buscarPreviewsNaWeb(ingredientes, 20);
+    const filtradas = previews.filter((p) => !urlsImportadas.has(p.url) && !urlsIgnoradas.has(p.url));
+
+    return { previews: filtradas.slice(0, 12) };
+  }
+
+  @Post('web/ignorar')
+  @ApiOperation({ summary: 'Ignora um preview — não aparece mais na busca web para este usuário' })
+  async ignorarPreviewWeb(
+    @CurrentUser() user: Usuario,
+    @Body('url') url: string,
+  ) {
+    if (!url?.startsWith('http')) throw new BadRequestException('URL inválida');
+
+    await this.prefAprendidaRepo.upsert(
+      {
+        usuario_id: user.id,
+        tipo: TipoPreferencia.RECEITA_URL_IGNORADA,
+        valor: url,
+        score: 0,
+        contagem: 1,
+      } as any,
+      { conflictPaths: ['usuario_id', 'tipo', 'valor'] },
+    );
+    return { ok: true };
   }
 }
