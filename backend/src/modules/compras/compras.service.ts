@@ -490,22 +490,63 @@ IMPORTANTE:
     const porNome = new Map(produtosExistentes.map((p) => [p.nome, p]));
     const porCodigo = new Map(produtosExistentes.filter((p) => p.codigo_barras).map((p) => [p.codigo_barras!, p]));
 
-    // Criar produtos novos em batch
-    const novos: Produto[] = [];
+    // Criar produtos novos em batch.
+    // Dedupe DENTRO do cupom: item pesado 2x vem com o mesmo código de balança
+    // (ex: 43362) — dois inserts com o mesmo codigo_barras violam a unique de
+    // produtos e derrubavam o request inteiro (bug de produção 2026-07-04).
+    const novosPorChave = new Map<string, Produto>();
     for (const item of itensValidos) {
       const existe = (item.codigo_barras && porCodigo.get(item.codigo_barras)) || porNome.get(item.nome);
-      if (!existe) {
-        novos.push(this.produtoRepository.create({
-          nome: item.nome,
-          tipo: ProductType.ALIMENTO,
-          codigo_barras: item.codigo_barras || undefined,
-          unidade_padrao: UnidadeMedida.UN,
-        }));
-      }
+      if (existe) continue;
+      const chave = item.codigo_barras ? `cb:${item.codigo_barras}` : `nome:${item.nome}`;
+      if (novosPorChave.has(chave)) continue;
+      novosPorChave.set(chave, this.produtoRepository.create({
+        nome: item.nome,
+        tipo: ProductType.ALIMENTO,
+        codigo_barras: item.codigo_barras || undefined,
+        unidade_padrao: UnidadeMedida.UN,
+      }));
     }
+    let novos: Produto[] = [...novosPorChave.values()];
     if (novos.length > 0) {
-      const salvos = await this.produtoRepository.save(novos);
-      salvos.forEach((p) => porNome.set(p.nome, p));
+      try {
+        const salvos = await this.produtoRepository.save(novos);
+        salvos.forEach((p) => {
+          porNome.set(p.nome, p);
+          if (p.codigo_barras) porCodigo.set(p.codigo_barras, p);
+        });
+        novos = salvos;
+      } catch (err: any) {
+        // Unique violation: código já existe no banco sob outro nome que o
+        // lookup inicial não casou. Re-consulta e segue com os existentes —
+        // leitura de cupom NUNCA pode falhar por causa disso.
+        if (err?.code !== '23505' && err?.driverError?.code !== '23505') throw err;
+        console.warn('[ComprasService] Unique violation ao criar produtos — re-consultando existentes:', err?.detail || err?.message);
+        const reconsulta = await this.produtoRepository
+          .createQueryBuilder('p')
+          .where('p.nome IN (:...nomes)', { nomes })
+          .orWhere(codigosBarras.length > 0 ? 'p.codigo_barras IN (:...codigos)' : '1=0', { codigos: codigosBarras })
+          .getMany();
+        reconsulta.forEach((p) => {
+          porNome.set(p.nome, p);
+          if (p.codigo_barras) porCodigo.set(p.codigo_barras, p);
+        });
+        // Tenta salvar individualmente só os que continuam sem correspondência
+        const restantes = novos.filter((n) =>
+          !(n.codigo_barras && porCodigo.get(n.codigo_barras)) && !porNome.get(n.nome),
+        );
+        novos = [];
+        for (const produto of restantes) {
+          try {
+            const salvo = await this.produtoRepository.save(produto);
+            porNome.set(salvo.nome, salvo);
+            if (salvo.codigo_barras) porCodigo.set(salvo.codigo_barras, salvo);
+            novos.push(salvo);
+          } catch {
+            console.warn(`[ComprasService] Produto "${produto.nome}" pulado (conflito persistente)`);
+          }
+        }
+      }
     }
 
     // Montar mapa de meta por produto_id
