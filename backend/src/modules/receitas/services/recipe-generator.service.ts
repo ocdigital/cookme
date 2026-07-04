@@ -1,8 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+import { Optional } from '@nestjs/common';
+import { LlmMetricsService } from '../../metricas/llm-metrics.service';
 import Anthropic from '@anthropic-ai/sdk';
 import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ReceitaBancoService } from './receita-banco.service';
 import { RecipeValidationService } from './recipe-validation.service';
 import { RecipeRagService } from './recipe-rag.service';
@@ -32,6 +35,7 @@ export interface Receita {
 export class RecipeGeneratorService {
   private readonly logger = new Logger('RecipeGeneratorService');
   private anthropic: Anthropic | null = null;
+  private gemini: any | null = null;
   private groq: Groq | null = null;
 
   constructor(
@@ -39,11 +43,17 @@ export class RecipeGeneratorService {
     private readonly receitaBancoService: ReceitaBancoService,
     private readonly validationService: RecipeValidationService,
     private readonly ragService: RecipeRagService,
+    @Optional() private readonly llmMetrics?: LlmMetricsService,
   ) {
     const anthropicKey = this.configService.get<string>('CLAUDE_API_KEY') ||
                          this.configService.get<string>('ANTHROPIC_API_KEY');
     if (anthropicKey) {
       this.anthropic = new Anthropic({ apiKey: anthropicKey });
+    }
+    const geminiKey = this.configService.get<string>('GEMINI_API_KEY');
+    if (geminiKey) {
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      this.gemini = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     }
     const groqKey = this.configService.get<string>('GROQ_API_KEY');
     if (groqKey) {
@@ -51,7 +61,7 @@ export class RecipeGeneratorService {
     }
   }
 
-  async gerarReceitas(ingredientes: string[], forcarIA = false): Promise<Receita[]> {
+  async gerarReceitas(ingredientes: string[], forcarIA = false, modoAlimentar?: string): Promise<Receita[]> {
     if (ingredientes.length === 0) return [];
 
     // 1. Banco compartilhado — receitas reais já salvas de buscas anteriores
@@ -73,7 +83,7 @@ export class RecipeGeneratorService {
     // 2. RAG: busca semântica + adaptação com LLM (melhor qualidade que geração pura)
     let receitaRAG: Receita | null = null;
     try {
-      const ragResult = await this.ragService.gerarComRAG(ingredientes);
+      const ragResult = await this.ragService.gerarComRAG(ingredientes, modoAlimentar);
       if (ragResult?.receita) {
         receitaRAG = {
           titulo: ragResult.receita.nome,
@@ -130,30 +140,36 @@ export class RecipeGeneratorService {
   }
 
   private buildPromptReceitas(ingredientes: string[], quantidade: number): { system: string; user: string } {
-    const system = `Você é um chef brasileiro especializado em receitas do dia a dia. Sua única função é retornar receitas em formato JSON. Nunca adicione explicações, comentários ou markdown — apenas o JSON puro.`;
+    const system = `Você é um chef brasileiro apaixonado por culinária regional. Especialista em transformar ingredientes simples em pratos memoráveis.
 
-    const user = `Crie ${quantidade} receitas brasileiras usando principalmente os ingredientes disponíveis abaixo.
+REGRAS ABSOLUTAS:
+- Títulos SEMPRE específicos e apetitosos. PROIBIDO: "Arroz com Frango", "Bolo Simples", "Macarrão ao Molho". OBRIGATÓRIO: especificar o preparo, toque especial, textura ou aroma. Ex: "Peito de Frango Selado ao Molho Rústico de Passata com Alho Confit"
+- Descrições DESPERTAM FOME: mencionar textura ("crocante por fora, cremoso por dentro"), aroma ("perfumado com alho dourado"), sabor ("agridoce com toque de limão")
+- Modo de preparo com TÉCNICAS reais: temperatura, tempo preciso, ponto visual ("até soltar do fundo"), dicas de chef
+- Retornar APENAS JSON puro, sem markdown, sem texto extra`;
 
-<ingredientes_disponiveis>
-${ingredientes.slice(0, 12).join(', ')}
-</ingredientes_disponiveis>
+    const exemplos = `EXEMPLOS do padrão de qualidade esperado (não use esses títulos, inspire-se no estilo):
+- "Canjica Cremosa de Panela com Leite Condensado e Canela em Pau" / "Grãos macios banhados em creme aveludado, perfumado com canela e cravo"
+- "Peito de Frango Selado ao Molho Rústico de Passata com Alho Confit" / "Crosta dourada por fora, suculento por dentro, molho encorpado reduzido lentamente"
+- "Espaguete ao Creme de Queijo Mineiro com Abobrinha Grelhada" / "Massa al dente envolta em creme sedoso, abobrinha com marcas de grelha e pimenta-do-reino"`;
 
-Regras:
-- Use ingredientes da lista como base — pode adicionar temperos básicos (sal, azeite, alho, cebola)
-- modo_preparo: passos numerados, completo e executável
-- tags_dieta: array com "vegetariano", "vegano" ou "fitness" se aplicável, senão []
-- Receitas simples e saborosas do cotidiano brasileiro
+    const user = `INGREDIENTES DISPONÍVEIS NA DESPENSA:
+${ingredientes.slice(0, 15).join(', ')}
 
-Retorne APENAS um array JSON válido com exatamente ${quantidade} receitas:
+${exemplos}
+
+Crie ${quantidade} receitas originais, cada uma com combinação e técnica DIFERENTE. Varie as categorias (almoço, jantar, café da manhã, lanche, sobremesa).
+
+Retorne APENAS array JSON com exatamente ${quantidade} receitas:
 [
   {
-    "titulo": "Nome da Receita",
-    "descricao": "Descrição em 1 frase",
-    "ingredientes": ["2 xícaras de arroz", "1 dente de alho picado"],
-    "modo_preparo": "Passo 1. ... Passo 2. ...",
-    "tempo_preparo": "30 minutos",
+    "titulo": "Título Específico e Apetitoso",
+    "descricao": "Uma frase que desperta fome — textura, sabor ou aroma",
+    "ingredientes": ["2 xícaras de canjica branca lavada e de molho 8h", "1 lata de leite condensado gelado"],
+    "modo_preparo": "Passo 1. ...\nPasso 2. ...",
+    "tempo_preparo": "45 minutos",
     "dificuldade": "fácil",
-    "rendimento": "4 porções",
+    "rendimento": "6 porções",
     "tags_dieta": []
   }
 ]`;
@@ -178,6 +194,7 @@ Retorne APENAS um array JSON válido com exatamente ${quantidade} receitas:
 
     // Tenta Haiku primeiro, com retry em erros transitórios (429, 503, timeout)
     if (this.anthropic) {
+      const t0 = Date.now();
       try {
         const msg = await retryWithBackoff(
           () => this.anthropic!.messages.create({
@@ -191,14 +208,46 @@ Retorne APENAS um array JSON válido com exatamente ${quantidade} receitas:
         this.logger.log(
           `[${getRequestId()}] Haiku tokens — input: ${msg.usage.input_tokens}, output: ${msg.usage.output_tokens}`,
         );
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'anthropic', modelo: 'claude-haiku-4-5-20251001',
+          tokens_in: msg.usage.input_tokens, tokens_out: msg.usage.output_tokens,
+          latencia_ms: Date.now() - t0, sucesso: true,
+        }).catch(() => {});
         return this.parseReceitasJson((msg.content[0] as any).text, quantidade);
       } catch (err: any) {
         this.logger.warn(`Haiku falhou após retries (${err.status ?? err.message}) — tentando Groq...`);
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'anthropic', modelo: 'claude-haiku-4-5-20251001',
+          latencia_ms: Date.now() - t0, sucesso: false, erro: String(err.status ?? err.message),
+        }).catch(() => {});
       }
     }
 
-    // Fallback: Groq (Llama 3.3 70B) — gratuito
+    // Fallback 1: Gemini Flash
+    if (this.gemini) {
+      const t0 = Date.now();
+      try {
+        this.logger.log('⚡ Gerando com Gemini Flash...');
+        const prompt = `${system}\n\n${user}`;
+        const result = await this.gemini.generateContent(prompt);
+        const raw = result.response.text();
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'gemini', modelo: 'gemini-2.0-flash',
+          latencia_ms: Date.now() - t0, sucesso: true,
+        }).catch(() => {});
+        return this.parseReceitasJson(raw, quantidade);
+      } catch (err: any) {
+        this.logger.warn(`Gemini falhou (${err.message}) — tentando Groq...`);
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'gemini', modelo: 'gemini-2.0-flash',
+          latencia_ms: Date.now() - t0, sucesso: false, erro: String(err.message),
+        }).catch(() => {});
+      }
+    }
+
+    // Fallback 2: Groq (Llama 3.3 70B) — gratuito
     if (this.groq) {
+      const t0 = Date.now();
       try {
         this.logger.log('⚡ Gerando com Groq Llama 3.3 70B...');
         const resp = await this.groq.chat.completions.create({
@@ -213,9 +262,18 @@ Retorne APENAS um array JSON válido com exatamente ${quantidade} receitas:
         const raw = resp.choices[0]?.message?.content ?? '{}';
         const obj = JSON.parse(raw);
         const arr = Array.isArray(obj) ? obj : (obj.receitas ?? []);
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'groq', modelo: 'llama-3.3-70b-versatile',
+          tokens_in: resp.usage?.prompt_tokens, tokens_out: resp.usage?.completion_tokens,
+          latencia_ms: Date.now() - t0, sucesso: true,
+        }).catch(() => {});
         return this.parseReceitasJson(JSON.stringify(arr), quantidade);
       } catch (err: any) {
         this.logger.error(`Groq falhou: ${err.message}`);
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'groq', modelo: 'llama-3.3-70b-versatile',
+          latencia_ms: Date.now() - t0, sucesso: false, erro: String(err.message),
+        }).catch(() => {});
       }
     }
 
@@ -269,7 +327,7 @@ ${modoOriginal}
 Retorne APENAS o modo de preparo reescrito, sem título, sem comentários.`;
 
       const msg = await this.anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 600,
         messages: [{ role: 'user', content: prompt }],
       });

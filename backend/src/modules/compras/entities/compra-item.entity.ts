@@ -57,6 +57,10 @@ export class CompraItem {
     @Column({ nullable: true })
     ingrediente_canonical: string;
 
+    // EAN/código de barras do item como veio da nota (chave canônica p/ recompra)
+    @Column({ type: 'varchar', length: 14, nullable: true })
+    codigo_barras: string | null;
+
     // Indica se este item já foi adicionado ao inventário de ingredientes
     @Column({ default: false })
     adicionado_inventario: boolean;

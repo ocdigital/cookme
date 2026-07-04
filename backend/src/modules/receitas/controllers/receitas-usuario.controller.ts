@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards, ForbiddenException, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, UseGuards, ForbiddenException, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { Receita } from '../entities/receita.entity';
 import { ReceitaFavorita } from '../entities/receita-favorita.entity';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -6,11 +6,14 @@ import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Usuario } from '@modules/usuarios/entities/usuario.entity';
 import { Preferencia } from '@modules/usuarios/entities/preferencia.entity';
+import { PreferenciaAprendida, TipoPreferencia } from '@modules/usuarios/entities/preferencia-aprendida.entity';
 import { ReceitaBancoService } from '../services/receita-banco.service';
 import { RecipeGeneratorService } from '../services/recipe-generator.service';
+import { RecipeSearchService } from '../services/recipe-search.service';
 import { AprendizadoService } from '../services/aprendizado.service';
 import { InventarioService } from '@modules/inventario/inventario.service';
 import { ListaService } from '@modules/listas/services/lista.service';
+import { MetricasService } from '@modules/metricas/metricas.service';
 import { ReceitaExecutada } from '../entities/receita-executada.entity';
 import { ReceitaIngrediente } from '../entities/receita-ingrediente.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -39,6 +42,12 @@ export class ReceitasUsuarioController {
     private readonly ingredienteRepo: Repository<ReceitaIngrediente>,
     @InjectRepository(Preferencia)
     private readonly preferenciaRepo: Repository<Preferencia>,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepo: Repository<Usuario>,
+    @InjectRepository(PreferenciaAprendida)
+    private readonly prefAprendidaRepo: Repository<PreferenciaAprendida>,
+    private readonly recipeSearchService: RecipeSearchService,
+    private readonly metricas: MetricasService,
   ) {}
 
   /**
@@ -56,13 +65,13 @@ export class ReceitasUsuarioController {
 
     const modoAlimentar = pref?.modo_alimentar || 'normal';
     this.logger.log(`ingredientesDisponiveis (${ingredientes.length}): ${ingredientes.slice(0, 20).join(', ')}`);
-    const resultado = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes);
+    const resultado = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes, 50, user.id);
 
     // Banco com poucas receitas → gerar via Haiku em background
     let previewsWeb: Array<{ titulo: string; url: string; site: string }> = [];
     if (resultado.length < 8 && ingredientes.length > 0) {
       this.logger.log(`Banco tem ${resultado.length} receitas — gerando IA em background`);
-      this.recipeGeneratorService.gerarReceitas(ingredientes).catch((err) =>
+      this.recipeGeneratorService.gerarReceitas(ingredientes, false, modoAlimentar).catch((err) =>
         this.logger.error(`Erro na geração background: ${err.message}`),
       );
     }
@@ -110,6 +119,10 @@ export class ReceitasUsuarioController {
         tags_dieta: r.receita.tags_dieta,
         url_fonte: r.receita.url_fonte ?? null,
         autor_id: r.receita.autor_id ?? null,
+        fonte_tipo: r.receita.url_fonte && r.receita.autor_id ? 'web'
+          : r.receita.autor_id ? 'usuario'
+          : 'cookme',
+        fonte_site: r.receita.url_fonte ? (() => { try { return new URL(r.receita.url_fonte!).hostname.replace(/^www\./, ''); } catch { return null; } })() : null,
       };
     });
 
@@ -447,10 +460,31 @@ export class ReceitasUsuarioController {
   @Get(':id')
   @ApiOperation({ summary: 'Busca receita por ID com cobertura do usuário' })
   async buscarPorId(@CurrentUser() user: Usuario, @Param('id') receitaId: string) {
-    const receita = await this.receitaBancoService.buscarPorId(receitaId);
+    // Checagem de dono: receita importada é invisível para terceiros (404)
+    const receita = await this.receitaBancoService.buscarPorId(receitaId, user.id);
     const ingredientes = await this.inventarioService.ingredientesDisponiveis(user.id);
     const todas = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes);
     const match = todas.find((r) => r.receita.id === receitaId);
+
+    // Badge de fonte: extrai domínio limpo da url_fonte
+    let fonte: { tipo: 'cookme' | 'web' | 'usuario'; site?: string; url?: string; autor_nome?: string; autor_avatar?: string } = { tipo: 'cookme' };
+
+    if ((receita as any).url_fonte && (receita as any).autor_id) {
+      // Importada pelo usuário de um site externo
+      try {
+        const hostname = new URL((receita as any).url_fonte).hostname.replace(/^www\./, '');
+        fonte = { tipo: 'web', site: hostname, url: (receita as any).url_fonte };
+      } catch {
+        fonte = { tipo: 'web', url: (receita as any).url_fonte };
+      }
+    } else if ((receita as any).autor_id) {
+      // Criada por um usuário CookMe
+      const autor = await this.usuarioRepo.findOne({
+        where: { id: (receita as any).autor_id },
+        select: ['id', 'nome', 'avatar_url'],
+      });
+      fonte = { tipo: 'usuario', autor_nome: autor?.nome ?? 'Usuário CookMe', autor_avatar: autor?.avatar_url ?? undefined };
+    }
 
     return {
       receita: {
@@ -462,6 +496,7 @@ export class ReceitasUsuarioController {
         faltando: match ? match.faltando : [],
         vezes_executada: receita.vezes_executada,
         avaliacao_media: receita.avaliacao_media,
+        fonte,
       },
     };
   }
@@ -497,7 +532,7 @@ export class ReceitasUsuarioController {
     @CurrentUser() user: Usuario,
     @Param('id') receitaId: string,
   ) {
-    const receita = await this.receitaBancoService.buscarPorId(receitaId);
+    const receita = await this.receitaBancoService.buscarPorId(receitaId, user.id);
 
     // Registra execução na tabela receitas_executadas
     const execucao = this.receitaExecutadaRepo.create({
@@ -508,6 +543,7 @@ export class ReceitasUsuarioController {
 
     // Incrementa contador global da receita
     await this.receitaBancoService.incrementarExecucao(receitaId);
+    this.metricas.registrar(user.id, 'receita_feita', { receita_id: receitaId }).catch(() => {});
 
     return {
       sucesso: true,
@@ -521,5 +557,56 @@ export class ReceitasUsuarioController {
   @ApiOperation({ summary: 'Retorna o progresso de aprendizado do CookMe sobre o usuário' })
   async perfilAprendizado(@CurrentUser() user: Usuario) {
     return this.aprendizadoService.perfilAprendizado(user.id);
+  }
+
+  // ── Busca web personalizada ───────────────────────────────────────────────
+
+  @Post('web/buscar')
+  @ApiOperation({ summary: 'Busca previews na web filtrando já importadas e ignoradas pelo usuário' })
+  async buscarNaWeb(
+    @CurrentUser() user: Usuario,
+    @Body() body: { ingredientes: string[] },
+  ) {
+    const ingredientes = body.ingredientes ?? [];
+
+    // URLs já importadas pelo usuário
+    const importadas = await this.receitaRepo.find({
+      where: { autor_id: user.id },
+      select: ['url_fonte'] as any,
+    });
+    const urlsImportadas = new Set(importadas.map((r: any) => r.url_fonte).filter(Boolean));
+
+    // URLs ignoradas pelo usuário
+    const ignoradas = await this.prefAprendidaRepo.find({
+      where: { usuario_id: user.id, tipo: TipoPreferencia.RECEITA_URL_IGNORADA },
+      select: ['valor'],
+    });
+    const urlsIgnoradas = new Set(ignoradas.map((p) => p.valor));
+
+    const previews = await this.recipeSearchService.buscarPreviewsNaWeb(ingredientes, 20);
+    const filtradas = previews.filter((p) => !urlsImportadas.has(p.url) && !urlsIgnoradas.has(p.url));
+
+    return { previews: filtradas.slice(0, 12) };
+  }
+
+  @Post('web/ignorar')
+  @ApiOperation({ summary: 'Ignora um preview — não aparece mais na busca web para este usuário' })
+  async ignorarPreviewWeb(
+    @CurrentUser() user: Usuario,
+    @Body('url') url: string,
+  ) {
+    if (!url?.startsWith('http')) throw new BadRequestException('URL inválida');
+
+    await this.prefAprendidaRepo.upsert(
+      {
+        usuario_id: user.id,
+        tipo: TipoPreferencia.RECEITA_URL_IGNORADA,
+        valor: url,
+        score: 0,
+        contagem: 1,
+      } as any,
+      { conflictPaths: ['usuario_id', 'tipo', 'valor'] },
+    );
+    return { ok: true };
   }
 }

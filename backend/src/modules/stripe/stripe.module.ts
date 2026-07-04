@@ -7,11 +7,13 @@ import { StripeWebhookController } from './stripe-webhook.controller';
 import { Subscription } from '../affiliate/entities/subscription.entity';
 import { Transaction } from '../affiliate/entities/transaction.entity';
 import { SubscriptionService } from '../affiliate/services/subscription.service';
+import { MetricasModule } from '../metricas/metricas.module';
 
 @Module({
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([Subscription, Transaction]),
+    MetricasModule,
   ],
   providers: [StripeService, SubscriptionService],
   controllers: [StripeController, StripeWebhookController],

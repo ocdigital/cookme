@@ -44,8 +44,14 @@ const valorCompra = (compra: Compra): number => {
   if (vt > 0) return vt;
   return (compra.itens ?? []).reduce((s, i) => s + i.preco_unitario * i.quantidade, 0);
 };
-const fmtDate = (d: string) =>
-  new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const fmtDate = (d: string) => {
+  if (!d) return '—';
+  // "2026-07-02" sem hora → parse como local para evitar UTC shift no Android
+  const normalized = d.includes('T') ? d : d.replace(/-/g, '/');
+  const date = new Date(normalized);
+  if (isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
 const metodoIcon = (m?: string): string => ({
   cupom_sat: 'qrcode-scan',
   qrcode: 'qrcode-scan',

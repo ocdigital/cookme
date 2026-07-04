@@ -4,6 +4,7 @@ import { RecipeGeneratorService, Receita } from './recipe-generator.service';
 import { ReceitaBancoService } from './receita-banco.service';
 import { RecipeSearchService } from './recipe-search.service';
 import { RecipeValidationService } from './recipe-validation.service';
+import { RecipeRagService } from './recipe-rag.service';
 import { Receita as ReceitaEntity } from '../entities/receita.entity';
 import { DificuldadeReceita } from '../../../common/enums/dificuldade-receita.enum';
 
@@ -49,6 +50,7 @@ describe('RecipeGeneratorService', () => {
   let service: RecipeGeneratorService;
   let receitaBancoService: jest.Mocked<ReceitaBancoService>;
   let recipeSearchService: jest.Mocked<RecipeSearchService>;
+  let ragService: jest.Mocked<RecipeRagService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -81,12 +83,19 @@ describe('RecipeGeneratorService', () => {
             validar: jest.fn().mockResolvedValue({ status: 'ok', score: 1, issues: [] }),
           },
         },
+        {
+          provide: RecipeRagService,
+          useValue: {
+            gerarComRAG: jest.fn().mockResolvedValue(null),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RecipeGeneratorService>(RecipeGeneratorService);
     receitaBancoService = module.get(ReceitaBancoService);
     recipeSearchService = module.get(RecipeSearchService);
+    ragService = module.get(RecipeRagService);
 
     jest.spyOn(service['logger'], 'log').mockImplementation(() => {});
     jest.spyOn(service['logger'], 'warn').mockImplementation(() => {});
@@ -169,44 +178,63 @@ describe('RecipeGeneratorService', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 3. gerarReceitas — banco vazio → busca na web
+  // 3. gerarReceitas — banco vazio → tenta RAG
   // ─────────────────────────────────────────────────────────────────────────────
 
-  describe('gerarReceitas() — banco vazio, scraping disponível', () => {
+  describe('gerarReceitas() — banco vazio, RAG disponível', () => {
     beforeEach(() => {
       receitaBancoService.buscarPorIngredientes.mockResolvedValue([]);
       receitaBancoService.salvarReceitaGerada.mockResolvedValue(receitaEntidade());
-      // extrairChaves retorna chave que bate com ingrediente do teste ('abobora')
-      receitaBancoService.extrairChaves.mockReturnValue(['abobora']);
-      receitaBancoService.pesoIngrediente.mockReturnValue(1);
 
-      recipeSearchService.buscarReceitasReais.mockResolvedValue([
-        receitaWeb({ titulo: 'Receita Web 1', ingredientes: ['abobora', 'gengibre', 'sal'] }),
-        receitaWeb({ titulo: 'Receita Web 2', ingredientes: ['abobora', 'coco'] }),
-        receitaWeb({ titulo: 'Receita Web 3', ingredientes: ['abobora', 'gengibre'] }),
-      ]);
+      ragService.gerarComRAG.mockResolvedValue({
+        receita: {
+          nome: 'Sopa de Abóbora Adaptada',
+          descricao: 'Sopa cremosa',
+          ingredientes: ['abobora', 'gengibre'],
+          modo_preparo: '1. Cozinhe. 2. Bata. 3. Sirva.',
+          tempo_preparo: '40 minutos',
+          dificuldade: 'fácil',
+          rendimento: '4 porções',
+        },
+        fonte: 'rag',
+      });
     });
 
-    it('busca na web quando banco não tem receitas', async () => {
+    it('consulta o RAG quando banco não tem receitas suficientes', async () => {
       await service.gerarReceitas(['abobora', 'gengibre', 'coco']);
 
-      expect(recipeSearchService.buscarReceitasReais).toHaveBeenCalledTimes(1);
+      expect(ragService.gerarComRAG).toHaveBeenCalledTimes(1);
     });
 
-    it('retorna as receitas encontradas na web', async () => {
+    it('propaga modo_alimentar para o RAG (filtro de dieta)', async () => {
+      await service.gerarReceitas(['abobora', 'gengibre'], false, 'vegano');
+
+      expect(ragService.gerarComRAG).toHaveBeenCalledWith(
+        ['abobora', 'gengibre'],
+        'vegano',
+      );
+    });
+
+    it('não usa scraping/busca web na geração (proibido)', async () => {
+      await service.gerarReceitas(['abobora', 'gengibre']);
+
+      expect(recipeSearchService.buscarReceitasReais).not.toHaveBeenCalled();
+    });
+
+    it('retorna a receita adaptada pelo RAG', async () => {
       const resultado = await service.gerarReceitas(['abobora', 'gengibre']);
 
       const titulos = resultado.map((r) => r.titulo);
-      expect(titulos).toContain('Receita Web 1');
+      expect(titulos).toContain('Sopa de Abóbora Adaptada');
     });
 
-    it('salva receitas da web no banco para próximos usuários', async () => {
+    it('salva a receita do RAG no banco para próximos usuários', async () => {
       await service.gerarReceitas(['abobora', 'gengibre']);
 
-      expect(receitaBancoService.salvarReceitaGerada).toHaveBeenCalledTimes(3);
+      expect(receitaBancoService.salvarReceitaGerada).toHaveBeenCalledTimes(1);
     });
 
-    it('marca receitas da web como novas', async () => {
+    it('marca receitas geradas como novas', async () => {
       const resultado = await service.gerarReceitas(['abobora', 'gengibre']);
 
       for (const receita of resultado) {
@@ -216,16 +244,16 @@ describe('RecipeGeneratorService', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 4. gerarReceitas — banco vazio, scraping falha → retorna vazio
+  // 4. gerarReceitas — banco vazio, RAG e IA indisponíveis → retorna vazio
   // ─────────────────────────────────────────────────────────────────────────────
 
-  describe('gerarReceitas() — banco vazio, scraping sem resultado', () => {
+  describe('gerarReceitas() — banco vazio, RAG sem resultado', () => {
     beforeEach(() => {
       receitaBancoService.buscarPorIngredientes.mockResolvedValue([]);
-      recipeSearchService.buscarReceitasReais.mockResolvedValue([]);
+      ragService.gerarComRAG.mockResolvedValue(null);
     });
 
-    it('retorna array vazio quando banco e web não têm receitas', async () => {
+    it('retorna array vazio quando banco e RAG não têm receitas', async () => {
       const resultado = await service.gerarReceitas(['ingrediente-raro']);
 
       expect(resultado).toHaveLength(0);
@@ -239,10 +267,10 @@ describe('RecipeGeneratorService', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // 5. gerarReceitas — banco parcial + web completa
+  // 5. gerarReceitas — banco parcial + RAG completa
   // ─────────────────────────────────────────────────────────────────────────────
 
-  describe('gerarReceitas() — banco parcial + web completa', () => {
+  describe('gerarReceitas() — banco parcial + RAG', () => {
     beforeEach(() => {
       receitaBancoService.buscarPorIngredientes.mockResolvedValue([
         receitaEntidade({ id: 'uuid-banco', nome: 'Receita do Banco' }),
@@ -251,34 +279,39 @@ describe('RecipeGeneratorService', () => {
         receitaWeb({ titulo: 'Receita do Banco' }),
       );
       receitaBancoService.salvarReceitaGerada.mockResolvedValue(receitaEntidade());
-      receitaBancoService.extrairChaves.mockReturnValue(['frango']);
-      receitaBancoService.pesoIngrediente.mockReturnValue(1);
 
-      recipeSearchService.buscarReceitasReais.mockResolvedValue([
-        receitaWeb({ titulo: 'Receita Web 1', ingredientes: ['frango', 'alho'] }),
-        receitaWeb({ titulo: 'Receita Web 2', ingredientes: ['frango', 'arroz'] }),
-      ]);
+      ragService.gerarComRAG.mockResolvedValue({
+        receita: {
+          nome: 'Frango RAG',
+          descricao: 'Adaptada',
+          ingredientes: ['frango', 'arroz'],
+          modo_preparo: '1. Faça.',
+          tempo_preparo: '30 minutos',
+          dificuldade: 'fácil',
+          rendimento: '2 porções',
+        },
+        fonte: 'rag',
+      });
     });
 
-    it('busca receitas complementares na web', async () => {
+    it('consulta o RAG para complementar o banco', async () => {
       await service.gerarReceitas(['frango', 'arroz']);
 
-      expect(recipeSearchService.buscarReceitasReais).toHaveBeenCalledTimes(1);
+      expect(ragService.gerarComRAG).toHaveBeenCalledTimes(1);
     });
 
-    it('combina banco + web no resultado final', async () => {
+    it('combina banco + RAG no resultado final', async () => {
       const resultado = await service.gerarReceitas(['frango', 'arroz']);
 
       const titulos = resultado.map((r) => r.titulo);
       expect(titulos).toContain('Receita do Banco');
-      expect(titulos).toContain('Receita Web 1');
-      expect(titulos).toContain('Receita Web 2');
+      expect(titulos).toContain('Frango RAG');
     });
 
-    it('salva apenas as receitas novas da web', async () => {
+    it('salva apenas a receita nova do RAG (banco já está salvo)', async () => {
       await service.gerarReceitas(['frango', 'arroz']);
 
-      expect(receitaBancoService.salvarReceitaGerada).toHaveBeenCalledTimes(2);
+      expect(receitaBancoService.salvarReceitaGerada).toHaveBeenCalledTimes(1);
     });
   });
 

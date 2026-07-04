@@ -71,6 +71,8 @@ interface ReceitaDisponivel {
   tags_dieta?: string[];
   url_fonte?: string | null;
   autor_id?: string | null;
+  fonte_tipo?: 'cookme' | 'web' | 'usuario';
+  fonte_site?: string | null;
 }
 
 // ─── extração de ingrediente (igual despensa) ─────────────────────────────────
@@ -296,10 +298,13 @@ export default function ReceitasScreen() {
     setPreviews([]);
     try {
       const invRes = await api.get('/inventario');
-      const ingredientes: string[] = (invRes.data ?? []).map((i: any) =>
-        i.produto?.nome_display || i.produto?.nome || ''
+      const invItems: any[] = Array.isArray(invRes.data)
+        ? invRes.data
+        : (invRes.data?.produtos ?? []);
+      const ingredientes: string[] = invItems.map((i: any) =>
+        i.nome_display || i.nome || i.produto?.nome_display || i.produto?.nome || ''
       ).filter(Boolean);
-      const res = await api.post('/receitas/buscar-novas', { ingredientes });
+      const res = await api.post('/receitas/web/buscar', { ingredientes });
       setPreviews(res.data?.previews ?? []);
     } catch {
       Alert.alert('Erro', 'Falha ao buscar receitas na web');
@@ -317,6 +322,15 @@ export default function ReceitasScreen() {
       Alert.alert('Importada!', `"${preview.titulo}" salva na sua biblioteca.`);
     } catch (e: any) {
       Alert.alert('Erro', e?.response?.data?.message || 'Não foi possível importar esta receita.');
+    }
+  };
+
+  const handleIgnorarPreview = async (preview: Preview) => {
+    setPreviews(prev => prev.filter(p => p.url !== preview.url));
+    try {
+      await api.post('/receitas/web/ignorar', { url: preview.url });
+    } catch {
+      // falha silenciosa — já removeu da lista localmente
     }
   };
 
@@ -691,31 +705,32 @@ export default function ReceitasScreen() {
                       </View>
                     ) : (
                       <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-                        {!isPremium && (
-                          <View style={styles.premiumBanner}>
-                            <MaterialCommunityIcons name="star-circle" size={16} color="#7C3AED" />
-                            <Text style={styles.premiumBannerTxt}>Importar receitas é exclusivo do plano Premium</Text>
-                          </View>
-                        )}
                         {previews.map((p, i) => (
                           <View key={p.url + i} style={styles.previewItem}>
                             <View style={{ flex: 1 }}>
                               <Text style={styles.previewTitulo} numberOfLines={2}>{p.titulo}</Text>
                               <View style={styles.badgeFonte}>
-                                <MaterialCommunityIcons name="download-outline" size={11} color="#D97706" />
+                                <MaterialCommunityIcons name="web" size={11} color="#D97706" />
                                 <Text style={styles.badgeFonteTxt}>{p.site}</Text>
                               </View>
                             </View>
-                            <TouchableOpacity
-                              style={[styles.previewImportarBtn, !isPremium && styles.previewImportarBtnLocked]}
-                              onPress={() => handleImportarPreview(p)}
-                              activeOpacity={0.8}
-                            >
-                              {!isPremium
-                                ? <MaterialCommunityIcons name="lock-outline" size={16} color="#7C3AED" />
-                                : <Text style={styles.previewImportarBtnTxt}>Importar</Text>
-                              }
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                              <TouchableOpacity
+                                style={styles.previewImportarBtn}
+                                onPress={() => handleImportarPreview(p)}
+                                activeOpacity={0.8}
+                              >
+                                <Text style={styles.previewImportarBtnTxt}>Importar</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                onPress={() => handleIgnorarPreview(p)}
+                                activeOpacity={0.7}
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
+                              >
+                                <MaterialCommunityIcons name="close" size={11} color={C.ink[400]} />
+                                <Text style={{ fontSize: 11, color: C.ink[400] }}>Ignorar</Text>
+                              </TouchableOpacity>
+                            </View>
                           </View>
                         ))}
                       </ScrollView>
@@ -929,12 +944,22 @@ function ReceitaCard({ receita, onFiz, onFaltando, onPress, urgente, favoritado,
 
         <Text style={styles.receitaNome}>{receita.titulo}</Text>
 
-        {receita.url_fonte && (
+        {receita.fonte_tipo === 'web' && (
           <View style={[styles.badgeFonte, { marginBottom: 4 }]}>
-            <MaterialCommunityIcons name="download-outline" size={11} color="#D97706" />
-            <Text style={styles.badgeFonteTxt}>
-              {(() => { try { return new URL(receita.url_fonte).hostname.replace('www.', ''); } catch { return 'importada'; } })()}
-            </Text>
+            <MaterialCommunityIcons name="web" size={11} color="#D97706" />
+            <Text style={styles.badgeFonteTxt}>{receita.fonte_site ?? 'Web'}</Text>
+          </View>
+        )}
+        {receita.fonte_tipo === 'usuario' && (
+          <View style={[styles.badgeFonte, { marginBottom: 4, backgroundColor: '#ede9fe', borderColor: '#c4b5fd' }]}>
+            <MaterialCommunityIcons name="account" size={11} color="#7c3aed" />
+            <Text style={[styles.badgeFonteTxt, { color: '#7c3aed' }]}>Comunidade</Text>
+          </View>
+        )}
+        {receita.fonte_tipo === 'cookme' && (
+          <View style={[styles.badgeFonte, { marginBottom: 4, backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }]}>
+            <MaterialCommunityIcons name="chef-hat" size={11} color="#16a34a" />
+            <Text style={[styles.badgeFonteTxt, { color: '#16a34a' }]}>CookMe</Text>
           </View>
         )}
 

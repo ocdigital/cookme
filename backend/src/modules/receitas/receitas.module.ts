@@ -19,6 +19,7 @@ import { MOIEngineService } from './services/moi-engine.service';
 import { ReceiptOcrService } from './services/receipt-ocr.service';
 import { ProductClassifierService } from './services/product-classifier.service';
 import { ReceiptImportService } from './services/receipt-import.service';
+import { MetricasModule } from '../metricas/metricas.module';
 import { RecipeSuggestionService } from './services/recipe-suggestion.service';
 import { RecipeExecutionService } from './services/recipe-execution.service';
 import { RecipeGeneratorService } from './services/recipe-generator.service';
@@ -42,7 +43,6 @@ import { ReceitasController } from './receitas.controller';
 import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
 import { ReceiptImportController } from './controllers/receipt-import.controller';
 import { RecipeSuggestionController } from './controllers/recipe-suggestion.controller';
-import { RecipeExecutionController } from './controllers/recipe-execution.controller';
 import { RecipeGeneratorController } from './controllers/recipe-generator.controller';
 import { RecipeTestController } from './controllers/recipe-test.controller';
 import { ReceitasUsuarioController } from './controllers/receitas-usuario.controller';
@@ -69,6 +69,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     UploadModule,
     ListasModule,
     SubscriptionModule,
+    MetricasModule,
   ],
   providers: [
     CronLogService,
@@ -90,7 +91,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
   controllers: [
     ReceitasUsuarioController, ModeracaoUsuarioController,
     ReceitasController, ReceiptOcrController, ReceiptImportController,
-    RecipeSuggestionController, RecipeExecutionController,
+    RecipeSuggestionController,
     RecipeGeneratorController, RecipeTestController,
     AvaliacaoController,
   ],

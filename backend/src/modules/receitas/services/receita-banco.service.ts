@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Receita } from '../entities/receita.entity';
@@ -156,14 +156,17 @@ export class ReceitaBancoService {
 
     if (normalizados.length === 0) return [];
 
-    // Busca receitas que têm ingredientes_chave preenchidos e status ok
-    // url_fonte IS NULL = apenas receitas geradas pelo CookMe (não scrapeadas)
+    // Busca receitas que têm ingredientes_chave preenchidos e status ok.
+    // Banco público estrito: url_fonte IS NULL AND autor_id IS NULL — receitas
+    // importadas são biblioteca pessoal e NUNCA entram no matching compartilhado
+    // (separação jurídica, Lei 9.610/98).
     const receitas = await this.receitaRepo
       .createQueryBuilder('r')
       .where('r.ingredientes_chave IS NOT NULL')
       .andWhere("r.status_moderacao = 'ok'")
       .andWhere("array_length(r.ingredientes_chave, 1) >= 2")
-      .andWhere('(r.url_fonte IS NULL OR r.autor_id IS NOT NULL)')
+      .andWhere('r.url_fonte IS NULL')
+      .andWhere('r.autor_id IS NULL')
       .orderBy('r.vezes_executada', 'DESC')
       .addOrderBy('r.avaliacao_media', 'DESC')
       .limit(200)
@@ -181,7 +184,8 @@ export class ReceitaBancoService {
       for (const chave of chaves) {
         const peso = this.pesoIngrediente(chave, receita.nome);
         pesoTotal += peso;
-        if (normalizados.some((n) => n.includes(chave) || chave.includes(n))) {
+        if (normalizados.some((n) => n.includes(chave) || chave.includes(n)) ||
+            [...PROTAGONISTAS].some((prot) => chave.includes(prot) && normalizados.some((n) => n.includes(prot)))) {
           pesoEncontrado += peso;
         }
       }
@@ -210,6 +214,7 @@ export class ReceitaBancoService {
   async listarDisponiveisParaUsuario(
     ingredientes: string[],
     limite = 50,
+    usuarioId?: string,
   ): Promise<Array<{
     receita: Receita;
     cobertura: number;
@@ -219,7 +224,8 @@ export class ReceitaBancoService {
   }>> {
     const normalizados = this.normalizarLista(ingredientes);
 
-    const receitas = await this.receitaRepo
+    // Receitas do banco público (sem url_fonte, sem autor)
+    const receitasPublicas = await this.receitaRepo
       .createQueryBuilder('r')
       .leftJoinAndSelect('r.ingredientes', 'ri')
       .leftJoinAndSelect('ri.produto', 'produto')
@@ -232,6 +238,20 @@ export class ReceitaBancoService {
       .addOrderBy('r.avaliacao_media', 'DESC')
       .limit(200)
       .getMany();
+
+    // Receitas importadas pelo próprio usuário — sempre incluídas, cobertura=1 (usuário escolheu importar)
+    const receitasUsuario: Receita[] = usuarioId ? await this.receitaRepo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.ingredientes', 'ri')
+      .leftJoinAndSelect('ri.produto', 'produto')
+      .where('r.autor_id = :uid', { uid: usuarioId })
+      .andWhere("r.status_moderacao = 'ok'")
+      .andWhere('r.url_fonte IS NOT NULL')
+      .orderBy('r.criado_em', 'DESC')
+      .limit(50)
+      .getMany() : [];
+
+    const receitas = [...receitasPublicas];
 
     type ItemResultado = { receita: Receita; cobertura: number; disponivel: boolean; temProtagonista: boolean; faltando: string[] };
 
@@ -286,7 +306,10 @@ export class ReceitaBancoService {
           }
 
           pesoTotal += peso;
-          const presente = normalizados.some((n) => n.includes(chave) || chave.includes(n));
+          // Match direto OU via protagonista compartilhado
+          // Ex: chave="coxas de frango", inv="frango coxinha da asa" → ambos contêm "frango" → match
+          const presente = normalizados.some((n) => n.includes(chave) || chave.includes(n)) ||
+            [...PROTAGONISTAS].some((prot) => chave.includes(prot) && normalizados.some((n) => n.includes(prot)));
           if (presente) {
             pesoEncontrado += peso;
             // Marca se algum protagonista está presente
@@ -321,11 +344,22 @@ export class ReceitaBancoService {
       })
       .slice(0, limite);
 
+    // Adiciona receitas importadas pelo usuário com disponivel=true (ele importou, portanto tem os ingredientes)
+    const resultadoImportadas = receitasUsuario.map((receita) => ({
+      receita,
+      cobertura: 1,
+      disponivel: true,
+      temProtagonista: true,
+      faltando: [] as string[],
+    }));
+
+    const resultadoFinal = [...resultadoImportadas, ...resultado].slice(0, limite);
+
     this.logger.log(
-      `Listagem: ${ingredientes.length} ingredientes → ${resultado.filter(r => r.disponivel).length} disponíveis, ${resultado.filter(r => !r.disponivel && r.temProtagonista).length} com protagonista, ${resultado.filter(r => !r.disponivel && !r.temProtagonista).length} parciais`,
+      `Listagem: ${ingredientes.length} ingredientes → ${resultadoFinal.filter(r => r.disponivel).length} disponíveis (${resultadoImportadas.length} importadas), ${resultadoFinal.filter(r => !r.disponivel && r.temProtagonista).length} com protagonista, ${resultadoFinal.filter(r => !r.disponivel && !r.temProtagonista).length} parciais`,
     );
 
-    return resultado;
+    return resultadoFinal;
   }
 
   /**
@@ -370,8 +404,8 @@ export class ReceitaBancoService {
       origem: (receita as any).url_fonte ? 'internet' : 'ia_gerada',
       url_fonte: (receita as any).url_fonte || null,
       avaliacao_media: (receita as any).avaliacao || 0,
-      // Receitas do usuário (importadas) → ok direto; scrapeadas (url_fonte) → ok direto; geradas pela IA sem score → arquivar
-      status_moderacao: (proprietarioId || (receita as any).url_fonte) ? 'ok' : ((receita.validation_score != null && receita.validation_score >= 70) ? 'ok' : 'arquivado'),
+      // Receitas do usuário (importadas) → ok direto; geradas pela IA: score>=70 ok, score<70 em_revisao, null (erro API) em_revisao
+      status_moderacao: (proprietarioId || (receita as any).url_fonte) ? 'ok' : (receita.validation_score != null ? (receita.validation_score >= 70 ? 'ok' : 'em_revisao') : 'em_revisao'),
       validation_score: receita.validation_score ?? null,
       validation_issues: receita.validation_issues?.join(' | ') ?? null,
       tags_dieta: this.classificacao.classificarTags(ingredientesChave, receita.tags_dieta || [], receita.titulo) || undefined,
@@ -463,9 +497,22 @@ export class ReceitaBancoService {
     return produtos.map(p => (p as any).nome_display || p.nome);
   }
 
-  async buscarPorId(id: string): Promise<Receita> {
+  /**
+   * Busca receita por ID. Se `paraUsuarioId` for informado, aplica a checagem
+   * de dono: receita com autor_id (importada/criada por usuário) só é visível
+   * ao próprio autor — para terceiros responde 404 (não 403, para não
+   * confirmar a existência).
+   */
+  async buscarPorId(id: string, paraUsuarioId?: string): Promise<Receita> {
     const receita = await this.receitaRepo.findOne({ where: { id } });
-    if (!receita) throw new Error(`Receita ${id} não encontrada`);
+    if (!receita) throw new NotFoundException(`Receita ${id} não encontrada`);
+    if (
+      paraUsuarioId !== undefined &&
+      (receita as any).autor_id &&
+      (receita as any).autor_id !== paraUsuarioId
+    ) {
+      throw new NotFoundException(`Receita ${id} não encontrada`);
+    }
     return receita;
   }
 

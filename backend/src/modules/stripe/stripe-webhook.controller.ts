@@ -9,6 +9,7 @@ import { StripeService } from './stripe.service';
 import { SubscriptionService } from '../affiliate/services/subscription.service';
 import { SubscriptionPlan } from '../affiliate/entities/subscription.entity';
 import { ConfigService } from '@nestjs/config';
+import { MetricasService } from '../metricas/metricas.service';
 
 @ApiTags('Stripe')
 @SkipThrottle()
@@ -20,6 +21,7 @@ export class StripeWebhookController {
     private readonly stripeService: StripeService,
     private readonly subscriptionService: SubscriptionService,
     private readonly config: ConfigService,
+    private readonly metricas: MetricasService,
   ) {}
 
   private priceIdToPlano(priceId: string): SubscriptionPlan {
@@ -71,6 +73,7 @@ export class StripeWebhookController {
         );
 
         this.logger.log(`Assinatura criada: usuario=${usuarioId} plano=${plano}`);
+        await this.metricas.registrar(usuarioId, 'assinatura_criada', { plano });
         break;
       }
 

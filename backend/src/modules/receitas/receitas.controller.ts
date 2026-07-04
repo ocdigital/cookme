@@ -34,6 +34,7 @@ import { CreateReceitaDto } from './dto/create-receita.dto';
 import { UpdateReceitaDto } from './dto/update-receita.dto';
 import { ExecutarReceitaDto } from './dto/executar-receita.dto';
 import { SubscriptionService } from '../affiliate/services/subscription.service';
+import { ReceitaBancoService } from './services/receita-banco.service';
 
 @ApiTags('Receitas')
 @ApiBearerAuth()
@@ -46,6 +47,7 @@ export class ReceitasController {
     private readonly recipeGeneratorService: RecipeGeneratorService,
     private readonly recipeSearchService: RecipeSearchService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly receitaBancoService: ReceitaBancoService,
   ) {}
 
   @Post()
@@ -232,7 +234,7 @@ export class ReceitasController {
   }
 
   @Post('importar-url')
-  @ApiOperation({ summary: 'Importa receita de uma URL externa — salva como privada do usuário com badge de fonte (Premium)' })
+  @ApiOperation({ summary: 'Importa receita de uma URL externa — salva como privada do usuário com badge de fonte' })
   async importarUrl(
     @CurrentUser() user: Usuario,
     @Body('url') url: string,
@@ -240,10 +242,12 @@ export class ReceitasController {
     if (!url?.startsWith('http')) {
       throw new BadRequestException('URL inválida');
     }
-    await this.subscriptionService.verificarPremium(user.id, 'Importar receitas');
-    const receita = await this.recipeSearchService.scraparUrl(url);
-    if (!receita) throw new BadRequestException('Não foi possível extrair receita desta URL');
-    return { receita, nova: true };
+    const receitaGerada = await this.recipeSearchService.scraparUrl(url);
+    if (!receitaGerada) throw new BadRequestException('Não foi possível extrair receita desta URL');
+    // Injeta url_fonte antes de salvar — salvarReceitaGerada usa esse campo para status_moderacao=ok e origem=internet
+    (receitaGerada as any).url_fonte = url;
+    const salva = await this.receitaBancoService.salvarReceitaGerada(receitaGerada, user.id);
+    return { receita: salva, nova: true };
   }
 
   @Delete(':id')

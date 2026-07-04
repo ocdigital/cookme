@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert, RefreshControl, Modal, TextInput, Platform, AppState, Vibration,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
@@ -98,6 +99,36 @@ function EditValidadeModal({
   onSave: (id: string, data: string) => void;
 }) {
   const [valor, setValor] = useState('');
+  const [escaneando, setEscaneando] = useState(false);
+
+  // 📷 Escaneia o rótulo do produto e extrai a validade via OCR (Gemini Vision)
+  const escanearRotulo = async () => {
+    try {
+      const permissao = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissao.granted) {
+        Alert.alert('Permissão necessária', 'Autorize o uso da câmera para escanear o rótulo.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({ quality: 0.7, base64: true });
+      if (result.canceled || !result.assets?.[0]?.base64) return;
+
+      setEscaneando(true);
+      const res = await api.post('/compras/ocr-validade', {
+        image_base64: result.assets[0].base64,
+      });
+      const dataIso: string | null = res.data?.data_validade ?? null;
+      if (!dataIso) {
+        Alert.alert('Não encontrei a data', 'Tente aproximar a câmera da data de validade ou digite manualmente.');
+        return;
+      }
+      const [ano, mes, dia] = dataIso.split('-');
+      setValor(`${dia}/${mes}/${ano}`);
+    } catch {
+      Alert.alert('Erro', 'Falha ao escanear o rótulo. Digite a data manualmente.');
+    } finally {
+      setEscaneando(false);
+    }
+  };
 
   React.useEffect(() => {
     if (item?.data_validade) {
@@ -152,6 +183,20 @@ function EditValidadeModal({
             maxLength={10}
             autoFocus
           />
+          <TouchableOpacity
+            style={styles.modalBtnScan}
+            onPress={escanearRotulo}
+            disabled={escaneando}
+          >
+            {escaneando ? (
+              <ActivityIndicator size="small" color={C.green[600]} />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="camera-outline" size={18} color={C.green[600]} />
+                <Text style={styles.modalBtnScanText}>Escanear validade do rótulo</Text>
+              </>
+            )}
+          </TouchableOpacity>
           <View style={styles.modalBtns}>
             <TouchableOpacity style={styles.modalBtnSecondary} onPress={onClose}>
               <Text style={styles.modalBtnSecondaryText}>Cancelar</Text>
@@ -222,8 +267,11 @@ export default function DespensaScreen() {
     queryClient.invalidateQueries({ queryKey: queryKeys.inventario() });
   }, [queryClient]);
 
-  // Recarrega ao focar
-  useFocusEffect(useCallback(() => { invalidateInventario(); }, []));
+  // Recarrega ao focar — invalidate + refetch garante dados frescos mesmo com offlineFirst
+  useFocusEffect(useCallback(() => {
+    invalidateInventario();
+    refetch();
+  }, []));
 
   // Recarrega quando app volta do background
   const appState = useRef(AppState.currentState);
@@ -929,6 +977,12 @@ const styles = StyleSheet.create({
     ...T.body, color: C.ink[900], backgroundColor: C.ink[50], marginTop: 4,
   },
   modalBtns: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  modalBtnScan: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 10, marginBottom: 10, borderRadius: radius.md,
+    borderWidth: 1, borderColor: C.green[600], borderStyle: 'dashed',
+  },
+  modalBtnScanText: { ...T.small, color: C.green[600], fontWeight: '600' },
   modalBtnSecondary: {
     flex: 1, paddingVertical: 12, borderRadius: radius.md,
     borderWidth: 1, borderColor: C.ink[200], alignItems: 'center',

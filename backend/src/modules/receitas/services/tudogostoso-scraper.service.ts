@@ -396,8 +396,10 @@ export class TudoGostosoScraperService {
 
     return urls.slice(0, quantidade).map((url) => {
       const slug = url.split('/receita/').pop()?.replace('.html', '') ?? '';
-      const titulo = slug.replace(/-\d+$/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      return { titulo, url, site: 'tudogostoso.com.br' };
+      // Slug format: "197051-arroz-com-alho" → remove leading number, capitalize
+      const semNumero = slug.replace(/^\d+-/, '').replace(/-\d+$/, '');
+      const titulo = semNumero.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      return { titulo, url, site: 'TudoGostoso' };
     });
   }
 

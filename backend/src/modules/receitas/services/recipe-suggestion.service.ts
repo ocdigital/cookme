@@ -303,7 +303,9 @@ export class RecipeSuggestionService {
 
       let score = cobertura * 0.5;
       if (temFavorito) score += 0.3;
-      if (temVencendo) score += 0.1;
+      // Usar o que está vencendo importa mais que preferência num horizonte
+      // de 3 dias — é o loop anti-desperdício (Fase 7.3 do plano)
+      if (temVencendo) score += 0.25;
       if (temAversao) score -= 0.4;
       if (idsRecentes.has(receita.id)) score -= 0.6;
 
