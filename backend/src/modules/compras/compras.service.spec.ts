@@ -188,6 +188,67 @@ describe('ComprasService', () => {
       expect(result.salvos).toBe(1);
     });
 
+    it('dois itens novos com o MESMO código de balança não explodem a unique de produtos', async () => {
+      // Bug de produção 2026-07-04: cupom com item pesado 2x (código interno
+      // 43362) → dois "novos" com mesmo codigo_barras → 23505 no batch insert
+      const usuarioId = '123e4567-e89b-12d3-a456-426614174000';
+      const itens = [
+        { nome: 'BANANA PRATA', quantidade: 1, valor: 5.0, codigo_barras: '43362' },
+        { nome: 'BANANA PRATA KG', quantidade: 0.8, valor: 4.0, codigo_barras: '43362' },
+      ];
+
+      const createSpy = mockCreateProduto();
+      const saveSpy = mockSaveEcoando(produtoRepository);
+      jest.spyOn(inventarioRepository, 'findOne').mockResolvedValue(null);
+      jest.spyOn(inventarioRepository, 'create').mockImplementation((dto: any) => dto as any);
+      mockSaveEcoando(inventarioRepository);
+
+      const result = await service.salvarItensCupomNoInventario(usuarioId, itens);
+
+      // Batch de produtos novos deve conter UM produto para o código 43362
+      const batchSalvo = saveSpy.mock.calls[0][0] as any[];
+      const comCodigo = batchSalvo.filter((p) => p.codigo_barras === '43362');
+      expect(comCodigo).toHaveLength(1);
+      expect(result.total).toBe(2);
+    });
+
+    it('unique violation no batch de produtos não derruba o request (fallback re-consulta)', async () => {
+      const usuarioId = '123e4567-e89b-12d3-a456-426614174000';
+      const itens = [{ nome: 'Banana Nova', quantidade: 1, valor: 5.0, codigo_barras: '43362' }];
+
+      const produtoJaExistente = { id: 'prod-antigo', nome: 'BANANA', codigo_barras: '43362' };
+
+      mockCreateProduto();
+      // 1ª tentativa de save explode com unique violation (código já no banco
+      // sob outro nome que o lookup inicial não casou)
+      jest
+        .spyOn(produtoRepository, 'save')
+        .mockRejectedValueOnce({ code: '23505', detail: 'Key (codigo_barras)=(43362) already exists.' });
+      // Re-consulta acha o produto existente
+      jest.spyOn(produtoRepository, 'createQueryBuilder')
+        .mockReturnValueOnce({
+          where: jest.fn().mockReturnThis(),
+          orWhere: jest.fn().mockReturnThis(),
+          getMany: jest.fn().mockResolvedValue([]), // lookup inicial não acha
+        } as any)
+        .mockReturnValueOnce({
+          where: jest.fn().mockReturnThis(),
+          orWhere: jest.fn().mockReturnThis(),
+          getMany: jest.fn().mockResolvedValue([produtoJaExistente]), // fallback acha
+        } as any);
+      jest.spyOn(inventarioRepository, 'findOne').mockResolvedValue(null);
+      jest.spyOn(inventarioRepository, 'create').mockImplementation((dto: any) => dto as any);
+      mockSaveEcoando(inventarioRepository);
+
+      const result = await service.salvarItensCupomNoInventario(usuarioId, itens);
+
+      // Não explode; usa o produto que já existia
+      expect(result.salvos).toBe(1);
+      expect(inventarioRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ produto_id: 'prod-antigo' }),
+      );
+    });
+
     it('deve continuar salvando mesmo se um item falhar', async () => {
       const usuarioId = '123e4567-e89b-12d3-a456-426614174000';
       const itens = [
