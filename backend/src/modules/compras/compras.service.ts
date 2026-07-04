@@ -3,6 +3,7 @@ import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Compra } from './entities/compra.entity';
 import { CompraItem } from './entities/compra-item.entity';
+import { estimarDataValidade } from '../inventario/validade-estimada.util';
 import { CreateCompraDto } from './dto/create-compra.dto';
 import { Produto } from '../produtos/entities/produto.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
@@ -126,8 +127,6 @@ export class ComprasService {
 
       // Atualiza inventário via upsert: só produtos que são (ou podem ser) ingredientes
       // ingrediente_receita=false significa explicitamente não-ingrediente (p.ex. papel higiênico)
-      const dataValidade = new Date();
-      dataValidade.setDate(dataValidade.getDate() + 30);
       const metodo = (savedCompra.metodo_cadastro as MetodoCadastro) ?? MetodoCadastro.CUPOM_SAT;
 
       for (const ci of savedItems.filter((ci) => {
@@ -145,7 +144,16 @@ export class ComprasService {
            DO UPDATE SET
              quantidade_disponivel = inventario.quantidade_disponivel + EXCLUDED.quantidade_disponivel,
              ultima_atualizacao = NOW()`,
-          [usuarioId, ci.produto_id, ci.quantidade, ci.unidade, dataValidade, metodo, ci.id ?? null],
+          [
+            usuarioId, ci.produto_id, ci.quantidade, ci.unidade,
+            // Prioridade: validade real do item (manual/escaneada) > estimada por categoria
+            ci.validade_final ?? estimarDataValidade(
+              produtoMap.get(ci.produto_id!)?.nome ?? '',
+              new Date(),
+              (produtoMap.get(ci.produto_id!) as any)?.validade_padrao_dias,
+            ),
+            metodo, ci.id ?? null,
+          ],
         );
       }
     }
@@ -572,8 +580,7 @@ IMPORTANTE:
     }
 
     // FASE 3 — inventário: apenas ingredientes, em background (não bloqueia o retorno)
-    const dataValidade = new Date();
-    dataValidade.setDate(dataValidade.getDate() + 30);
+    const agora = new Date();
 
     const itensSalvos: Inventario[] = [];
     const metasIngredientes = [...metaPorProduto.values()].filter(
@@ -582,6 +589,12 @@ IMPORTANTE:
 
     for (const meta of metasIngredientes) {
       try {
+        // Validade estimada por categoria do produto (editável pelo usuário)
+        const dataValidade = estimarDataValidade(
+          meta.produto.nome_display || meta.produto.nome,
+          agora,
+          (meta.produto as any).validade_padrao_dias,
+        );
         const existente = await this.inventarioRepository.findOne({
           where: { usuario_id: usuarioId, produto_id: meta.produto.id, data_validade: dataValidade },
         });

@@ -130,6 +130,10 @@ export class Produto {
     @Column({ nullable: true })
     categoria_culinaria: string;
 
+    // Prazo de validade padrão em dias (precedência sobre heurística por nome)
+    @Column({ type: 'integer', nullable: true })
+    validade_padrao_dias: number | null;
+
     // Região de origem (nordeste, norte, sul, sudeste, centro_oeste)
     @Column({ nullable: true })
     regional: string;
