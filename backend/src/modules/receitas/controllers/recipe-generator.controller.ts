@@ -12,6 +12,7 @@ import { runWithRequestId } from '@common/request-context';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Preferencia } from '@modules/usuarios/entities/preferencia.entity';
+import { MetricasService } from '@modules/metricas/metricas.service';
 
 @ApiTags('Receitas')
 @Controller('receitas/gerar')
@@ -22,6 +23,7 @@ export class RecipeGeneratorController {
     private readonly push: PushNotificationService,
     @InjectRepository(Preferencia)
     private readonly preferenciaRepo: Repository<Preferencia>,
+    private readonly metricas: MetricasService,
   ) {}
 
   @Post()
@@ -48,6 +50,7 @@ export class RecipeGeneratorController {
     const receitas = await runWithRequestId(() =>
       this.recipeGeneratorService.gerarReceitas(ingredientesFinais, forcarIA, modoAlimentar),
     );
+    this.metricas.registrar(user.id, 'receita_gerada', { quantidade: receitas.length }).catch(() => {});
 
     if (receitas.length > 0) {
       this.push.enviarParaUsuario(

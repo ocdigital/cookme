@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Optional } from '@nestjs/common';
+import { LlmMetricsService } from '../../metricas/llm-metrics.service';
 import Anthropic from '@anthropic-ai/sdk';
 import Groq from 'groq-sdk';
 import axios from 'axios';
@@ -26,7 +28,10 @@ export class RecipeValidationService {
   private geminiApiKey: string | null = null;
   private groq: Groq | null = null;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional() private readonly llmMetrics?: LlmMetricsService,
+  ) {
     const apiKey = this.configService.get<string>('CLAUDE_API_KEY') ||
                    this.configService.get<string>('ANTHROPIC_API_KEY');
     if (apiKey) {
@@ -104,15 +109,25 @@ Score 0 se: protagonista ausente nos ingredientes, preparo pede ingrediente não
 
     // Haiku
     if (this.anthropic) {
+      const t0 = Date.now();
       try {
         const msg = await this.anthropic.messages.create({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 600,
           messages: [{ role: 'user', content: prompt }],
         });
+        this.llmMetrics?.registrar({
+          contexto: 'validacao', provider: 'anthropic', modelo: 'claude-haiku-4-5-20251001',
+          tokens_in: msg.usage.input_tokens, tokens_out: msg.usage.output_tokens,
+          latencia_ms: Date.now() - t0, sucesso: true,
+        }).catch(() => {});
         return this.parseValidationResponse((msg.content[0] as any).text, receita.titulo);
       } catch (err: any) {
         this.logger.warn(`Haiku falhou na validação de "${receita.titulo}" (${err.status ?? err.message}) — tentando Gemini...`);
+        this.llmMetrics?.registrar({
+          contexto: 'validacao', provider: 'anthropic', modelo: 'claude-haiku-4-5-20251001',
+          latencia_ms: Date.now() - t0, sucesso: false, erro: String(err.status ?? err.message),
+        }).catch(() => {});
       }
     }
 

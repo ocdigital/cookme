@@ -8,6 +8,7 @@ import { Produto } from '../produtos/entities/produto.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
 import { ProductClassificationModule } from '../product-classification/product-classification.module';
 import { ProdutosModule } from '../produtos/produtos.module';
+import { MetricasModule } from '../metricas/metricas.module';
 import { SubscriptionModule } from '../affiliate/subscription.module';
 
 @Module({
@@ -16,6 +17,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     ProductClassificationModule,
     ProdutosModule,
     SubscriptionModule,
+    MetricasModule,
   ],
   providers: [ComprasService],
   controllers: [ComprasController],

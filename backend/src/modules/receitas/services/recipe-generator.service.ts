@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+import { Optional } from '@nestjs/common';
+import { LlmMetricsService } from '../../metricas/llm-metrics.service';
 import Anthropic from '@anthropic-ai/sdk';
 import Groq from 'groq-sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -41,6 +43,7 @@ export class RecipeGeneratorService {
     private readonly receitaBancoService: ReceitaBancoService,
     private readonly validationService: RecipeValidationService,
     private readonly ragService: RecipeRagService,
+    @Optional() private readonly llmMetrics?: LlmMetricsService,
   ) {
     const anthropicKey = this.configService.get<string>('CLAUDE_API_KEY') ||
                          this.configService.get<string>('ANTHROPIC_API_KEY');
@@ -191,6 +194,7 @@ Retorne APENAS array JSON com exatamente ${quantidade} receitas:
 
     // Tenta Haiku primeiro, com retry em erros transitórios (429, 503, timeout)
     if (this.anthropic) {
+      const t0 = Date.now();
       try {
         const msg = await retryWithBackoff(
           () => this.anthropic!.messages.create({
@@ -204,27 +208,46 @@ Retorne APENAS array JSON com exatamente ${quantidade} receitas:
         this.logger.log(
           `[${getRequestId()}] Haiku tokens — input: ${msg.usage.input_tokens}, output: ${msg.usage.output_tokens}`,
         );
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'anthropic', modelo: 'claude-haiku-4-5-20251001',
+          tokens_in: msg.usage.input_tokens, tokens_out: msg.usage.output_tokens,
+          latencia_ms: Date.now() - t0, sucesso: true,
+        }).catch(() => {});
         return this.parseReceitasJson((msg.content[0] as any).text, quantidade);
       } catch (err: any) {
         this.logger.warn(`Haiku falhou após retries (${err.status ?? err.message}) — tentando Groq...`);
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'anthropic', modelo: 'claude-haiku-4-5-20251001',
+          latencia_ms: Date.now() - t0, sucesso: false, erro: String(err.status ?? err.message),
+        }).catch(() => {});
       }
     }
 
     // Fallback 1: Gemini Flash
     if (this.gemini) {
+      const t0 = Date.now();
       try {
         this.logger.log('⚡ Gerando com Gemini Flash...');
         const prompt = `${system}\n\n${user}`;
         const result = await this.gemini.generateContent(prompt);
         const raw = result.response.text();
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'gemini', modelo: 'gemini-2.0-flash',
+          latencia_ms: Date.now() - t0, sucesso: true,
+        }).catch(() => {});
         return this.parseReceitasJson(raw, quantidade);
       } catch (err: any) {
         this.logger.warn(`Gemini falhou (${err.message}) — tentando Groq...`);
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'gemini', modelo: 'gemini-2.0-flash',
+          latencia_ms: Date.now() - t0, sucesso: false, erro: String(err.message),
+        }).catch(() => {});
       }
     }
 
     // Fallback 2: Groq (Llama 3.3 70B) — gratuito
     if (this.groq) {
+      const t0 = Date.now();
       try {
         this.logger.log('⚡ Gerando com Groq Llama 3.3 70B...');
         const resp = await this.groq.chat.completions.create({
@@ -239,9 +262,18 @@ Retorne APENAS array JSON com exatamente ${quantidade} receitas:
         const raw = resp.choices[0]?.message?.content ?? '{}';
         const obj = JSON.parse(raw);
         const arr = Array.isArray(obj) ? obj : (obj.receitas ?? []);
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'groq', modelo: 'llama-3.3-70b-versatile',
+          tokens_in: resp.usage?.prompt_tokens, tokens_out: resp.usage?.completion_tokens,
+          latencia_ms: Date.now() - t0, sucesso: true,
+        }).catch(() => {});
         return this.parseReceitasJson(JSON.stringify(arr), quantidade);
       } catch (err: any) {
         this.logger.error(`Groq falhou: ${err.message}`);
+        this.llmMetrics?.registrar({
+          contexto: 'geracao', provider: 'groq', modelo: 'llama-3.3-70b-versatile',
+          latencia_ms: Date.now() - t0, sucesso: false, erro: String(err.message),
+        }).catch(() => {});
       }
     }
 

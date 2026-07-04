@@ -22,6 +22,7 @@ import { SubscriptionService } from '../affiliate/services/subscription.service'
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Compra } from './entities/compra.entity';
+import { MetricasService } from '../metricas/metricas.service';
 import { CreateCompraDto } from './dto/create-compra.dto';
 
 @ApiTags('Compras')
@@ -31,6 +32,7 @@ export class ComprasController {
   constructor(
     private readonly comprasService: ComprasService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly metricas: MetricasService,
   ) {}
 
   @Post()
@@ -44,7 +46,9 @@ export class ComprasController {
     @CurrentUser() user: Usuario,
     @Body() createCompraDto: CreateCompraDto,
   ): Promise<Compra> {
-    return this.comprasService.create(user.id, createCompraDto);
+    const compra = await this.comprasService.create(user.id, createCompraDto);
+    this.metricas.registrar(user.id, 'cupom_lido', { metodo: 'qr' }).catch(() => {});
+    return compra;
   }
 
   @Get()
@@ -119,7 +123,9 @@ export class ComprasController {
     }
 
     await this.subscriptionService.registrarUso(user.id, 'ocr');
-    return this.comprasService.salvarItensCupomNoInventario(user.id, body.itens, body.estabelecimento?.nome);
+    const resultado = await this.comprasService.salvarItensCupomNoInventario(user.id, body.itens, body.estabelecimento?.nome);
+    this.metricas.registrar(user.id, 'cupom_lido', { metodo: 'ocr', itens: resultado.salvos }).catch(() => {});
+    return resultado;
   }
 
   @Post('ocr-validade')

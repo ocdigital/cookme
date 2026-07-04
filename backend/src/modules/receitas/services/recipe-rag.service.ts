@@ -7,6 +7,8 @@ import { createHash } from 'crypto';
 import { Receita } from '../entities/receita.entity';
 import { ReceitaRAGSchema } from '../schemas/receita-llm.schema';
 import { getRequestId } from '@common/request-context';
+import { Optional } from '@nestjs/common';
+import { LlmMetricsService } from '../../metricas/llm-metrics.service';
 
 const RAG_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
 
@@ -22,6 +24,7 @@ export class RecipeRagService {
     private readonly receitaRepo: Repository<Receita>,
     private readonly dataSource: DataSource,
     private readonly config: ConfigService,
+    @Optional() private readonly llmMetrics?: LlmMetricsService,
   ) {
     const anthropicKey = this.config.get<string>('CLAUDE_API_KEY') || this.config.get<string>('ANTHROPIC_API_KEY');
     if (anthropicKey) this.anthropic = new Anthropic({ apiKey: anthropicKey });
@@ -197,6 +200,7 @@ Responda em JSON:
 
     // Tentar Haiku primeiro, fallback para Gemini
     if (this.anthropic) {
+      const t0 = Date.now();
       try {
         const response = await this.anthropic.messages.create({
           model: 'claude-haiku-4-5-20251001',
@@ -206,13 +210,23 @@ Responda em JSON:
         this.logger.log(
           `[${getRequestId()}] RAG Haiku tokens — input: ${response.usage.input_tokens}, output: ${response.usage.output_tokens}`,
         );
+        this.llmMetrics?.registrar({
+          contexto: 'rag_adaptacao', provider: 'anthropic', modelo: 'claude-haiku-4-5-20251001',
+          tokens_in: response.usage.input_tokens, tokens_out: response.usage.output_tokens,
+          latencia_ms: Date.now() - t0, sucesso: true,
+        }).catch(() => {});
         texto = (response.content[0] as any).text;
       } catch (err: any) {
         this.logger.warn('Haiku indisponível para RAG, usando Gemini:', err?.message);
+        this.llmMetrics?.registrar({
+          contexto: 'rag_adaptacao', provider: 'anthropic', modelo: 'claude-haiku-4-5-20251001',
+          latencia_ms: Date.now() - t0, sucesso: false, erro: String(err?.message),
+        }).catch(() => {});
       }
     }
 
     if (!texto && this.geminiApiKey) {
+      const t0 = Date.now();
       try {
         const axios = (await import('axios')).default;
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.geminiApiKey}`;
@@ -221,8 +235,16 @@ Responda em JSON:
           generationConfig: { maxOutputTokens: 1024 },
         });
         texto = res.data?.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
-      } catch (err) {
+        this.llmMetrics?.registrar({
+          contexto: 'rag_adaptacao', provider: 'gemini', modelo: 'gemini-2.0-flash',
+          latencia_ms: Date.now() - t0, sucesso: texto != null,
+        }).catch(() => {});
+      } catch (err: any) {
         this.logger.error('Erro no RAG com Gemini:', err);
+        this.llmMetrics?.registrar({
+          contexto: 'rag_adaptacao', provider: 'gemini', modelo: 'gemini-2.0-flash',
+          latencia_ms: Date.now() - t0, sucesso: false, erro: String(err?.message),
+        }).catch(() => {});
       }
     }
 

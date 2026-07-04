@@ -19,6 +19,7 @@ import { MOIEngineService } from './services/moi-engine.service';
 import { ReceiptOcrService } from './services/receipt-ocr.service';
 import { ProductClassifierService } from './services/product-classifier.service';
 import { ReceiptImportService } from './services/receipt-import.service';
+import { MetricasModule } from '../metricas/metricas.module';
 import { RecipeSuggestionService } from './services/recipe-suggestion.service';
 import { RecipeExecutionService } from './services/recipe-execution.service';
 import { RecipeGeneratorService } from './services/recipe-generator.service';
@@ -68,6 +69,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     UploadModule,
     ListasModule,
     SubscriptionModule,
+    MetricasModule,
   ],
   providers: [
     CronLogService,

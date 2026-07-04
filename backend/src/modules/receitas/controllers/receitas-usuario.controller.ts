@@ -13,6 +13,7 @@ import { RecipeSearchService } from '../services/recipe-search.service';
 import { AprendizadoService } from '../services/aprendizado.service';
 import { InventarioService } from '@modules/inventario/inventario.service';
 import { ListaService } from '@modules/listas/services/lista.service';
+import { MetricasService } from '@modules/metricas/metricas.service';
 import { ReceitaExecutada } from '../entities/receita-executada.entity';
 import { ReceitaIngrediente } from '../entities/receita-ingrediente.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -46,6 +47,7 @@ export class ReceitasUsuarioController {
     @InjectRepository(PreferenciaAprendida)
     private readonly prefAprendidaRepo: Repository<PreferenciaAprendida>,
     private readonly recipeSearchService: RecipeSearchService,
+    private readonly metricas: MetricasService,
   ) {}
 
   /**
@@ -541,6 +543,7 @@ export class ReceitasUsuarioController {
 
     // Incrementa contador global da receita
     await this.receitaBancoService.incrementarExecucao(receitaId);
+    this.metricas.registrar(user.id, 'receita_feita', { receita_id: receitaId }).catch(() => {});
 
     return {
       sucesso: true,
