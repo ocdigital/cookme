@@ -20,6 +20,7 @@ import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
 import { ProductKnowledgeBase } from '@modules/product-classification/entities/product-knowledge-base.entity';
+import { OcrAliasService } from '@modules/product-classification/services/ocr-alias.service';
 
 class CreateKnowledgeBaseDto {
   product_name: string;
@@ -42,7 +43,14 @@ export class KnowledgeBaseAdminController {
   constructor(
     @InjectRepository(ProductKnowledgeBase)
     private readonly kbRepo: Repository<ProductKnowledgeBase>,
+    private readonly ocrAliasService: OcrAliasService,
   ) {}
+
+  @Get('canonizacao/stats')
+  @ApiOperation({ summary: 'Resoluções de canonização por estágio (desde o último restart)' })
+  canonizacaoStats() {
+    return this.ocrAliasService.getStats();
+  }
 
   @Get()
   @ApiOperation({ summary: 'Listar entradas do Knowledge Base (Admin)' })

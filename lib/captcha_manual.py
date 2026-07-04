@@ -24,6 +24,7 @@ from datetime import datetime
 import requests
 import argparse
 import sys
+import os
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -1370,9 +1371,14 @@ def main():
                        help='Modo de execução: manual (interativo) ou api (background)')
     parser.add_argument('--session-id', help='ID da sessão (modo API)')
     parser.add_argument('--qrcode', help='Texto do QR Code (modo API)')
-    parser.add_argument('--token', help='JWT token do usuário (modo API)')
+    parser.add_argument('--token', help='JWT token do usuário (modo API; prefira a env COOKME_SESSION_TOKEN)')
 
     args = parser.parse_args()
+
+    # Token preferencialmente via env (argv vaza em ps//proc); --token mantido
+    # como fallback de compatibilidade durante a transição
+    if not args.token:
+        args.token = os.environ.get('COOKME_SESSION_TOKEN')
 
     print("🎯 CONSULTA SAT-SP COM QR CODE")
     print("="*60)

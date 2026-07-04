@@ -3,6 +3,7 @@ import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Compra } from './entities/compra.entity';
 import { CompraItem } from './entities/compra-item.entity';
+import { estimarDataValidade } from '../inventario/validade-estimada.util';
 import { CreateCompraDto } from './dto/create-compra.dto';
 import { Produto } from '../produtos/entities/produto.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
@@ -104,6 +105,7 @@ export class ComprasService {
         preco_unitario: item.preco_unitario,
         validade_final: item.validade_final ? new Date(item.validade_final) : null,
         lote: item.lote,
+        codigo_barras: item.codigo_barras?.slice(0, 14) || null,
       }),
     );
 
@@ -125,8 +127,6 @@ export class ComprasService {
 
       // Atualiza inventário via upsert: só produtos que são (ou podem ser) ingredientes
       // ingrediente_receita=false significa explicitamente não-ingrediente (p.ex. papel higiênico)
-      const dataValidade = new Date();
-      dataValidade.setDate(dataValidade.getDate() + 30);
       const metodo = (savedCompra.metodo_cadastro as MetodoCadastro) ?? MetodoCadastro.CUPOM_SAT;
 
       for (const ci of savedItems.filter((ci) => {
@@ -144,7 +144,16 @@ export class ComprasService {
            DO UPDATE SET
              quantidade_disponivel = inventario.quantidade_disponivel + EXCLUDED.quantidade_disponivel,
              ultima_atualizacao = NOW()`,
-          [usuarioId, ci.produto_id, ci.quantidade, ci.unidade, dataValidade, metodo, ci.id ?? null],
+          [
+            usuarioId, ci.produto_id, ci.quantidade, ci.unidade,
+            // Prioridade: validade real do item (manual/escaneada) > estimada por categoria
+            ci.validade_final ?? estimarDataValidade(
+              produtoMap.get(ci.produto_id!)?.nome ?? '',
+              new Date(),
+              (produtoMap.get(ci.produto_id!) as any)?.validade_padrao_dias,
+            ),
+            metodo, ci.id ?? null,
+          ],
         );
       }
     }
@@ -507,6 +516,7 @@ IMPORTANTE:
       unidade: UnidadeMedida;
       valor: number;
       valor_unitario: number;
+      codigo_barras: string | null;
     }>();
 
     for (const item of itensValidos) {
@@ -520,13 +530,14 @@ IMPORTANTE:
         unidade: this.normalizarUnidade(item.unidade),
         valor: item.valor ?? 0,
         valor_unitario: item.valor_unitario ?? (item.valor && quantidade ? item.valor / quantidade : 0),
+        codigo_barras: item.codigo_barras?.slice(0, 14) || null,
       });
     }
 
     // Disparar normalização e imagens em background para produtos novos (não bloqueia)
     if (novos.length > 0) {
       Promise.allSettled(novos.map((p) =>
-        this.ocrAliasService.resolverNomeCanônico(p.nome)
+        this.ocrAliasService.resolverNomeCanônico(p.nome, p.codigo_barras || undefined)
           .then((nd) => { if (nd && nd !== p.nome.toLowerCase()) this.produtoRepository.update(p.id, { nome_display: nd }).catch(() => {}); })
           .catch(() => {})
       )).catch(() => {});
@@ -556,6 +567,7 @@ IMPORTANTE:
         preco_total: meta.valor,
         unidade: meta.unidade,
         adicionado_inventario: false,
+        codigo_barras: meta.codigo_barras || null,
       }));
       await this.dataSource
         .createQueryBuilder()
@@ -568,8 +580,7 @@ IMPORTANTE:
     }
 
     // FASE 3 — inventário: apenas ingredientes, em background (não bloqueia o retorno)
-    const dataValidade = new Date();
-    dataValidade.setDate(dataValidade.getDate() + 30);
+    const agora = new Date();
 
     const itensSalvos: Inventario[] = [];
     const metasIngredientes = [...metaPorProduto.values()].filter(
@@ -578,6 +589,12 @@ IMPORTANTE:
 
     for (const meta of metasIngredientes) {
       try {
+        // Validade estimada por categoria do produto (editável pelo usuário)
+        const dataValidade = estimarDataValidade(
+          meta.produto.nome_display || meta.produto.nome,
+          agora,
+          (meta.produto as any).validade_padrao_dias,
+        );
         const existente = await this.inventarioRepository.findOne({
           where: { usuario_id: usuarioId, produto_id: meta.produto.id, data_validade: dataValidade },
         });

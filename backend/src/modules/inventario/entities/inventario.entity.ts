@@ -63,6 +63,10 @@ export class Inventario {
     @Column({ type: 'timestamp', nullable: true })
     esgotado_em: Date;
 
+    // Último push de "vencendo em breve" enviado para este item (anti-spam)
+    @Column({ type: 'timestamp', nullable: true })
+    validade_avisada_em: Date | null;
+
     @CreateDateColumn()
     criado_em: Date;
 

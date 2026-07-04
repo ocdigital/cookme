@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Receita } from '../entities/receita.entity';
@@ -156,14 +156,17 @@ export class ReceitaBancoService {
 
     if (normalizados.length === 0) return [];
 
-    // Busca receitas que têm ingredientes_chave preenchidos e status ok
-    // url_fonte IS NULL = apenas receitas geradas pelo CookMe (não scrapeadas)
+    // Busca receitas que têm ingredientes_chave preenchidos e status ok.
+    // Banco público estrito: url_fonte IS NULL AND autor_id IS NULL — receitas
+    // importadas são biblioteca pessoal e NUNCA entram no matching compartilhado
+    // (separação jurídica, Lei 9.610/98).
     const receitas = await this.receitaRepo
       .createQueryBuilder('r')
       .where('r.ingredientes_chave IS NOT NULL')
       .andWhere("r.status_moderacao = 'ok'")
       .andWhere("array_length(r.ingredientes_chave, 1) >= 2")
-      .andWhere('(r.url_fonte IS NULL OR r.autor_id IS NOT NULL)')
+      .andWhere('r.url_fonte IS NULL')
+      .andWhere('r.autor_id IS NULL')
       .orderBy('r.vezes_executada', 'DESC')
       .addOrderBy('r.avaliacao_media', 'DESC')
       .limit(200)
@@ -494,9 +497,22 @@ export class ReceitaBancoService {
     return produtos.map(p => (p as any).nome_display || p.nome);
   }
 
-  async buscarPorId(id: string): Promise<Receita> {
+  /**
+   * Busca receita por ID. Se `paraUsuarioId` for informado, aplica a checagem
+   * de dono: receita com autor_id (importada/criada por usuário) só é visível
+   * ao próprio autor — para terceiros responde 404 (não 403, para não
+   * confirmar a existência).
+   */
+  async buscarPorId(id: string, paraUsuarioId?: string): Promise<Receita> {
     const receita = await this.receitaRepo.findOne({ where: { id } });
-    if (!receita) throw new Error(`Receita ${id} não encontrada`);
+    if (!receita) throw new NotFoundException(`Receita ${id} não encontrada`);
+    if (
+      paraUsuarioId !== undefined &&
+      (receita as any).autor_id &&
+      (receita as any).autor_id !== paraUsuarioId
+    ) {
+      throw new NotFoundException(`Receita ${id} não encontrada`);
+    }
     return receita;
   }
 

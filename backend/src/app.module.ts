@@ -32,6 +32,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { HealthModule } from './modules/health/health.module';
 import { StripeModule } from './modules/stripe/stripe.module';
+import { MetricasModule } from './modules/metricas/metricas.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { StripeModule } from './modules/stripe/stripe.module';
     AuditLogModule,
     HealthModule,
     StripeModule,
+    MetricasModule,
   ],
   providers: [
     {

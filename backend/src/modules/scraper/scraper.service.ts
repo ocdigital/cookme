@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -16,9 +17,11 @@ import {
   ScraperSessionResponse,
 } from './interfaces/scraper-session.interface';
 import { Compra } from '../compras/entities/compra.entity';
+import { ScraperSessao } from './entities/scraper-sessao.entity';
+import { detectarUfDoQr, UFS_SUPORTADAS_QR } from './uf-chave.util';
 
 @Injectable()
-export class ScraperService {
+export class ScraperService implements OnModuleInit {
   private readonly logger = new Logger(ScraperService.name);
   private readonly activeSessions = new Map<string, ScraperSession>();
   private readonly MAX_CONCURRENT_SESSIONS = 5;
@@ -28,6 +31,8 @@ export class ScraperService {
   constructor(
     @InjectRepository(Compra)
     private readonly compraRepository: Repository<Compra>,
+    @InjectRepository(ScraperSessao)
+    private readonly sessaoRepo: Repository<ScraperSessao>,
     private readonly jwtService: JwtService,
   ) {
     // Caminho para o script Python (ajuste conforme sua estrutura)
@@ -43,12 +48,66 @@ export class ScraperService {
   }
 
   /**
+   * Pós-restart: sessões que ficaram "em andamento" no banco perderam o
+   * processo (vivia só em RAM) — marca como erro com mensagem amigável em
+   * vez de sumirem silenciosamente.
+   */
+  async onModuleInit(): Promise<void> {
+    try {
+      const resultado = await this.sessaoRepo
+        .createQueryBuilder()
+        .update(ScraperSessao)
+        .set({
+          status: SessionStatus.ERRO,
+          mensagem_erro: 'Leitura interrompida por reinício do servidor. Escaneie o QR novamente ou use a foto do cupom.',
+        })
+        .where('status NOT IN (:...finais)', {
+          finais: [SessionStatus.CONCLUIDO, SessionStatus.ERRO, SessionStatus.TIMEOUT, SessionStatus.CANCELADO],
+        })
+        .execute();
+      if (resultado.affected) {
+        this.logger.warn(`${resultado.affected} sessão(ões) órfã(s) de scraper marcadas como erro pós-restart`);
+      }
+    } catch (e: any) {
+      this.logger.warn(`Falha ao limpar sessões órfãs: ${e.message}`);
+    }
+  }
+
+  /**
+   * Snapshot da sessão no banco (fire-and-forget — nunca bloqueia o fluxo).
+   */
+  private persistirSessao(session: ScraperSession, mensagemErro?: string): void {
+    this.sessaoRepo
+      .save({
+        id: session.id,
+        usuario_id: session.userId,
+        qrcode_texto: session.qrcodeTexto,
+        status: session.status,
+        progress: session.progress,
+        mensagem_erro: mensagemErro ?? (session as any).errorMessage ?? null,
+        expira_em: session.expiresAt,
+      })
+      .catch((e) => this.logger.warn(`Falha ao persistir sessão ${session.id}: ${e.message}`));
+  }
+
+  /**
    * Inicia uma nova consulta de cupom fiscal
    */
   async iniciarConsulta(
     userId: string,
     qrcodeTexto: string,
   ): Promise<ScraperSessionResponse> {
+    // UF fora da cobertura do caminho QR → resposta imediata orientando o OCR,
+    // sem gastar sessão (cobertura atual: NFC-e SP + SAT-SP)
+    const uf = detectarUfDoQr(qrcodeTexto);
+    if (uf && !UFS_SUPORTADAS_QR.has(uf)) {
+      throw new BadRequestException({
+        message: `A leitura por QR code ainda não está disponível para ${uf}. Use a foto do cupom — funciona em todo o Brasil.`,
+        uf,
+        sugestao: 'ocr',
+      });
+    }
+
     // Verificar limite de sessões simultâneas
     if (this.activeSessions.size >= this.MAX_CONCURRENT_SESSIONS) {
       throw new BadRequestException(
@@ -71,6 +130,7 @@ export class ScraperService {
     };
 
     this.activeSessions.set(sessionId, session);
+    this.persistirSessao(session);
     this.logger.log(`Nova sessão criada: ${sessionId} para usuário ${userId}`);
 
     // Executar scraper em background (não bloqueia)
@@ -81,6 +141,7 @@ export class ScraperService {
       );
       session.status = SessionStatus.ERRO;
       session.erro = error.message;
+      this.persistirSessao(session, error.message);
     });
 
     return this.sessionToResponse(session);
@@ -146,6 +207,7 @@ export class ScraperService {
     session.status = SessionStatus.PROCESSANDO_DADOS;
     session.progress = 70;
     session.updatedAt = new Date();
+    this.persistirSessao(session);
   }
 
   /**
@@ -167,6 +229,7 @@ export class ScraperService {
 
     session.status = SessionStatus.CANCELADO;
     session.updatedAt = new Date();
+    this.persistirSessao(session);
 
     // Remover após 30 segundos
     setTimeout(() => {
@@ -255,6 +318,7 @@ export class ScraperService {
         { expiresIn: '2h' },
       );
 
+      // Token via env do processo filho — argv é visível em ps//proc
       const pythonProcess = spawn(pythonPath, [
         this.PYTHON_SCRIPT_PATH,
         '--session-id',
@@ -263,9 +327,9 @@ export class ScraperService {
         session.qrcodeTexto,
         '--mode',
         'api',
-        '--token',
-        userToken,
-      ]);
+      ], {
+        env: { ...process.env, COOKME_SESSION_TOKEN: userToken },
+      });
 
       session.processoHandle = pythonProcess;
       session.processoPid = pythonProcess.pid;
@@ -298,6 +362,7 @@ export class ScraperService {
         }
 
         session.updatedAt = new Date();
+        this.persistirSessao(session, session.erro);
       });
 
       // Timeout
@@ -310,6 +375,7 @@ export class ScraperService {
           pythonProcess.kill('SIGTERM');
           session.status = SessionStatus.TIMEOUT;
           session.erro = 'Tempo limite excedido';
+          this.persistirSessao(session, session.erro);
         }
       }, this.SESSION_TIMEOUT_MS);
     } catch (error) {
@@ -320,6 +386,7 @@ export class ScraperService {
       session.status = SessionStatus.ERRO;
       session.erro = error.message;
       session.updatedAt = new Date();
+      this.persistirSessao(session, session.erro);
     }
   }
 
