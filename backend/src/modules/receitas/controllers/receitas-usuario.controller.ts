@@ -69,7 +69,7 @@ export class ReceitasUsuarioController {
     let previewsWeb: Array<{ titulo: string; url: string; site: string }> = [];
     if (resultado.length < 8 && ingredientes.length > 0) {
       this.logger.log(`Banco tem ${resultado.length} receitas — gerando IA em background`);
-      this.recipeGeneratorService.gerarReceitas(ingredientes).catch((err) =>
+      this.recipeGeneratorService.gerarReceitas(ingredientes, false, modoAlimentar).catch((err) =>
         this.logger.error(`Erro na geração background: ${err.message}`),
       );
     }

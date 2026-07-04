@@ -206,6 +206,15 @@ describe('RecipeGeneratorService', () => {
       expect(ragService.gerarComRAG).toHaveBeenCalledTimes(1);
     });
 
+    it('propaga modo_alimentar para o RAG (filtro de dieta)', async () => {
+      await service.gerarReceitas(['abobora', 'gengibre'], false, 'vegano');
+
+      expect(ragService.gerarComRAG).toHaveBeenCalledWith(
+        ['abobora', 'gengibre'],
+        'vegano',
+      );
+    });
+
     it('não usa scraping/busca web na geração (proibido)', async () => {
       await service.gerarReceitas(['abobora', 'gengibre']);
 

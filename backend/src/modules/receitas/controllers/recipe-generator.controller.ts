@@ -9,6 +9,9 @@ import { RecipeGeneratorService } from '../services/recipe-generator.service';
 import { InventarioService } from '@modules/inventario/inventario.service';
 import { PushNotificationService } from '@modules/notificacoes/services/push-notification.service';
 import { runWithRequestId } from '@common/request-context';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Preferencia } from '@modules/usuarios/entities/preferencia.entity';
 
 @ApiTags('Receitas')
 @Controller('receitas/gerar')
@@ -17,6 +20,8 @@ export class RecipeGeneratorController {
     private readonly recipeGeneratorService: RecipeGeneratorService,
     private readonly inventarioService: InventarioService,
     private readonly push: PushNotificationService,
+    @InjectRepository(Preferencia)
+    private readonly preferenciaRepo: Repository<Preferencia>,
   ) {}
 
   @Post()
@@ -38,8 +43,10 @@ export class RecipeGeneratorController {
 
     const forcarIA = body.forcar_ia === true;
     const ingredientesFinais = ingredientes.length > 0 ? ingredientes : disponiveis;
+    const pref = await this.preferenciaRepo.findOne({ where: { usuario_id: user.id } });
+    const modoAlimentar = pref?.modo_alimentar || 'normal';
     const receitas = await runWithRequestId(() =>
-      this.recipeGeneratorService.gerarReceitas(ingredientesFinais, forcarIA),
+      this.recipeGeneratorService.gerarReceitas(ingredientesFinais, forcarIA, modoAlimentar),
     );
 
     if (receitas.length > 0) {

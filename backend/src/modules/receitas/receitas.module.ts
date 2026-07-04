@@ -42,7 +42,6 @@ import { ReceitasController } from './receitas.controller';
 import { ReceiptOcrController } from './controllers/receipt-ocr.controller';
 import { ReceiptImportController } from './controllers/receipt-import.controller';
 import { RecipeSuggestionController } from './controllers/recipe-suggestion.controller';
-import { RecipeExecutionController } from './controllers/recipe-execution.controller';
 import { RecipeGeneratorController } from './controllers/recipe-generator.controller';
 import { RecipeTestController } from './controllers/recipe-test.controller';
 import { ReceitasUsuarioController } from './controllers/receitas-usuario.controller';
@@ -90,7 +89,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
   controllers: [
     ReceitasUsuarioController, ModeracaoUsuarioController,
     ReceitasController, ReceiptOcrController, ReceiptImportController,
-    RecipeSuggestionController, RecipeExecutionController,
+    RecipeSuggestionController,
     RecipeGeneratorController, RecipeTestController,
     AvaliacaoController,
   ],

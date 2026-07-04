@@ -255,6 +255,7 @@ export class ScraperService {
         { expiresIn: '2h' },
       );
 
+      // Token via env do processo filho — argv é visível em ps//proc
       const pythonProcess = spawn(pythonPath, [
         this.PYTHON_SCRIPT_PATH,
         '--session-id',
@@ -263,9 +264,9 @@ export class ScraperService {
         session.qrcodeTexto,
         '--mode',
         'api',
-        '--token',
-        userToken,
-      ]);
+      ], {
+        env: { ...process.env, COOKME_SESSION_TOKEN: userToken },
+      });
 
       session.processoHandle = pythonProcess;
       session.processoPid = pythonProcess.pid;

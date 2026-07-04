@@ -58,7 +58,7 @@ export class RecipeGeneratorService {
     }
   }
 
-  async gerarReceitas(ingredientes: string[], forcarIA = false): Promise<Receita[]> {
+  async gerarReceitas(ingredientes: string[], forcarIA = false, modoAlimentar?: string): Promise<Receita[]> {
     if (ingredientes.length === 0) return [];
 
     // 1. Banco compartilhado — receitas reais já salvas de buscas anteriores
@@ -80,7 +80,7 @@ export class RecipeGeneratorService {
     // 2. RAG: busca semântica + adaptação com LLM (melhor qualidade que geração pura)
     let receitaRAG: Receita | null = null;
     try {
-      const ragResult = await this.ragService.gerarComRAG(ingredientes);
+      const ragResult = await this.ragService.gerarComRAG(ingredientes, modoAlimentar);
       if (ragResult?.receita) {
         receitaRAG = {
           titulo: ragResult.receita.nome,
