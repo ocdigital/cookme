@@ -77,4 +77,18 @@ describe('OcrAliasService — resolução por EAN', () => {
 
     expect(canonical).toBe('arroz');
   });
+
+  it('marca na frente não quebra o dicionário de abreviações', async () => {
+    // "ITALAC CR LEITE 200GR": expand() por prefixo falha no nome cru
+    // (ITALAC não é abreviação); após limpar marca/embalagem deve casar CR LEITE
+    abbreviation.expand.mockImplementation((nome: string) =>
+      nome.trim().toUpperCase().startsWith('CR LEITE')
+        ? { expanded: 'creme de leite', is_ingredient: true }
+        : null,
+    );
+
+    const canonical = await service.resolverNomeCanônico('ITALAC CR LEITE 200GR');
+
+    expect(canonical).toBe('creme de leite');
+  });
 });

@@ -197,6 +197,8 @@ export class ProductClassificationController {
       produto: string;
       categoria: FoodCategory;
       comentario?: string;
+      nome_canonico?: string;
+      codigo_barras?: string;
     },
     @Request() req: any,
   ) {
@@ -211,6 +213,8 @@ export class ProductClassificationController {
       req.user.id,
       body.categoria,
       body.comentario,
+      body.nome_canonico,
+      body.codigo_barras,
     );
   }
 

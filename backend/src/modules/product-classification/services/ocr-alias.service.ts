@@ -249,9 +249,18 @@ const OCR_MAPA: Array<[RegExp, string]> = [
   [/\bleite\s+de?\s+coc/i, 'leite de coco'],
 ];
 
+export type EstagioCanonizacao =
+  | 'ean' | 'abreviacao' | 'kb_exato' | 'fuzzy' | 'regex' | 'normalizer' | 'fallback';
+
 @Injectable()
 export class OcrAliasService {
   private readonly logger = new Logger(OcrAliasService.name);
+
+  // Contadores por estágio desde o último restart — mede onde as resoluções
+  // acontecem e quanto cai no fallback (fila de curadoria)
+  private readonly stats: Record<EstagioCanonizacao, number> = {
+    ean: 0, abreviacao: 0, kb_exato: 0, fuzzy: 0, regex: 0, normalizer: 0, fallback: 0,
+  };
 
   constructor(
     @InjectRepository(ProductKnowledgeBase)
@@ -283,15 +292,21 @@ export class OcrAliasService {
       });
       if (porEan?.canonical_ingredient) {
         this.logger.debug(`EAN ${codigoBarras}: "${nomeOcr}" → "${porEan.canonical_ingredient}"`);
+        this.stats.ean++;
         return porEan.canonical_ingredient;
       }
     }
 
-    // 1. Tabela de abreviações (passo mais rápido — memória)
-    const abbrMatch = this.abbreviationService.expand(nomeOcr);
+    // 1. Tabela de abreviações (passo mais rápido — memória).
+    // Tenta o nome cru e, se falhar, o nome sem marca/embalagem —
+    // "ITALAC CR LEITE 200GR" só casa "CR LEITE" depois de remover a marca.
+    const abbrMatch =
+      this.abbreviationService.expand(nomeOcr) ||
+      this.abbreviationService.expand(this.limparMarcasEEmbalagem(nomeOcr));
     if (abbrMatch) {
       this.logger.debug(`Abreviação: "${nomeOcr}" → "${abbrMatch.expanded}" (ingrediente=${abbrMatch.is_ingredient})`);
       await this.persistirCanonical(normalizedKey, nomeOcr, abbrMatch.expanded, abbrMatch.is_ingredient, codigoBarras);
+      this.stats.abreviacao++;
       return abbrMatch.expanded;
     }
 
@@ -305,6 +320,7 @@ export class OcrAliasService {
       if (codigoBarras) {
         await this.persistirCanonical(normalizedKey, nomeOcr, cached.canonical_ingredient, undefined, codigoBarras);
       }
+      this.stats.kb_exato++;
       return cached.canonical_ingredient;
     }
 
@@ -312,6 +328,7 @@ export class OcrAliasService {
     const fuzzyResult = await this.fuzzyLookup(nomeOcr);
     if (fuzzyResult) {
       await this.persistirCanonical(normalizedKey, nomeOcr, fuzzyResult, undefined, codigoBarras);
+      this.stats.fuzzy++;
       return fuzzyResult;
     }
 
@@ -321,6 +338,7 @@ export class OcrAliasService {
       if (regex.test(textoLimpo)) {
         // Persiste para cache futuro
         await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
+        this.stats.regex++;
         return canonical;
       }
     }
@@ -330,11 +348,13 @@ export class OcrAliasService {
     if (norm && norm.nomeCanônico && norm.nomeCanônico.length > 1) {
       const canonical = norm.nomeCanônico;
       await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
+      this.stats.normalizer++;
       return canonical;
     }
 
     // 6. Fallback: limpar embalagem e pegar primeiras 2 palavras
     const fallback = this.fallbackLimpar(nomeOcr);
+    this.stats.fallback++;
     return fallback;
   }
 
@@ -428,6 +448,36 @@ export class OcrAliasService {
     } catch (e) {
       // não bloqueia fluxo
     }
+  }
+
+  /**
+   * Estatísticas de resolução por estágio desde o último restart.
+   * fallback alto = fila de curadoria (nomes que nenhum estágio resolveu).
+   */
+  getStats(): { estagios: Record<EstagioCanonizacao, number>; total: number; pct_fallback: number } {
+    const total = Object.values(this.stats).reduce((s, n) => s + n, 0);
+    return {
+      estagios: { ...this.stats },
+      total,
+      pct_fallback: total > 0 ? Math.round((this.stats.fallback / total) * 1000) / 10 : 0,
+    };
+  }
+
+  /**
+   * Remove marcas conhecidas e padrões de embalagem preservando a ordem das
+   * palavras restantes — usado para dar segunda chance ao dicionário de
+   * abreviações quando a marca vem na frente ("ITALAC CR LEITE 200GR").
+   */
+  private limparMarcasEEmbalagem(nome: string): string {
+    let texto = nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    for (const pattern of PACKAGING_PATTERNS) {
+      texto = texto.replace(pattern, ' ');
+    }
+    return texto
+      .split(/\s+/)
+      .filter((p) => p.length > 1 && !BRAND_WORDS.has(p))
+      .join(' ')
+      .trim();
   }
 
   private fallbackLimpar(nome: string): string {

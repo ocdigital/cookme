@@ -123,6 +123,8 @@ export class IntelligentInventoryService {
     usuarioId: string,
     categoriaConfirmada: FoodCategory,
     comentario?: string,
+    nomeCanonicoCorrigido?: string,
+    codigoBarras?: string,
   ): Promise<{
     sucesso: boolean;
     produto: string;
@@ -145,6 +147,8 @@ export class IntelligentInventoryService {
         usuarioId,
         categoriaConfirmada,
         comentario,
+        nomeCanonicoCorrigido,
+        codigoBarras,
       );
 
       // Obtém a classificação atualizada

@@ -5,7 +5,7 @@ import { AbbreviationExpansion } from '../entities/abbreviation-expansion.entity
 
 // Abreviações comuns de supermercados brasileiros
 // Formato: [abbr, expanded, is_ingredient, categoria]
-const SEED_ABBREVIATIONS: [string, string, boolean, string][] = [
+export const SEED_ABBREVIATIONS: [string, string, boolean, string][] = [
   // Palavras completas que o OCR trunca (passthrough para evitar false negative)
   ['CHOCOL', 'chocolate', false, 'guloseimas'],
   ['CHOCLT', 'chocolate', false, 'guloseimas'],

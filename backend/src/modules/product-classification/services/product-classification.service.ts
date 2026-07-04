@@ -892,6 +892,8 @@ Responda em JSON com a estrutura exata:
     usuarioId: string,
     validacao: FoodCategory,
     comentario?: string,
+    nomeCanonicoCorrigido?: string,
+    codigoBarras?: string,
   ): Promise<ProductValidation> {
     const normalizedName = this.normalizarNome(productName);
 
@@ -933,6 +935,15 @@ Responda em JSON com a estrutura exata:
       knowledgeBase.validacoes_alimento
     ) {
       knowledgeBase.categoria = FoodCategory.NAO_ALIMENTO;
+    }
+
+    // Correção do usuário fecha o loop: sobrescreve o canônico (usuário é a
+    // verdade) e aprende o EAN — vira acerto permanente para todos
+    if (nomeCanonicoCorrigido) {
+      knowledgeBase.canonical_ingredient = nomeCanonicoCorrigido.toLowerCase().trim();
+    }
+    if (codigoBarras && !knowledgeBase.codigo_barras) {
+      knowledgeBase.codigo_barras = codigoBarras.slice(0, 14);
     }
 
     await this.productKnowledgeRepository.save(knowledgeBase);
