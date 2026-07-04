@@ -458,7 +458,8 @@ export class ReceitasUsuarioController {
   @Get(':id')
   @ApiOperation({ summary: 'Busca receita por ID com cobertura do usuário' })
   async buscarPorId(@CurrentUser() user: Usuario, @Param('id') receitaId: string) {
-    const receita = await this.receitaBancoService.buscarPorId(receitaId);
+    // Checagem de dono: receita importada é invisível para terceiros (404)
+    const receita = await this.receitaBancoService.buscarPorId(receitaId, user.id);
     const ingredientes = await this.inventarioService.ingredientesDisponiveis(user.id);
     const todas = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes);
     const match = todas.find((r) => r.receita.id === receitaId);
@@ -529,7 +530,7 @@ export class ReceitasUsuarioController {
     @CurrentUser() user: Usuario,
     @Param('id') receitaId: string,
   ) {
-    const receita = await this.receitaBancoService.buscarPorId(receitaId);
+    const receita = await this.receitaBancoService.buscarPorId(receitaId, user.id);
 
     // Registra execução na tabela receitas_executadas
     const execucao = this.receitaExecutadaRepo.create({

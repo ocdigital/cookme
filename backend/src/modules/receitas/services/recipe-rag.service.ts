@@ -98,11 +98,12 @@ export class RecipeRagService {
 
   // ── Busca semântica ─────────────────────────────────────────────────────────
 
-  // apenasPublicas=false → RAG usa tudo como contexto interno (incluindo scrapeadas se existirem)
-  // apenasPublicas=true  → apenas receitas CookMe para exibir ao usuário
-  async buscarSimilares(ingredientes: string[], limite = 5, tagsDieta?: string[], apenasPublicas = false): Promise<Receita[]> {
+  // Busca APENAS no banco público (url_fonte IS NULL AND autor_id IS NULL).
+  // Receitas importadas são biblioteca pessoal — nunca entram no contexto de
+  // geração compartilhado (separação jurídica, Lei 9.610/98).
+  async buscarSimilares(ingredientes: string[], limite = 5, tagsDieta?: string[]): Promise<Receita[]> {
     const cacheKey = createHash('md5')
-      .update(JSON.stringify({ ingredientes: [...ingredientes].sort(), limite, tagsDieta, apenasPublicas }))
+      .update(JSON.stringify({ ingredientes: [...ingredientes].sort(), limite, tagsDieta }))
       .digest('hex');
 
     const cached = this.similaresCache.get(cacheKey);
@@ -123,12 +124,10 @@ export class RecipeRagService {
       FROM receitas
       WHERE embedding IS NOT NULL
         AND status_moderacao = 'ok'
+        AND url_fonte IS NULL
+        AND autor_id IS NULL
     `;
     const params: any[] = [`[${embedding.join(',')}]`];
-
-    if (apenasPublicas) {
-      sql += ` AND (url_fonte IS NULL OR autor_id IS NOT NULL)`;
-    }
 
     if (tagsDieta && tagsDieta.length > 0) {
       const dieta = tagsDieta[0];
