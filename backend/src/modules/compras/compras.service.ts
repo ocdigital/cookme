@@ -104,6 +104,7 @@ export class ComprasService {
         preco_unitario: item.preco_unitario,
         validade_final: item.validade_final ? new Date(item.validade_final) : null,
         lote: item.lote,
+        codigo_barras: item.codigo_barras?.slice(0, 14) || null,
       }),
     );
 
@@ -507,6 +508,7 @@ IMPORTANTE:
       unidade: UnidadeMedida;
       valor: number;
       valor_unitario: number;
+      codigo_barras: string | null;
     }>();
 
     for (const item of itensValidos) {
@@ -520,13 +522,14 @@ IMPORTANTE:
         unidade: this.normalizarUnidade(item.unidade),
         valor: item.valor ?? 0,
         valor_unitario: item.valor_unitario ?? (item.valor && quantidade ? item.valor / quantidade : 0),
+        codigo_barras: item.codigo_barras?.slice(0, 14) || null,
       });
     }
 
     // Disparar normalização e imagens em background para produtos novos (não bloqueia)
     if (novos.length > 0) {
       Promise.allSettled(novos.map((p) =>
-        this.ocrAliasService.resolverNomeCanônico(p.nome)
+        this.ocrAliasService.resolverNomeCanônico(p.nome, p.codigo_barras || undefined)
           .then((nd) => { if (nd && nd !== p.nome.toLowerCase()) this.produtoRepository.update(p.id, { nome_display: nd }).catch(() => {}); })
           .catch(() => {})
       )).catch(() => {});
@@ -556,6 +559,7 @@ IMPORTANTE:
         preco_total: meta.valor,
         unidade: meta.unidade,
         adicionado_inventario: false,
+        codigo_barras: meta.codigo_barras || null,
       }));
       await this.dataSource
         .createQueryBuilder()

@@ -33,6 +33,11 @@ export class ProductKnowledgeBase {
   @Column({ type: 'varchar', length: 100, nullable: true })
   canonical_ingredient: string;
 
+  // EAN aprendido — resolve canonização com zero ambiguidade em recompras
+  @Column({ type: 'varchar', length: 14, nullable: true })
+  @Index()
+  codigo_barras: string | null;
+
   @Column({
     type: 'varchar',
     length: 50,

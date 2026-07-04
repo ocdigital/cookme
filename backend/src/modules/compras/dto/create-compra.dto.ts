@@ -44,6 +44,11 @@ export class CompraItemDto {
   @IsString()
   @IsOptional()
   lote?: string;
+
+  @ApiProperty({ description: 'EAN/código de barras do item', required: false })
+  @IsString()
+  @IsOptional()
+  codigo_barras?: string;
 }
 
 export class CreateCompraDto {

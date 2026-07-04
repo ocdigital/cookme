@@ -272,53 +272,68 @@ export class OcrAliasService {
    * 4. Aplicar IngredientNormalizerService (regras linguísticas)
    * 5. Fallback: primeiras palavras normalizadas
    */
-  async resolverNomeCanônico(nomeOcr: string): Promise<string> {
+  async resolverNomeCanônico(nomeOcr: string, codigoBarras?: string): Promise<string> {
     const normalizedKey = this.normalizarChave(nomeOcr);
 
-    // 0. Tabela de abreviações (passo mais rápido — memória)
+    // 0. EAN aprendido — chave canônica definitiva, ignora variação de nome
+    if (codigoBarras) {
+      const porEan = await this.knowledgeRepo.findOne({
+        where: { codigo_barras: codigoBarras },
+        select: ['canonical_ingredient'],
+      });
+      if (porEan?.canonical_ingredient) {
+        this.logger.debug(`EAN ${codigoBarras}: "${nomeOcr}" → "${porEan.canonical_ingredient}"`);
+        return porEan.canonical_ingredient;
+      }
+    }
+
+    // 1. Tabela de abreviações (passo mais rápido — memória)
     const abbrMatch = this.abbreviationService.expand(nomeOcr);
     if (abbrMatch) {
       this.logger.debug(`Abreviação: "${nomeOcr}" → "${abbrMatch.expanded}" (ingrediente=${abbrMatch.is_ingredient})`);
-      await this.persistirCanonical(normalizedKey, nomeOcr, abbrMatch.expanded, abbrMatch.is_ingredient);
+      await this.persistirCanonical(normalizedKey, nomeOcr, abbrMatch.expanded, abbrMatch.is_ingredient, codigoBarras);
       return abbrMatch.expanded;
     }
 
-    // 1. Lookup exato no banco
+    // 2. Lookup exato no banco
     const cached = await this.knowledgeRepo.findOne({
       where: { normalized_name: normalizedKey },
       select: ['canonical_ingredient'],
     });
 
     if (cached?.canonical_ingredient) {
+      if (codigoBarras) {
+        await this.persistirCanonical(normalizedKey, nomeOcr, cached.canonical_ingredient, undefined, codigoBarras);
+      }
       return cached.canonical_ingredient;
     }
 
-    // 2. Fuzzy lookup via trigram (pega typos OCR e variações de nome)
+    // 3. Fuzzy lookup via trigram (pega typos OCR e variações de nome)
     const fuzzyResult = await this.fuzzyLookup(nomeOcr);
     if (fuzzyResult) {
-      await this.persistirCanonical(normalizedKey, nomeOcr, fuzzyResult);
+      await this.persistirCanonical(normalizedKey, nomeOcr, fuzzyResult, undefined, codigoBarras);
       return fuzzyResult;
     }
 
-    // 3. Tentar OCR_MAPA (padrões específicos de supermercado)
+    // 4. Tentar OCR_MAPA (padrões específicos de supermercado)
     const textoLimpo = nomeOcr.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     for (const [regex, canonical] of OCR_MAPA) {
       if (regex.test(textoLimpo)) {
         // Persiste para cache futuro
-        await this.persistirCanonical(normalizedKey, nomeOcr, canonical);
+        await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
         return canonical;
       }
     }
 
-    // 4. IngredientNormalizerService
+    // 5. IngredientNormalizerService
     const norm = this.normalizer.normalizar(nomeOcr);
     if (norm && norm.nomeCanônico && norm.nomeCanônico.length > 1) {
       const canonical = norm.nomeCanônico;
-      await this.persistirCanonical(normalizedKey, nomeOcr, canonical);
+      await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
       return canonical;
     }
 
-    // 4. Fallback: limpar embalagem e pegar primeiras 2 palavras
+    // 6. Fallback: limpar embalagem e pegar primeiras 2 palavras
     const fallback = this.fallbackLimpar(nomeOcr);
     return fallback;
   }
@@ -395,6 +410,7 @@ export class OcrAliasService {
     nomeOcr: string,
     canonical: string,
     isIngredient?: boolean,
+    codigoBarras?: string,
   ): Promise<void> {
     try {
       const existing = await this.knowledgeRepo.findOne({ where: { normalized_name: normalizedKey } });
@@ -402,6 +418,8 @@ export class OcrAliasService {
         const update: Partial<ProductKnowledgeBase> = {};
         if (!existing.canonical_ingredient) update.canonical_ingredient = canonical;
         if (isIngredient !== undefined) update.ingrediente_receita = isIngredient;
+        // Aprende o EAN — recompra do mesmo produto resolve sem heurística
+        if (codigoBarras && !existing.codigo_barras) update.codigo_barras = codigoBarras;
         if (Object.keys(update).length > 0) {
           await this.knowledgeRepo.update(existing.id, update);
           this.logger.debug(`KB atualizado: "${nomeOcr}" → "${canonical}"`);
