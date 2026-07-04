@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, AppState } from 'react-native';
 import { Drawer } from 'expo-router/drawer';
 import { DrawerContentScrollView, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useNavigationState } from '@react-navigation/native';
@@ -158,6 +158,24 @@ export default function AppLayout() {
     apiEvents.on('paywall', handler);
     return () => { apiEvents.off('paywall', handler); };
   }, []);
+
+  // Métrica de retenção D7/D30: registra abertura do app (mount autenticado
+  // + volta do background), com throttle de 30min para não virar spam
+  const ultimoAppOpen = useRef(0);
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const registrar = () => {
+      const agora = Date.now();
+      if (agora - ultimoAppOpen.current < 30 * 60 * 1000) return;
+      ultimoAppOpen.current = agora;
+      api.post('/eventos/app-open').catch(() => {});
+    };
+    registrar();
+    const sub = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') registrar();
+    });
+    return () => sub.remove();
+  }, [isSignedIn]);
 
   return (
     <>
