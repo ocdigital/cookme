@@ -69,6 +69,18 @@ describe('ehNaoIngrediente', () => {
     'DET LIMPOL 500ML',
     'COND CAP DOVE',
     'CR TRAT PANTENE',
+    // Vazamentos reais de produção (2026-07-05) — cada um era visível na despensa
+    'KIT HIDR NIVEA MILK 2X400ML',
+    'ESC COLGATE CLASSIC CLEAN C/3',
+    'ESCOVA DE DENTES ORAL B',
+    'ESP SCOTCH BRITE EMB ECON C/4',
+    'ESP M USO ALKILN REFIL+CABO C/2',
+    'LIMP MR MUSCULO COZ LIMAO 400ML',
+    'FILTRO PAPEL 3 CORACOES 102 C/30',
+    'FILTRO DE PAPEL MELITTA 103',
+    'BISC BWAW CAES TRAD 500G',
+    'RACAO P/ GATOS WHISKAS',
+    'AFIADOR DE FACAS PREMIUM',
   ];
 
   // ── Ingredientes que NUNCA podem ser bloqueados (falsos positivos) ────────
@@ -100,6 +112,17 @@ describe('ehNaoIngrediente', () => {
     'CREME DE LEITE NESTLE',
     'LEITE CONDENSADO MOCA',
     'PAO DE FORMA PULLMAN',
+    // Proteção contra as abreviações novas (\besc\b, \besp\b, \blimp\b, pet)
+    'ESCAROLA UN',                    // não é 'esc'
+    'ESPINAFRE MACO',                 // não é 'esp'
+    'CAFE FILTRADO COADO 500ML',      // 'filtro de papel' ≠ café
+    'PETIT GATEAU CONG 2UN',          // 'pet' ≠ petshop
+    'REFRIG COCA COLA PET 2L',        // garrafa PET ≠ pet shop
+    'GUARANA ANTARCTICA PET 600ML',
+    'QUEIJO PETIT SUISSE DANONE',
+    'BISTECA SUINA FRIMESA KG',
+    'PASSATA SALSARETTI RUSTICA',
+    'CAPSULA D GUSTO CAFE CASEIRO',   // cápsula de café É consumível de bebida
   ];
 
   it.each(NAO_INGREDIENTES)('bloqueia: %s', (nome) => {
