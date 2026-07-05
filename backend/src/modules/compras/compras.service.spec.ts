@@ -249,6 +249,38 @@ describe('ComprasService', () => {
       );
     });
 
+    it('não-ingrediente (sabonete/lustra) NUNCA entra na despensa, mesmo sem classificação IA', async () => {
+      // Bug de produção 2026-07-04: sabonete líquido apareceu em "minha despensa".
+      // Guard determinístico bloqueia na escrita — não depende de IA/quota.
+      const usuarioId = '123e4567-e89b-12d3-a456-426614174000';
+      const itens = [
+        { nome: 'SABONETE LIQUIDO PROTEX', quantidade: 1, valor: 8.0 },
+        { nome: 'LUSTRA MOVEIS POLIFLOR', quantidade: 1, valor: 12.0 },
+        { nome: 'ARROZ CAMIL 5KG', quantidade: 1, valor: 25.0 },
+      ];
+
+      mockCreateProduto();
+      mockSaveEcoando(produtoRepository);
+      const updateSpy = jest.spyOn(produtoRepository, 'update').mockResolvedValue({} as any);
+      jest.spyOn(inventarioRepository, 'findOne').mockResolvedValue(null);
+      const invCreateSpy = jest
+        .spyOn(inventarioRepository, 'create')
+        .mockImplementation((dto: any) => dto as any);
+      mockSaveEcoando(inventarioRepository);
+
+      const result = await service.salvarItensCupomNoInventario(usuarioId, itens);
+
+      // Só o arroz entra no inventário
+      expect(result.salvos).toBe(1);
+      const nomesInventario = invCreateSpy.mock.calls.map((c: any) => c[0].produto_id);
+      expect(nomesInventario).toEqual(['prod-ARROZ CAMIL 5KG']);
+      // Produtos bloqueados aprendem ingrediente_receita=false
+      expect(updateSpy).toHaveBeenCalledWith(
+        'prod-SABONETE LIQUIDO PROTEX',
+        expect.objectContaining({ ingrediente_receita: false }),
+      );
+    });
+
     it('deve continuar salvando mesmo se um item falhar', async () => {
       const usuarioId = '123e4567-e89b-12d3-a456-426614174000';
       const itens = [

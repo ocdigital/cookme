@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, Optional, Logger } fr
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { Inventario } from './entities/inventario.entity';
+import { ehNaoIngrediente } from '@common/nao-ingrediente.guard';
 import { CreateInventarioDto } from './dto/create-inventario.dto';
 import { UpdateInventarioDto } from './dto/update-inventario.dto';
 import { Produto } from '../produtos/entities/produto.entity';
@@ -499,15 +500,13 @@ export class InventarioService {
     const ignorados: string[] = [];
     const ja_existiam: string[] = [];
 
-    // Prefixos/padrões de produtos não-alimentícios comuns em cupons fiscais
-    const NAO_ALIMENTO_RE = /^(toalha|papel (hig|toalha|alum)|pap (hig|alum|toalha)|saco (lixo|microfreez|microfreezer|freezer|geladeira)|sacola|vassoura|rodo|esponja|espon|detergente|det |sabao em po|sab po|amaciante|amac |alvejante|agua san|desinf|multiuso|limpa |inset|repelente|desodorante|desod|shampoo|sh |condicionador|cond cap|creme trat|cr trat|trat cap|sabonete|sab |escova|esc |pasta dent|creme dent|cr dent|gel dental|fio dental|absorv|fralda|hastes|algodao|luva|isqueiro|pilha|lampada|vela |palito|cera auto|lava auto|proauto|lustra|flanela|pano |fibra limp|esponja mag|bob esponj|rodo|vassoura|salg |salgadinho|biscoito sal|bisc sal|bisc pedigree|racao|ração|pet food|salg\b)/i;
 
     for (const item of itens) {
       const nomeOcr = item.nome_ocr || item.nome_display || item.produto?.nome || '';
       if (!nomeOcr) continue;
 
       // Rejeitar não-alimentos por padrão antes de consultar IA
-      if (NAO_ALIMENTO_RE.test(nomeOcr.trim())) {
+      if (ehNaoIngrediente(nomeOcr)) {
         ignorados.push(nomeOcr);
         if (item.produto) {
           await this.produtoRepository.update(item.produto.id, { ingrediente_receita: false, nome_display: undefined });
