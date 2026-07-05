@@ -48,11 +48,29 @@ const PADROES_NAO_INGREDIENTE: RegExp[] = [
   // ── Vestuário / casa ───────────────────────────────────────────────────────
   /\b(meias?\b|cuecas?\b|calcinha|chinelo|touca\s+descart|avental|pano\s+de\s+prato)/,
 
-  // ── Abreviações curtas de cupom (herdadas do fluxo de validação) ───────────
-  // 'SAB PO', 'DET YPE', 'COND CAP', 'CR TRAT' — formas truncadas de OCR
+  // ── Abreviações curtas de cupom (formas truncadas reais de NFC-e) ──────────
+  // Cupom fiscal trunca agressivamente: 'ESC COLGATE', 'ESP SCOTCH', 'LIMP MR
+  // MUSCULO', 'KIT HIDR NIVEA'. Palavras isoladas de 3-4 letras são seguras
+  // com \b...\b (não casam 'escarola', 'espinafre', 'limpeza' etc).
   /^sab\b/,
   /\bdet\b/,
   /\b(cond\s+cap|cr\s+(trat|hidrat|corp)|trat\s+cap)/,
+  /\besc\b/,          // ESC COLGATE (escova)
+  /\bescova\b/,       // escova de dentes/cabelo/roupa — nunca alimento
+  /\besp\b/,          // ESP SCOTCH BRITE (esponja)
+  /\blimp\b/,         // LIMP MR MUSCULO (limpador)
+  /\bhidr\b/,         // KIT HIDR NIVEA (hidratante)
+
+  // ── Utensílios / acessórios de cozinha (não são ingredientes) ──────────────
+  /\b(filtro\s+(de\s+)?papel|filtro\s+cafe|coador)\b/,
+  /\b(afiador|amolador|abridor\s+de\s+(lata|garrafa)|descascador|ralador\b|assadeira|frigideira|panela\b|tabua\s+de\s+(carne|corte))/,
+
+  // ── Pet (formas de cupom: 'BISC BWAW CAES', 'RACAO P/ GATOS') ─────────────
+  // ATENÇÃO: nunca usar \bpet\b isolado — "COCA COLA PET 2L" é garrafa PET
+  /\b(caes|p\/\s*caes|para\s+caes|gatos\b|pet\s+food)/,
+
+  // ── Marcas exclusivas de higiene/limpeza (nunca vendem alimento) ───────────
+  /\b(nivea|colgate|oral\s*b|rexona|protex|palmolive|sanol|veja\b|cif\b|omo\b|comfort\b|downy|vanish|qboa|pinho\s+sol|mr\s+musculo)\b/,
 ];
 
 /** Normaliza para matching: minúsculas, sem acento, espaços colapsados. */
