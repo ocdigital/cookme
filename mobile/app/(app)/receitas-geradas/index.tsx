@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,6 +39,24 @@ function ReceitaImageComponent({ imageUrl }: { imageUrl?: string }) {
 
 function ReceitaCard({ receita, idx }: { receita: any; idx: number }) {
   const [expandido, setExpandido] = useState(false);
+  const router = useRouter();
+
+  // Baixa de estoque é MANUAL por decisão de produto: não dá para saber
+  // quanto sobrou (400g de farinha? 2 ovos?) — o usuário marca "acabou"
+  // na despensa. Este botão só leva ao lugar certo.
+  const fizReceita = () => {
+    Alert.alert(
+      'Fez esta receita? 👨‍🍳',
+      'Se algum ingrediente acabou, marque na despensa — assim as próximas sugestões continuam certeiras.',
+      [
+        { text: 'Agora não', style: 'cancel' },
+        {
+          text: 'Ir para a despensa',
+          onPress: () => router.push('/(app)/(tabs)/despensa' as any),
+        },
+      ],
+    );
+  };
 
   return (
     <View style={styles.receitaCard}>
@@ -110,10 +129,10 @@ function ReceitaCard({ receita, idx }: { receita: any; idx: number }) {
           </View>
         )}
 
-        {/* CTA */}
-        <TouchableOpacity style={styles.btnUsar}>
+        {/* CTA — baixa é manual: leva à despensa para marcar o que acabou */}
+        <TouchableOpacity style={styles.btnUsar} onPress={fizReceita}>
           <MaterialCommunityIcons name="chef-hat" size={18} color={C.ink[0]} />
-          <Text style={styles.btnUsarText}>Executar receita · dar baixa no estoque</Text>
+          <Text style={styles.btnUsarText}>Fiz esta receita · marcar o que acabou</Text>
         </TouchableOpacity>
       </View>
     </View>
