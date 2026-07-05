@@ -42,9 +42,13 @@ export class LimpezaDespensaController {
         GROUP BY p.id, p.nome, p.nome_display, p.ingrediente_receita
       `);
 
+    // SÓ o guard determinístico decide deleção. Produtos com
+    // ingrediente_receita=false que NÃO casam no guard são legado da
+    // classificação IA (às vezes errada: "chocolate meio amargo", "batata
+    // palha") — já ficam invisíveis pelo filtro de leitura e permanecem no
+    // banco para correção futura, sem perda de dado do usuário.
     const alvos = produtos.filter(
       (p) =>
-        p.ingrediente_receita === false ||
         ehNaoIngrediente(p.nome) ||
         (p.nome_display ? ehNaoIngrediente(p.nome_display) : false),
     );
