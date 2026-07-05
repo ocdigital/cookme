@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { Compra } from './entities/compra.entity';
 import { CompraItem } from './entities/compra-item.entity';
 import { estimarDataValidade } from '../inventario/validade-estimada.util';
+import { ehNaoIngrediente } from '@common/nao-ingrediente.guard';
 import { CreateCompraDto } from './dto/create-compra.dto';
 import { Produto } from '../produtos/entities/produto.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
@@ -31,6 +32,27 @@ export class ComprasService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
+
+  /**
+   * Limpeza retroativa: quando a classificação (IA ou guard) marca um produto
+   * como NÃO-ingrediente, remove as linhas dele do inventário de TODOS os
+   * usuários — a despensa só contém ingredientes de receita. O histórico de
+   * compras (compra_itens) permanece intacto.
+   */
+  private async removerDoInventario(produtoId: string, motivo: string): Promise<void> {
+    try {
+      const res = await this.dataSource.query(
+        'DELETE FROM inventario WHERE produto_id = $1',
+        [produtoId],
+      );
+      const n = Array.isArray(res) ? res[1] ?? 0 : 0;
+      if (n > 0) {
+        console.log(`🧹 [Despensa] ${n} item(ns) removido(s) do inventário (produto ${produtoId}, ${motivo})`);
+      }
+    } catch (e: any) {
+      console.warn(`[Despensa] Falha na limpeza retroativa do produto ${produtoId}: ${e.message}`);
+    }
+  }
 
   /**
    * Cria uma compra com seus itens (transação com validação de produtos)
@@ -90,6 +112,10 @@ export class ComprasService {
             if (clf.canonical_name) updates.nome_display = clf.canonical_name;
             await this.produtoRepository.update(produto.id, updates);
             console.log(`🏷️  ${clf.produto} → "${clf.canonical_name || '-'}" | ingrediente=${clf.ingrediente_receita} (conf=${clf.confidence})`);
+            // Classificado como não-ingrediente DEPOIS de já ter entrado → limpa
+            if (clf.ingrediente_receita === false) {
+              await this.removerDoInventario(produto.id, 'classificação IA pós-inserção');
+            }
           }
         }
       })
@@ -133,7 +159,17 @@ export class ComprasService {
         if (ci.produto_id == null) return false;
         const produto = produtoMap.get(ci.produto_id);
         // Se já classificado como NÃO-ingrediente, não adiciona à despensa
-        return produto?.ingrediente_receita !== false;
+        if (produto?.ingrediente_receita === false) return false;
+        // Guard determinístico por nome (sabonete/lustra/etc NUNCA entram,
+        // mesmo com a classificação IA fora do ar) + aprende no produto
+        const nomeCheck = (produto as any)?.nome_display || produto?.nome || '';
+        if (ehNaoIngrediente(nomeCheck)) {
+          if (produto) {
+            this.produtoRepository.update(produto.id, { ingrediente_receita: false }).catch(() => {});
+          }
+          return false;
+        }
+        return true;
       })) {
         await this.dataSource.query(
           `INSERT INTO inventario
@@ -465,7 +501,6 @@ IMPORTANTE:
     localCompra?: string,
   ) {
     const PALAVRAS_ESTABELECIMENTO = /^(residencial|supermercado|mercado|hipermercado|atacadao|atacado|assai|carrefour|extra|walmart|hiper|loja|comercio|comercial|cnpj|chave|protocolo|consumidor|nota|fiscal|nfc|sat|documento)\b/i;
-    const NAO_INGREDIENTE_RE = /(sanit|agua\s+san|água\s+san|desinf|multiuso|limpador|detergente|sabao\b|sabão\b|amaciante|alvejante|esponja|vassoura\b|rodo\b|sacola|saco\s+(lixo|freezer|microfreez)|toalha\s+(papel|cozinha)|papel\s+(hig|toalha|alum)|shampoo|condicionador|sabonete|desodorante|pasta\s+dent|creme\s+dent|fio\s+dental|absorvent|fralda|hastes\s+flex|pilha\s+|lampada|isqueiro|inseticida|repelente|cera\s+auto|lava\s+auto|flanela|pano\s+(de\s+|multiuso|limpeza)|fibra\s+limp|bifinho|racao\s+|ração\s+|pet\s+food)/i;
 
     // Filtrar itens válidos
     const itensValidos = itens.filter((item) => {
@@ -624,9 +659,16 @@ IMPORTANTE:
     const agora = new Date();
 
     const itensSalvos: Inventario[] = [];
-    const metasIngredientes = [...metaPorProduto.values()].filter(
-      (m) => m.produto.ingrediente_receita !== false && !NAO_INGREDIENTE_RE.test(m.produto.nome)
-    );
+    const metasIngredientes = [...metaPorProduto.values()].filter((m) => {
+      if (m.produto.ingrediente_receita === false) return false;
+      const nomeCheck = (m.produto as any).nome_display || m.produto.nome;
+      if (ehNaoIngrediente(nomeCheck) || ehNaoIngrediente(m.produto.nome)) {
+        // Aprende: marca o produto para os próximos cupons
+        this.produtoRepository.update(m.produto.id, { ingrediente_receita: false }).catch(() => {});
+        return false;
+      }
+      return true;
+    });
 
     for (const meta of metasIngredientes) {
       try {
@@ -695,6 +737,10 @@ IMPORTANTE:
                 updates.nome_display = nd;
               }
               await this.produtoRepository.update(entry.produto.id, updates).catch(() => {});
+              // Classificado como não-ingrediente DEPOIS de já ter entrado → limpa
+              if (clf.ingrediente_receita === false) {
+                await this.removerDoInventario(entry.produto.id, 'classificação IA pós-inserção');
+              }
             }
           }
         })
