@@ -457,7 +457,8 @@ export default function HomeScreen() {
 
   const { data: favoritasData } = useQuery({
     queryKey: queryKeys.receitasFavoritas(),
-    queryFn: () => api.get('/receitas/favoritas').then(r => r.data as { id: string }[]),
+    // Array.isArray: resposta de erro (401/403 etc) vira objeto e .map explode
+    queryFn: () => api.get('/receitas/favoritas').then(r => (Array.isArray(r.data) ? r.data : []) as { id: string }[]),
     staleTime: STALE_TIMES.favoritas,
     gcTime: GC_TIMES.favoritas,
   });
@@ -466,14 +467,14 @@ export default function HomeScreen() {
     queryKey: queryKeys.receitasSugestoesParaMim(),
     queryFn: () => api.get('/receitas/sugestoes/para-mim', {
       params: { modo_alimentar: modoAlimentar !== 'normal' ? modoAlimentar : undefined },
-    }).then(r => r.data || []),
+    }).then(r => (Array.isArray(r.data) ? r.data : [])),
     staleTime: STALE_TIMES.receitas_lista,
     gcTime: GC_TIMES.receitas_lista,
   });
 
   const { data: desafiosData } = useQuery({
     queryKey: queryKeys.receitasDesafios(),
-    queryFn: () => api.get('/receitas/sugestoes/desafios').then(r => r.data || []),
+    queryFn: () => api.get('/receitas/sugestoes/desafios').then(r => (Array.isArray(r.data) ? r.data : [])),
     staleTime: STALE_TIMES.receitas_lista,
     gcTime: GC_TIMES.receitas_lista,
   });
@@ -544,7 +545,7 @@ export default function HomeScreen() {
   }), [inventarioData, listasData]);
 
   const favoritosIds = useMemo(
-    () => new Set((favoritasData ?? []).map((r: { id: string }) => r.id)),
+    () => new Set((Array.isArray(favoritasData) ? favoritasData : []).map((r: { id: string }) => r.id)),
     [favoritasData],
   );
 
