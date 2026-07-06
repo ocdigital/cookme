@@ -1,0 +1,72 @@
+# E2E CookMe — fluxo principal: abrir app → (login) → Receitas → detalhe → Despensa
+# Roda no Expo Go (device físico via USB ou emulador).
+# Requisitos: backend local rodando + `npx expo start` + device com Expo Go.
+appId: host.exp.exponent
+env:
+  EXPO_URL: exp://192.168.86.9:8081
+  EMAIL: edu1@cookme.com
+  SENHA: edu3221
+---
+- openLink: ${EXPO_URL}
+
+# Expo Go pode mostrar tela própria — espera o app CookMe montar
+- extendedWaitUntil:
+    visible:
+      text: ".*(Entrar|Início|CookMe).*"
+    timeout: 45000
+
+# Login apenas se a tela de login estiver visível
+- runFlow:
+    when:
+      visible: "seu@email.com"
+    commands:
+      - tapOn: "seu@email.com"
+      - inputText: ${EMAIL}
+      - tapOn: "Sua senha"
+      - inputText: ${SENHA}
+      - hideKeyboard
+      - tapOn: "Entrar"
+
+# Home carregou (tab bar visível)
+- extendedWaitUntil:
+    visible: "Receitas"
+    timeout: 30000
+- assertVisible: "Despensa"
+
+# ── Tab Receitas: a tela que crashava (favoritas .map) ──────────────────────
+- tapOn: "Receitas"
+- extendedWaitUntil:
+    visible:
+      text: ".*(receita|Receita|ingrediente).*"
+    timeout: 30000
+
+# ── Detalhe: a tela que ficava branca ────────────────────────────────────────
+# Toca no primeiro card de receita (imagem ~35% da altura da lista)
+- tapOn:
+    point: "50%,35%"
+- extendedWaitUntil:
+    visible:
+      text: ".*(Ingredientes|Modo de [Pp]reparo|Tentar de novo).*"
+    timeout: 30000
+# Se caiu no estado de erro, o retry precisa funcionar
+- runFlow:
+    when:
+      visible: "Tentar de novo"
+    commands:
+      - tapOn: "Tentar de novo"
+      - extendedWaitUntil:
+          visible:
+            text: ".*(Ingredientes|Modo de [Pp]reparo).*"
+          timeout: 30000
+- back
+
+# ── Tab Despensa: só ingredientes ────────────────────────────────────────────
+- tapOn: "Despensa"
+- extendedWaitUntil:
+    visible:
+      text: ".*(Despensa|ingrediente|item).*"
+    timeout: 30000
+# Não-ingredientes NUNCA podem aparecer (guard de 2026-07-05)
+- assertNotVisible: "sabonete"
+- assertNotVisible: "detergente"
+- assertNotVisible: "Sabonete"
