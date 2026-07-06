@@ -167,7 +167,7 @@ export default function ReceitaDetalheScreen() {
   // Dados de navegação (passados via params) como placeholder inicial
   const dadosNavegacao: Receita | null = dados ? (() => { try { const p = JSON.parse(dados as string); return p?.id === id ? p : null; } catch { return null; } })() : null;
 
-  const { data: receita, isLoading: loading } = useQuery({
+  const { data: receita, isLoading: loading, refetch: refetchReceita } = useQuery({
     queryKey: queryKeys.receitaDetalhe(id ?? ''),
     queryFn: async () => {
       const res = await api.get(`/receitas/${id}`);
@@ -371,7 +371,31 @@ export default function ReceitaDetalheScreen() {
     );
   }
 
-  if (!receita) return null;
+  // Falha na query NUNCA pode virar tela branca silenciosa — erro visível + retry
+  if (!receita) {
+    return (
+      <ScreenWrapper>
+        <View style={[styles.centered, { paddingTop: insets.top, paddingHorizontal: 32, gap: 12 }]}>
+          <MaterialCommunityIcons name="wifi-off" size={48} color={C.ink[300]} />
+          <Text style={{ ...T.h3, color: C.ink[700], textAlign: 'center' }}>
+            Não foi possível carregar a receita
+          </Text>
+          <Text style={{ ...T.small, color: C.ink[500], textAlign: 'center' }}>
+            Verifique sua conexão e tente novamente.
+          </Text>
+          <TouchableOpacity
+            onPress={() => refetchReceita()}
+            style={{ backgroundColor: C.green[600], paddingHorizontal: 24, paddingVertical: 12, borderRadius: radius.md, marginTop: 8 }}
+          >
+            <Text style={{ ...T.body, color: C.ink[0], fontWeight: '600' }}>Tentar de novo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+            <Text style={{ ...T.small, color: C.ink[500] }}>Voltar</Text>
+          </TouchableOpacity>
+        </View>
+      </ScreenWrapper>
+    );
+  }
 
   const passos = parsearPassos(receita.modo_preparo);
   const cobertura = receita.cobertura ?? 0;
