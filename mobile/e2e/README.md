@@ -40,7 +40,28 @@ maestro test flows/   # só UI
 
 Maestro instalado em `~/.maestro/bin` (adicione ao PATH ou use o runner).
 
-## Emulador Android (pendente — disco)
+## Emulador Android (PRONTO — 2026-07-06)
+
+AVD `cookme` (Pixel 6, android-34 google_apis x86_64) criado, com Expo Go
+54.0.8 instalado. Flow completo já passou de ponta a ponta no emulador
+(login → Receitas → detalhe → Despensa).
+
+```bash
+# subir o emulador (headless)
+~/Android/Sdk/emulator/emulator -avd cookme -no-snapshot -no-audio -no-boot-anim -gpu swiftshader_indirect &
+adb wait-for-device
+
+# com `npx expo start` rodando, abrir o app no emulador:
+adb shell am start -a android.intent.action.VIEW -d "exp://192.168.86.9:8081"
+
+# rodar os flows
+./run-e2e.sh --ui        # ou: maestro test flows/
+```
+
+Se o Expo Go precisar reinstalar (wipe do AVD):
+`adb install -r <apk>` com a URL de https://api.expo.dev/v2/versions (androidClientUrl do SDK 54).
+
+## Setup original do emulador (referência)
 
 A máquina tem KVM e o SDK, mas o disco estava com só ~3GB livres
 (2026-07-06) — uma system image + AVD precisam de ~6-10GB. Quando liberar
