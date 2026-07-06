@@ -9,7 +9,8 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       persistOptions={{
         persister: persister as any,
         maxAge: 1000 * 60 * 60 * 24 * 7,
-        buster: '3',
+        // 4: invalida cache envenenada (favoritas persistida como objeto → .map crash)
+        buster: '4',
       }}
     >
       {children}
