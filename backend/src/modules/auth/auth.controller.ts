@@ -17,6 +17,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { EsqueciSenhaDto, RedefinirSenhaDto } from './dto/password-reset.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { Public } from '@common/decorators/public.decorator';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
@@ -97,6 +98,29 @@ export class AuthController {
     @Body() refreshTokenDto: RefreshTokenDto,
   ): Promise<AuthResponseDto> {
     return this.authService.refreshToken(refreshTokenDto.refresh_token);
+  }
+
+  @Public()
+  @Post('esqueci-senha')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ global: { ttl: 3600000, limit: 5 } }) // 5/hora por IP — anti-abuso de e-mail
+  @ApiOperation({ summary: 'Solicita código de recuperação de senha por e-mail' })
+  @ApiResponse({ status: 200, description: 'Sempre 200 — não revela se o e-mail existe' })
+  async esqueciSenha(@Body() dto: EsqueciSenhaDto): Promise<{ mensagem: string }> {
+    await this.authService.esqueciSenha(dto.email);
+    return { mensagem: 'Se o e-mail estiver cadastrado, você receberá um código em instantes.' };
+  }
+
+  @Public()
+  @Post('redefinir-senha')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ global: { ttl: 3600000, limit: 10 } })
+  @ApiOperation({ summary: 'Redefine a senha com o código recebido por e-mail' })
+  @ApiResponse({ status: 200, description: 'Senha redefinida' })
+  @ApiResponse({ status: 400, description: 'Código inválido, expirado ou tentativas excedidas' })
+  async redefinirSenha(@Body() dto: RedefinirSenhaDto): Promise<{ mensagem: string }> {
+    await this.authService.redefinirSenha(dto.email, dto.codigo, dto.nova_senha);
+    return { mensagem: 'Senha redefinida com sucesso. Faça login com a nova senha.' };
   }
 
   @Post('logout')

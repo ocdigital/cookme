@@ -25,6 +25,8 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 import { AuthService } from './auth.service';
+import { PasswordResetCode } from './entities/password-reset-code.entity';
+import { MailService } from '../mail/mail.service';
 import { Usuario } from '@modules/usuarios/entities/usuario.entity';
 import { UserRole } from '@common/enums/user-role.enum';
 import { LoginDto } from './dto/login.dto';
@@ -93,6 +95,14 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        {
+          provide: getRepositoryToken(PasswordResetCode),
+          useValue: { findOne: jest.fn(), create: jest.fn(), save: jest.fn(), update: jest.fn(), increment: jest.fn() },
+        },
+        {
+          provide: MailService,
+          useValue: { enviarCodigoRecuperacao: jest.fn().mockResolvedValue(true), habilitado: false },
+        },
         {
           // Mock do repositório de Usuários
           provide: getRepositoryToken(Usuario),

@@ -6,11 +6,13 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
 import { Usuario } from '../usuarios/entities/usuario.entity';
+import { PasswordResetCode } from './entities/password-reset-code.entity';
+import { MailService } from '../mail/mail.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -21,9 +23,80 @@ export class AuthService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    @InjectRepository(PasswordResetCode)
+    private readonly resetCodeRepository: Repository<PasswordResetCode>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
+
+  // ── Esqueci minha senha ────────────────────────────────────────────────────
+
+  private static readonly RESET_TTL_MIN = 15;
+  private static readonly RESET_MAX_TENTATIVAS = 5;
+
+  /**
+   * Gera código de 6 dígitos e envia por e-mail.
+   * NUNCA revela se o e-mail existe (anti-enumeração): retorna void sempre.
+   */
+  async esqueciSenha(email: string): Promise<void> {
+    const usuario = await this.usuarioRepository.findOne({ where: { email } });
+    if (!usuario) return; // silêncio proposital
+
+    // Invalida códigos pendentes anteriores (só o mais novo vale)
+    await this.resetCodeRepository.update(
+      { usuario_id: usuario.id, usado_em: IsNull() },
+      { usado_em: new Date() },
+    );
+
+    const codigo = String(Math.floor(100000 + Math.random() * 900000));
+    const codigoHash = await bcrypt.hash(codigo, 10);
+    const expiraEm = new Date(Date.now() + AuthService.RESET_TTL_MIN * 60 * 1000);
+
+    await this.resetCodeRepository.save(
+      this.resetCodeRepository.create({
+        usuario_id: usuario.id,
+        codigo_hash: codigoHash,
+        expira_em: expiraEm,
+      }),
+    );
+
+    await this.mailService.enviarCodigoRecuperacao(usuario.email, codigo);
+  }
+
+  /**
+   * Valida o código e troca a senha. Single-use, TTL 15min, máx 5 tentativas.
+   * Invalida o refresh_token — sessões antigas caem (conta possivelmente comprometida).
+   * Mensagem de erro genérica: não diferencia "código errado" de "expirado" para fora.
+   */
+  async redefinirSenha(email: string, codigo: string, novaSenha: string): Promise<void> {
+    const erroGenerico = () =>
+      new BadRequestException('Código inválido ou expirado. Solicite um novo código.');
+
+    const usuario = await this.usuarioRepository.findOne({ where: { email } });
+    if (!usuario) throw erroGenerico();
+
+    const reset = await this.resetCodeRepository.findOne({
+      where: { usuario_id: usuario.id, usado_em: IsNull() },
+      order: { criado_em: 'DESC' },
+    });
+    if (!reset) throw erroGenerico();
+    if (reset.expira_em.getTime() < Date.now()) throw erroGenerico();
+    if (reset.tentativas >= AuthService.RESET_MAX_TENTATIVAS) throw erroGenerico();
+
+    const confere = await bcrypt.compare(codigo, reset.codigo_hash);
+    if (!confere) {
+      await this.resetCodeRepository.increment({ id: reset.id }, 'tentativas', 1);
+      throw erroGenerico();
+    }
+
+    const senhaHash = await this.hashPassword(novaSenha);
+    await this.usuarioRepository.update(usuario.id, {
+      senha: senhaHash,
+      refresh_token: null as any,
+    });
+    await this.resetCodeRepository.update(reset.id, { usado_em: new Date() });
+  }
 
   /**
    * Registra um novo usuário

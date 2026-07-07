@@ -146,16 +146,21 @@ export default function LoginScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity
-                style={styles.rememberRow}
-                onPress={() => setRememberMe(v => !v)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxOn]}>
-                  {rememberMe && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.rememberText}>Manter logado</Text>
-              </TouchableOpacity>
+              <View style={styles.rememberForgotRow}>
+                <TouchableOpacity
+                  style={styles.rememberRow}
+                  onPress={() => setRememberMe(v => !v)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.checkbox, rememberMe && styles.checkboxOn]}>
+                    {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.rememberText}>Manter logado</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/(auth)/esqueci-senha' as any)}>
+                  <Text style={styles.forgotText}>Esqueci minha senha</Text>
+                </TouchableOpacity>
+              </View>
 
               <TouchableOpacity
                 style={[styles.button, loading && styles.btnDisabled]}
@@ -232,6 +237,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rememberForgotRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  forgotText: { color: C.green[600], fontSize: 13, fontWeight: '600' },
   checkbox: {
     width: 20, height: 20, borderRadius: 5,
     borderWidth: 2, borderColor: C.ink[300],

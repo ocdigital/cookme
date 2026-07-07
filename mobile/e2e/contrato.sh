@@ -110,6 +110,13 @@ done
 http POST /eventos/app-open
 [ "$STATUS" = 204 ] && ok "POST /eventos/app-open 204" || fail "eventos/app-open $STATUS"
 
+# 10. Esqueci minha senha (anti-enumeração: e-mail inexistente TAMBÉM responde 200)
+http_noauth() { STATUS=$(curl -s -o "$BODY_FILE" -w '%{http_code}' -X POST "$BASE$1" -H 'Content-Type: application/json' -d "$2"); }
+http_noauth /auth/esqueci-senha '{"email":"nao-existe-'$RANDOM'@cookme.test"}'
+[ "$STATUS" = 200 ] && ok "esqueci-senha e-mail inexistente → 200 (anti-enumeração)" || fail "esqueci-senha inexistente $STATUS"
+http_noauth /auth/redefinir-senha '{"email":"nao-existe@cookme.test","codigo":"000000","nova_senha":"abc12345"}'
+[ "$STATUS" = 400 ] && ok "redefinir-senha código inválido → 400 genérico" || fail "redefinir-senha $STATUS"
+
 rm -f "$BODY_FILE"
 echo "──"
 echo "PASS: $PASS  FAIL: $FAIL"
