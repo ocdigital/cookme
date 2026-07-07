@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsuariosModule } from '../usuarios/usuarios.module';
+import { PasswordResetCode } from './entities/password-reset-code.entity';
+import { MailModule } from '../mail/mail.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -11,6 +14,8 @@ import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
 @Module({
   imports: [
     UsuariosModule,
+    TypeOrmModule.forFeature([PasswordResetCode]),
+    MailModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
