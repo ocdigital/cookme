@@ -401,6 +401,8 @@ export class ReceitaBancoService {
       dificuldade: this.normalizarDificuldade(receita.dificuldade),
       imagem_url: receita.imagem_url,
       ingredientes_chave: ingredientesChave,
+      // Lista de exibição preservada como veio da IA (texto com quantidade)
+      ingredientes_texto: receita.ingredientes?.length ? receita.ingredientes : null,
       origem: (receita as any).url_fonte ? 'internet' : 'ia_gerada',
       url_fonte: (receita as any).url_fonte || null,
       avaliacao_media: (receita as any).avaliacao || 0,
@@ -540,14 +542,18 @@ export class ReceitaBancoService {
    * Converte receita da entidade para o formato usado pelo mobile
    */
   entidadeParaFormato(receita: Receita): ReceitaGerada {
-    // Usa o texto original gerado pela IA (observacao) como exibição.
-    // Fallback para nome_display do produto, depois ingredientes_chave.
+    // Precedência da lista de exibição:
+    // 1. ingredientes_texto — lista curada (fluxo atual e backfill do legado)
+    // 2. receita_ingredientes.observacao — texto original por linha (relacional)
+    // 3. ingredientes_chave — última opção (normalizada, só palavra-chave)
     const ingredientes: string[] =
-      receita.ingredientes?.length > 0
-        ? receita.ingredientes
-            .map((ri) => ri.observacao || (ri.produto as any)?.nome_display || (ri.produto as any)?.nome || '')
-            .filter(Boolean)
-        : receita.ingredientes_chave || [];
+      receita.ingredientes_texto && receita.ingredientes_texto.length > 0
+        ? receita.ingredientes_texto
+        : receita.ingredientes?.length > 0
+          ? receita.ingredientes
+              .map((ri) => ri.observacao || (ri.produto as any)?.nome_display || (ri.produto as any)?.nome || '')
+              .filter(Boolean)
+          : receita.ingredientes_chave || [];
 
     return {
       titulo: receita.nome,

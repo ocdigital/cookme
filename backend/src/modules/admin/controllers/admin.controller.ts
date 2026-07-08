@@ -507,6 +507,12 @@ export class AdminController {
     return this.ingredientCleanerService.limparBanco(body.limite ?? 30, body.usar_ia ?? true);
   }
 
+  @Post('receitas/ingredientes/corrigir-embutidos')
+  @ApiOperation({ summary: 'Separa ingredientes embutidos no modo_preparo (seed groq_seed) → ingredientes_texto' })
+  async corrigirEmbutidos(@Body() body: { limite?: number }) {
+    return this.ingredientCleanerService.corrigirIngredientesEmbutidos(body.limite ?? 500);
+  }
+
   @Post('receitas/gerar-ia')
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Gera receitas originais via Gemini IA em background — retorna imediato, notifica quando pronto' })

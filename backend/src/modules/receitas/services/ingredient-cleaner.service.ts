@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Receita } from '../entities/receita.entity';
 import { IngredientNormalizerService } from './ingredient-normalizer.service';
+import { separarReceitaLegado } from './receita-legado.util';
 
 // Padrões que indicam fragmento ruim no ingrediente_chave
 const FRAGMENTO_RUIM = [
@@ -209,5 +210,50 @@ Responda APENAS com JSON array: ["ingrediente1", "ingrediente2", ...]`;
         chaves: r.ingredientes_chave || [],
       })),
     };
+  }
+
+  // ── Backfill: receitas do seed groq_seed com ingredientes embutidos ──────
+
+  /**
+   * Corrige receitas legadas cujos ingredientes ficaram embutidos no
+   * modo_preparo como bloco "INGREDIENTES:". Para cada uma:
+   *   1. separa o bloco → ingredientes_texto (exibição)
+   *   2. limpa o modo_preparo (só passos)
+   *   3. recomputa ingredientes_chave a partir da lista COMPLETA
+   * Determinístico e idempotente (roda sem IA; receita já corrigida é pulada).
+   */
+  async corrigirIngredientesEmbutidos(limite = 500): Promise<{
+    processadas: number;
+    corrigidas: number;
+  }> {
+    const receitas = await this.receitaRepo
+      .createQueryBuilder('r')
+      .where("r.modo_preparo LIKE 'INGREDIENTES:%'")
+      .limit(limite)
+      .getMany();
+
+    let processadas = 0;
+    let corrigidas = 0;
+
+    for (const receita of receitas) {
+      processadas++;
+      const sep = separarReceitaLegado(receita.modo_preparo);
+      if (!sep.tinhaBlocoEmbutido) continue;
+
+      const chaves = this.normalizer.extrairChaves(sep.ingredientesTexto);
+
+      await this.dataSource.query(
+        `UPDATE receitas
+         SET ingredientes_texto = $1, modo_preparo = $2, ingredientes_chave = $3
+         WHERE id = $4`,
+        [sep.ingredientesTexto, sep.modoPreparoLimpo, chaves, receita.id],
+      );
+      corrigidas++;
+      this.logger.log(
+        `✅ "${receita.nome}": ${sep.ingredientesTexto.length} ingredientes separados, ${chaves.length} chaves`,
+      );
+    }
+
+    return { processadas, corrigidas };
   }
 }
