@@ -1,5 +1,5 @@
 import { Body, Controller, Post, UseGuards, BadRequestException } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
@@ -7,6 +7,7 @@ import { Roles } from '@common/decorators/roles.decorator';
 import { UserRole } from '@common/enums/user-role.enum';
 import { EngineService } from './engine.service';
 import { ItemEntrada } from './engine.types';
+import { CanonizarRequestDto, CanonizarResponseDto } from './engine.dto';
 
 /**
  * Playground da Engine — o "demo ao vivo" do roteiro de vendas
@@ -24,7 +25,17 @@ export class EngineController {
 
   @Post('canonizar')
   @Throttle({ global: { ttl: 60000, limit: 30 } })
-  @ApiOperation({ summary: 'Canoniza itens de cupom (demo/playground da API B2B)' })
+  @ApiOperation({
+    summary: 'Canoniza itens de cupom fiscal',
+    description:
+      'Recebe descrições sujas de itens de cupom fiscal brasileiro e devolve, por item: ' +
+      'nome canônico do produto, marca, flag de alimento, confiança (0–1) e o estágio do ' +
+      'pipeline que resolveu (EAN → dicionário → base de conhecimento → fuzzy → regex → IA → fallback). ' +
+      'Itens que a cadeia determinística não resolve com confiança passam por IA e o resultado ' +
+      'é aprendido na base compartilhada — o mesmo item nunca custa IA duas vezes.',
+  })
+  @ApiBody({ type: CanonizarRequestDto })
+  @ApiOkResponse({ type: CanonizarResponseDto })
   async canonizar(@Body() body: { itens: Array<ItemEntrada | string> }) {
     if (!Array.isArray(body?.itens) || body.itens.length === 0) {
       throw new BadRequestException('Envie { itens: [...] } — strings ou objetos {descricao, ean?}');
