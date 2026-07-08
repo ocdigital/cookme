@@ -73,6 +73,12 @@ export class Receita {
     @Index()
     ingredientes_chave: string[];
 
+    // Lista de EXIBIÇÃO dos ingredientes (texto original da IA, com quantidade/unidade).
+    // Fonte de verdade da seção "Ingredientes" na tela, sem exigir match com produto_id.
+    // ingredientes_chave = derivada (para busca); ingredientes_texto = para o usuário ler.
+    @Column('text', { array: true, nullable: true })
+    ingredientes_texto: string[] | null;
+
     // Origem (catalogo, ia_gerada, usuario, internet)
     @Column({ default: 'catalogo' })
     origem: string;

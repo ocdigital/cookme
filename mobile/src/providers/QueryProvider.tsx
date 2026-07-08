@@ -10,7 +10,9 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         persister: persister as any,
         maxAge: 1000 * 60 * 60 * 24 * 7,
         // 4: invalida cache envenenada (favoritas persistida como objeto → .map crash)
-        buster: '4',
+        // 5: receitas cacheadas antes do backfill de ingredientes embutidos
+        //    mostravam a lista duplicada (modo_preparo antigo ainda tinha o bloco)
+        buster: '5',
       }}
     >
       {children}
