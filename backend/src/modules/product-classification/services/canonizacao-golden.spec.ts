@@ -20,7 +20,7 @@ const golden: { pares: Array<{ nome_ocr: string; esperado: string }> } = JSON.pa
  * LIMIAR é uma catraca: só sobe. Se este teste quebrar após uma mudança,
  * a mudança piorou a canonização — não abaixe o limiar sem justificar.
  */
-const LIMIAR = 0.75;
+const LIMIAR = 0.9;
 
 describe('Canonização — golden set de cupons reais', () => {
   let service: OcrAliasService;
@@ -77,11 +77,12 @@ describe('Canonização — golden set de cupons reais', () => {
     }
 
     const acuracia = acertos / golden.pares.length;
-    // Log dos erros para guiar a curadoria (não falha por caso individual)
-    if (erros.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log(`Golden set: ${acertos}/${golden.pares.length} (${(acuracia * 100).toFixed(1)}%)\n` + erros.join('\n'));
-    }
+    // Log sempre (score é a métrica de venda da Engine); erros guiam a curadoria
+    // eslint-disable-next-line no-console
+    console.log(
+      `Golden set: ${acertos}/${golden.pares.length} (${(acuracia * 100).toFixed(1)}%)` +
+      (erros.length > 0 ? '\n' + erros.join('\n') : ''),
+    );
 
     expect(acuracia).toBeGreaterThanOrEqual(LIMIAR);
   });

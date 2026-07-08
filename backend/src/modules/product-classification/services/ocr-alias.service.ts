@@ -33,6 +33,15 @@ const BRAND_WORDS = new Set([
   'gold', 'silver', 'boa', 'leve', 'bom', 'seleção',
   // Outros distribuidores
   'italac', 'naturelo', 'naturegg', 'hortifruti', 'coamo', 'unilever', 'bunge',
+  // Expansão golden set 2026-07
+  'tirolez', 'kibon', 'sococo', 'nissin', 'sazon', 'tabasco', 'castelo', 'cisne',
+  'royal', 'fleischmann', 'quero', 'elefante', 'coqueiro', 'ceratti', 'philadelphia',
+  'yakult', 'toddynho', 'nescau', 'nescafe', 'kelloggs', 'queensberry', 'piraque',
+  'panco', 'jasmine', 'naturale', 'helena', 'sakura', 'mccain', 'reservado', 'leao',
+  'crystal', 'kero', 'ades', 'ype', 'comfort', 'neve', 'seda', 'rexona', 'qboa',
+  'bombril', 'omo', 'colgate', 'protex', 'palmolive', 'dove', 'holanda', 'alto',
+  'alegre', 'maisdoce', 'venturelli', 'gallo', 'andorinha', 'wyda', 'terrinha',
+  'chantymix', 'romanha', 'mimoso',
 ]);
 
 // Sufixos/palavras de embalagem e peso que não identificam o ingrediente
@@ -59,22 +68,42 @@ const PACKAGING_PATTERNS = [
   /\b(rn|bebe|infantil)\b/gi,
   /\b(nanica|prata|maca|cavendish|caturra|tipo|variedade|var)\b/gi,  // variedades de frutas
   /\b(espiga|ramo|molho|bando|cacho)\b/gi,  // formas de venda
+  // Abreviações de forma/espécie em cupom (expansão golden set 2026-07)
+  /\b(fat|trad|vac|vacuo|ped|peca|bov|bovin[oa]|fgo|bco|imp|importad[oa]|graud[oa]|granel|granulad[oa])\b/gi,
+  /\b(s\/osso|c\/osso|s\/pele|c\/pele)\b/gi,
+  /\b(napolitan[oa]|silvestre|cascao|williams|thompson|palmer|formosa|gala|fuji|perola|taiti)\b/gi,
+];
+
+// Compostos prioritários — qualificador separado do substantivo por marca ou
+// palavra de forma ("FEIJAO BROTO LEGAL CARIOCA", "CHOC BARRA AO LEITE").
+// Rodam ANTES do dicionário: o prefix-match de 1 token do dicionário devolveria
+// o genérico ("feijão", "chocolate") e engoliria o qualificador. Só padrões de
+// altíssima precisão entram aqui — em dúvida, use OCR_MAPA ou o dicionário.
+const COMPOSTOS_PRIORITARIOS: Array<[RegExp, string]> = [
+  [/\bfe[ij]j?\w*\b.{0,25}\bcarioc/i, 'feijão carioca'],
+  [/\boleo\b.{0,12}\bsoja/i, 'óleo de soja'],
+  [/\boleo\b.{0,12}\bmilho/i, 'óleo de milho'],
+  [/\boleo\b.{0,12}\bgirassol/i, 'óleo de girassol'],
+  [/\bchoc\w*\b.{0,12}\bao\s+leite/i, 'chocolate ao leite'],
+  [/\bchoc\w*\b.{0,12}\bmeio\s+amargo/i, 'chocolate meio amargo'],
+  [/\bagua\s+e\s+sal\b/i, 'biscoito água e sal'],
+  [/\bling\w*\b.{0,10}\bfrang/i, 'linguiça de frango'],
 ];
 
 // Mapeamento direto de padrões OCR → ingrediente canônico
 // Mais específico que o normalizer, cobre nomes de mercado
 const OCR_MAPA: Array<[RegExp, string]> = [
   // Proteínas
-  [/\bpeito\s+de?\s+frang/i, 'peito de frango'],
-  [/\bfile\s+de?\s+frang/i, 'peito de frango'],
+  [/\bpeito\s+(?:de\s+)?frang/i, 'peito de frango'],
+  [/\bfile\s+(?:de\s+)?frang/i, 'peito de frango'],
   [/\bfrang.{0,20}peito/i, 'peito de frango'],
-  [/\basa\s+de?\s+frang/i, 'asa de frango'],
-  [/\bcoxinha\s+da?\s+asa/i, 'coxinha da asa'],
+  [/\basa\s+(?:de\s+)?frang/i, 'asa de frango'],
+  [/\bcoxinha\s+(?:da\s+)?asa/i, 'coxinha da asa'],
   [/\bsobrecoxa/i, 'sobrecoxa de frango'],
   [/\bcoxa.{0,10}frang/i, 'coxa de frango'],
   [/\bfrang/i, 'frango'],
   [/\bcarne\s+moi/i, 'carne moída'],
-  [/\bpatinho/i, 'carne moída'],
+  [/\bpatinho/i, 'patinho'],
   [/\bpicanha/i, 'picanha'],
   [/\bacém/i, 'acém'],
   [/\bacem/i, 'acém'],
@@ -84,7 +113,8 @@ const OCR_MAPA: Array<[RegExp, string]> = [
   [/\bpernil/i, 'pernil suíno'],
   [/\bcostelinh/i, 'costelinha de porco'],
   [/\bbacon/i, 'bacon'],
-  [/\blinguica\s+calah?r/i, 'linguiça calabresa'],
+  [/\bling\w*\s+calabr/i, 'linguiça calabresa'],
+  [/\bling\w*\s+tosc/i, 'linguiça toscana'],
   [/\blinguica/i, 'linguiça'],
   [/\bpaio/i, 'paio'],
   [/\bcarne\s+sec/i, 'carne seca'],
@@ -106,13 +136,13 @@ const OCR_MAPA: Array<[RegExp, string]> = [
   [/\bcream.?cheese/i, 'cream cheese'],
   [/\brequeijao/i, 'requeijão'],
   [/\bqueijo/i, 'queijo'],
-  [/\bcreme\s+de?\s+leite/i, 'creme de leite'],
+  [/\bcreme\s+(?:de\s+)?leite/i, 'creme de leite'],
   [/\bcr\s+leite\b/i, 'creme de leite'],
   [/\bleite\s+condensa/i, 'leite condensado'],
-  [/\bleite\s+de?\s+coc/i, 'leite de coco'],
+  [/\bleite\s+(?:de\s+)?coc/i, 'leite de coco'],
   [/\bleite\s+coca/i, 'leite de coco'],
   [/\bmanteiga/i, 'manteiga'],
-  [/\bmargarina/i, 'manteiga'],
+  [/\bmargarina/i, 'margarina'],
   [/\bleite\s+int/i, 'leite'],
   [/\bleite\s+desnat/i, 'leite desnatado'],
   [/\bleite\s+semi/i, 'leite semidesnatado'],
@@ -129,15 +159,15 @@ const OCR_MAPA: Array<[RegExp, string]> = [
   [/\bfeijao\s+mus|feijao\s+muin/i, 'feijão mulatinho'],
   [/\bfeijao/i, 'feijão'],
   [/\blentilha/i, 'lentilha'],
-  [/\bgrao\s+de?\s+bico/i, 'grão-de-bico'],
-  [/\bfar[ij]nha\s+de?\s+trig/i, 'farinha de trigo'],
-  [/\bfar[ij]nha\s+de?\s+mand/i, 'farinha de mandioca'],
-  [/\bfar[ij]nha\s+de?\s+avei/i, 'farinha de aveia'],
+  [/\bgrao\s+(?:de\s+)?bico/i, 'grão-de-bico'],
+  [/\bfar[ij]nha\s+(?:de\s+)?trig/i, 'farinha de trigo'],
+  [/\bfar[ij]nha\s+(?:de\s+)?mand/i, 'farinha de mandioca'],
+  [/\bfar[ij]nha\s+(?:de\s+)?avei/i, 'farinha de aveia'],
   [/\bmacarrao\s+espag/i, 'macarrão espaguete'],
   [/\bmacarrao\s+paraf/i, 'macarrão parafuso'],
   [/\bmacarrao/i, 'macarrão'],
   [/\bspaghetti|espague/i, 'macarrão espaguete'],
-  [/\bmassa\s+de?\s+lasanh/i, 'lasanha'],
+  [/\bmassa\s+(?:de\s+)?lasanh/i, 'massa de lasanha'],
   // Vegetais
   [/\bbatata\s+doc/i, 'batata doce'],
   [/\bbatata\s+bal/i, 'batata'],
@@ -147,7 +177,7 @@ const OCR_MAPA: Array<[RegExp, string]> = [
   [/\babobrinha/i, 'abobrinha'],
   [/\babobora/i, 'abóbora'],
   [/\bcabotia/i, 'abóbora cabotiá'],
-  [/\bberingela/i, 'berinjela'],
+  [/\bberin[gj]ela/i, 'berinjela'],
   [/\bcenoura/i, 'cenoura'],
   [/\bcebola\s+rox/i, 'cebola roxa'],
   [/\bcebola/i, 'cebola'],
@@ -199,21 +229,21 @@ const OCR_MAPA: Array<[RegExp, string]> = [
   [/\bovos?/i, 'ovo'],
   // Óleos e gorduras
   [/\bazeite/i, 'azeite de oliva'],
-  [/\boleo\s+de?\s+coc/i, 'óleo de coco'],
+  [/\boleo\s+(?:de\s+)?coc/i, 'óleo de coco'],
   [/\boleo/i, 'óleo'],
   // Temperos e condimentos
-  [/\bextrato\s+de?\s+tomate/i, 'extrato de tomate'],
-  [/\bmolho\s+de?\s+tomate/i, 'molho de tomate'],
+  [/\bextrato\s+(?:de\s+)?tomate/i, 'extrato de tomate'],
+  [/\bmolho\s+(?:de\s+)?tomate/i, 'molho de tomate'],
   [/\bpassata/i, 'molho de tomate'],
   [/\bmolho\s+shoyu/i, 'shoyu'],
-  [/\bcaldo\s+de?\s+galin/i, 'caldo de galinha'],
-  [/\bcaldo\s+de?\s+carne/i, 'caldo de carne'],
-  [/\bcaldo\s+de?\s+legum/i, 'caldo de legumes'],
+  [/\bcaldo\s+(?:de\s+)?galin/i, 'caldo de galinha'],
+  [/\bcaldo\s+(?:de\s+)?carne/i, 'caldo de carne'],
+  [/\bcaldo\s+(?:de\s+)?legum/i, 'caldo de legumes'],
   [/\bfubá|fuba\b/i, 'fubá'],
   [/\bpolvilho/i, 'polvilho'],
   [/\bfarofa/i, 'farofa'],
   [/\bpanko/i, 'farinha de rosca'],
-  [/\bfar[ij]nha\s+de?\s+rosc/i, 'farinha de rosca'],
+  [/\bfar[ij]nha\s+(?:de\s+)?rosc/i, 'farinha de rosca'],
   // Chocolate (before "leite" to catch "ao leite")
   [/\bchocolate\s+ao?\s+leite/i, 'chocolate ao leite'],
   [/\bchoc.{0,10}leite/i, 'chocolate ao leite'],
@@ -225,10 +255,10 @@ const OCR_MAPA: Array<[RegExp, string]> = [
   [/\bbiscoito/i, 'biscoito'],
   [/\bbolacha/i, 'bolacha'],
   // Pão
-  [/\bpao\s+de?\s+queijo/i, 'pão de queijo'],
-  [/\bpao\s+de?\s+forma/i, 'pão de forma'],
+  [/\bpao\s+(?:de\s+)?queijo/i, 'pão de queijo'],
+  [/\bpao\s+(?:de\s+)?forma/i, 'pão de forma'],
   [/\bpao\s+fran/i, 'pão francês'],
-  [/\bpao\s+de?\s+mel/i, 'pão de mel'],
+  [/\bpao\s+(?:de\s+)?mel/i, 'pão de mel'],
   [/\bpao/i, 'pão'],
   // Doces e panificação
   [/\bfermento\s+biol/i, 'fermento biológico'],
@@ -241,12 +271,12 @@ const OCR_MAPA: Array<[RegExp, string]> = [
   [/\bchocolate\s+bran/i, 'chocolate branco'],
   [/\bchocolate/i, 'chocolate'],
   [/\bgelatin/i, 'gelatina'],
-  [/\bpolpa\s+de?\s+fruta/i, 'polpa de fruta'],
+  [/\bpolpa\s+(?:de\s+)?fruta/i, 'polpa de fruta'],
   // Bebidas
   [/\bvinho\s+tint/i, 'vinho tinto'],
   [/\bvinho\s+bran/i, 'vinho branco'],
   [/\bcerveja/i, 'cerveja'],
-  [/\bleite\s+de?\s+coc/i, 'leite de coco'],
+  [/\bleite\s+(?:de\s+)?coc/i, 'leite de coco'],
 ];
 
 export type EstagioCanonizacao =
@@ -281,8 +311,21 @@ export class OcrAliasService {
    * 4. Aplicar IngredientNormalizerService (regras linguísticas)
    * 5. Fallback: primeiras palavras normalizadas
    */
+  /** Compat: retorna só o nome. Preferir resolverComEstagio (Engine). */
   async resolverNomeCanônico(nomeOcr: string, codigoBarras?: string): Promise<string> {
+    return (await this.resolverComEstagio(nomeOcr, codigoBarras)).canonical;
+  }
+
+  /**
+   * Resolução completa com o estágio que decidiu — insumo do confidence
+   * score da Engine de canonização.
+   */
+  async resolverComEstagio(
+    nomeOcr: string,
+    codigoBarras?: string,
+  ): Promise<{ canonical: string; estagio: EstagioCanonizacao }> {
     const normalizedKey = this.normalizarChave(nomeOcr);
+    const textoSemAcento = nomeOcr.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
     // 0. EAN aprendido — chave canônica definitiva, ignora variação de nome
     if (codigoBarras) {
@@ -293,7 +336,17 @@ export class OcrAliasService {
       if (porEan?.canonical_ingredient) {
         this.logger.debug(`EAN ${codigoBarras}: "${nomeOcr}" → "${porEan.canonical_ingredient}"`);
         this.stats.ean++;
-        return porEan.canonical_ingredient;
+        return { canonical: porEan.canonical_ingredient, estagio: 'ean' };
+      }
+    }
+
+    // 0.5. Compostos prioritários — qualificador com marca no meio; precisa
+    // vencer o prefix-match genérico do dicionário (ver comentário no array)
+    for (const [regex, canonical] of COMPOSTOS_PRIORITARIOS) {
+      if (regex.test(textoSemAcento)) {
+        await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
+        this.stats.regex++;
+        return { canonical, estagio: 'regex' };
       }
     }
 
@@ -307,7 +360,7 @@ export class OcrAliasService {
       this.logger.debug(`Abreviação: "${nomeOcr}" → "${abbrMatch.expanded}" (ingrediente=${abbrMatch.is_ingredient})`);
       await this.persistirCanonical(normalizedKey, nomeOcr, abbrMatch.expanded, abbrMatch.is_ingredient, codigoBarras);
       this.stats.abreviacao++;
-      return abbrMatch.expanded;
+      return { canonical: abbrMatch.expanded, estagio: 'abreviacao' };
     }
 
     // 2. Lookup exato no banco
@@ -321,7 +374,7 @@ export class OcrAliasService {
         await this.persistirCanonical(normalizedKey, nomeOcr, cached.canonical_ingredient, undefined, codigoBarras);
       }
       this.stats.kb_exato++;
-      return cached.canonical_ingredient;
+      return { canonical: cached.canonical_ingredient, estagio: 'kb_exato' };
     }
 
     // 3. Fuzzy lookup via trigram (pega typos OCR e variações de nome)
@@ -329,7 +382,7 @@ export class OcrAliasService {
     if (fuzzyResult) {
       await this.persistirCanonical(normalizedKey, nomeOcr, fuzzyResult, undefined, codigoBarras);
       this.stats.fuzzy++;
-      return fuzzyResult;
+      return { canonical: fuzzyResult, estagio: 'fuzzy' };
     }
 
     // 4. Tentar OCR_MAPA (padrões específicos de supermercado)
@@ -339,7 +392,7 @@ export class OcrAliasService {
         // Persiste para cache futuro
         await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
         this.stats.regex++;
-        return canonical;
+        return { canonical, estagio: 'regex' };
       }
     }
 
@@ -349,13 +402,13 @@ export class OcrAliasService {
       const canonical = norm.nomeCanônico;
       await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
       this.stats.normalizer++;
-      return canonical;
+      return { canonical, estagio: 'normalizer' };
     }
 
     // 6. Fallback: limpar embalagem e pegar primeiras 2 palavras
     const fallback = this.fallbackLimpar(nomeOcr);
     this.stats.fallback++;
-    return fallback;
+    return { canonical: fallback, estagio: 'fallback' };
   }
 
   /**

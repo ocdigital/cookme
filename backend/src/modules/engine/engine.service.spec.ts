@@ -1,0 +1,125 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { EngineService } from './engine.service';
+import { LlmCanonizadorService } from './llm-canonizador.service';
+import { OcrAliasService } from '../product-classification/services/ocr-alias.service';
+import { extrairMarca } from './marcas';
+
+/**
+ * Engine de Canonização — contrato da API B2B:
+ * confidence honesto por estágio, marca extraída, guard de não-alimento,
+ * tier de IA só na cauda longa (e aprendendo na KB).
+ */
+describe('EngineService', () => {
+  let engine: EngineService;
+  let ocrAlias: { resolverComEstagio: jest.Mock };
+  let llm: { canonizar: jest.Mock; habilitado: boolean };
+
+  const montar = async (llmHabilitado = true) => {
+    ocrAlias = { resolverComEstagio: jest.fn() };
+    llm = { canonizar: jest.fn().mockResolvedValue(null), habilitado: llmHabilitado };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EngineService,
+        { provide: OcrAliasService, useValue: ocrAlias },
+        { provide: LlmCanonizadorService, useValue: llm },
+      ],
+    }).compile();
+    engine = module.get(EngineService);
+  };
+
+  beforeEach(() => montar());
+
+  it('resolução por EAN → confiança máxima (0.99)', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'creme de leite', estagio: 'ean' });
+
+    const r = await engine.canonizar({ descricao: 'CR LEITE ITALAC 200GR', ean: '7891234567890' });
+
+    expect(r.produto_canonico).toBe('creme de leite');
+    expect(r.estagio).toBe('ean');
+    expect(r.confianca).toBe(0.99);
+    expect(r.marca).toBe('Italac');
+    expect(r.ean).toBe('7891234567890');
+  });
+
+  it('dicionário → 0.95; fallback → 0.3 (honestidade do score)', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValueOnce({ canonical: 'arroz', estagio: 'abreviacao' });
+    const dict = await engine.canonizar({ descricao: 'ARR CAMIL 5KG' });
+    expect(dict.confianca).toBe(0.95);
+    expect(dict.estagio).toBe('dicionario');
+    expect(dict.marca).toBe('Camil');
+
+    llm.habilitado = false;
+    ocrAlias.resolverComEstagio.mockResolvedValueOnce({ canonical: 'produto xyz', estagio: 'fallback' });
+    const fb = await engine.canonizar({ descricao: 'XYZ DESCONHECIDO 123' });
+    expect(fb.confianca).toBe(0.3);
+    expect(fb.estagio).toBe('fallback');
+  });
+
+  it('não-ingrediente (guard): eh_alimento=false SEMPRE, mesmo se a resolução divagar', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'sabonete liquido', estagio: 'fallback' });
+
+    const r = await engine.canonizar({ descricao: 'SABONETE LIQUIDO PROTEX 250ML' });
+
+    expect(r.eh_alimento).toBe(false);
+    expect(r.marca).toBe('Protex');
+    expect(r.confianca).toBeGreaterThanOrEqual(0.9); // guard determinístico = certeza alta
+  });
+
+  it('alimento sem classificação → eh_alimento=null (indeterminado, não chuta)', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'arroz', estagio: 'kb_exato' });
+
+    const r = await engine.canonizar({ descricao: 'ARROZ BRANCO 5KG' });
+    expect(r.eh_alimento).toBeNull();
+  });
+
+  it('cauda longa: fallback + IA habilitada → tier IA resolve e vira estagio "ia" (0.7)', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'polpa cupuac', estagio: 'fallback' });
+    llm.canonizar.mockResolvedValue({ produto_canonico: 'polpa de cupuaçu' });
+
+    const r = await engine.canonizar({ descricao: 'POLPA CUPUAC INTG 500G' });
+
+    expect(llm.canonizar).toHaveBeenCalledWith('POLPA CUPUAC INTG 500G', undefined);
+    expect(r.produto_canonico).toBe('polpa de cupuaçu');
+    expect(r.estagio).toBe('ia');
+    expect(r.confianca).toBe(0.7);
+  });
+
+  it('IA NÃO é chamada quando o estágio determinístico é confiável (custo!)', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'arroz', estagio: 'abreviacao' });
+
+    await engine.canonizar({ descricao: 'ARR BRANCO 1KG' });
+    expect(llm.canonizar).not.toHaveBeenCalled();
+  });
+
+  it('IA NÃO é chamada para não-ingrediente (guard barra antes)', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'detergente', estagio: 'fallback' });
+
+    await engine.canonizar({ descricao: 'DETERGENTE YPE 500ML' });
+    expect(llm.canonizar).not.toHaveBeenCalled();
+  });
+
+  it('canonizarLote preserva ordem e devolve todos', async () => {
+    ocrAlias.resolverComEstagio
+      .mockResolvedValueOnce({ canonical: 'arroz', estagio: 'abreviacao' })
+      .mockResolvedValueOnce({ canonical: 'feijão', estagio: 'regex' });
+
+    const r = await engine.canonizarLote([{ descricao: 'ARR 5KG' }, { descricao: 'FEIJAO CAR 1KG' }]);
+    expect(r.map((i) => i.produto_canonico)).toEqual(['arroz', 'feijão']);
+  });
+});
+
+describe('extrairMarca', () => {
+  const casos: Array<[string, string | null]> = [
+    ['CR LEITE ITALAC 200GR', 'Italac'],
+    ['ARROZ TIO JOAO 5KG', 'Tio João'],
+    ['CAFE 3 CORACOES VACUO 500G', '3 Corações'],
+    ['SABONETE PROTEX 85G', 'Protex'],
+    ['BATATA PRINGLES ORIG 104G', 'Pringles'],
+    ['TOMATE ITALIANO KG', null],           // sem marca
+    ['BANANA PRATA KG', null],              // 'prata' não é marca
+  ];
+  it.each(casos)('%s → %s', (desc, esperado) => {
+    expect(extrairMarca(desc)).toBe(esperado);
+  });
+});

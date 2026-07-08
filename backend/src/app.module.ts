@@ -33,6 +33,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { HealthModule } from './modules/health/health.module';
 import { StripeModule } from './modules/stripe/stripe.module';
 import { MetricasModule } from './modules/metricas/metricas.module';
+import { EngineModule } from './modules/engine/engine.module';
 
 @Module({
   imports: [
@@ -91,6 +92,7 @@ import { MetricasModule } from './modules/metricas/metricas.module';
     HealthModule,
     StripeModule,
     MetricasModule,
+    EngineModule,
   ],
   providers: [
     {
