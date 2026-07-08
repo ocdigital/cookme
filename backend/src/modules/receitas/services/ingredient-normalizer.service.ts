@@ -81,9 +81,20 @@ const PLURAIS_IRREGULARES: Record<string, string> = {
 // "sopa de" no início = colher de sopa de (unidade)
 const REGEX_SOPA_CHA = /^(?:(?:de\s+)?(?:sopa|chá|cha|sobremesa|café|cafe)\s+de\s+)/i;
 
+// Palavras de estado de preparo / forma / variedade — fonte única para:
+// 1. REGEX_PREPARO: remove ao FINAL de um nome ("banana amassada" → "banana")
+// 2. REGEX_SO_PREPARO: string INTEIRA só de preparo nunca é ingrediente
+//    ("amassada" isolada — bug real do Pudim de Canjica, 2026-07-08)
+const PREPARO_ALTERNACAO =
+  'picadinh[ao]s?|picad[ao]s?|ralad[ao]s?|amassad[ao]s?|cozid[ao]s?|fatiad[ao]s?|cortad[ao]s?|desfiad[ao]s?|moíd[ao]s?|moid[ao]s?|triturad[ao]s?|triurad[ao]s?|liquidificad[ao]s?|escorrid[ao]s?|espremid[ao]s?|escald[ao]s?|branquead[ao]s?|hidratad[ao]s?|temperad[ao]s?|refogad[ao]s?|fritad[ao]s?|assad[ao]s?|grelhad[ao]s?|ensopd[ao]s?|derretid[ao]s?|descascad[ao]s?|lavad[ao]s?|batid[ao]s?|esfarelad[ao]s?|dourad[ao]s?|aferventad[ao]s?|cozinhar?|em\\s+(?:cubos?|cubinhos?|pedacos?|fatias?|tiras?|rodelas?|flocos?|po\\b|po\\s+fino|calcio)|sem\\s+(?:pele|osso|semente|casca)|bem\\b|muit[ao]s?|inteir[ao]s?|médi[ao]s?|medi[ao]s?|grande?s?|pequen[ao]s?|madur[ao]s?|fresc[ao]s?|sec[ao]s?|defumad[ao]s?|cru[as]?|nanicas?|prata|cavendish|d.agua|dagua|fitness|diet|light|integral|refinad[ao]s?|peneirad[ao]s?|fin[ao]s?|graud[ao]s?|amarelo?s?|verde?s?|vermelho?s?';
+
 // Estado de preparo ao final — remove adjetivos de forma e variedades
 // Applied in a loop until stable (handles chained descriptors like "nanicas bem maduras")
-const REGEX_PREPARO = /\s+(?:picadinh[ao]s?|picad[ao]s?|ralad[ao]s?|amassad[ao]s?|cozid[ao]s?|fatiad[ao]s?|cortad[ao]s?|desfiad[ao]s?|moíd[ao]s?|triurad[ao]s?|liquidificad[ao]s?|escorrid[ao]s?|escald[ao]s?|branquead[ao]s?|hidratad[ao]s?|temperad[ao]s?|refogad[ao]s?|fritad[ao]s?|assad[ao]s?|grelhad[ao]s?|ensopd[ao]s?|cozinhar?|em\s+(?:cubos?|cubinhos?|pedacos?|fatias?|tiras?|rodelas?|flocos?|po\b|po\s+fino|calcio)|sem\s+(?:pele|osso|semente|casca)|bem\b|muit[ao]s?|inteir[ao]s?|médi[ao]s?|medi[ao]s?|grande?s?|pequen[ao]s?|madur[ao]s?|fresc[ao]s?|sec[ao]s?|defumad[ao]s?|cru[as]?|nanicas?|prata|cavendish|d.agua|dagua|fitness|diet|light|integral|refinad[ao]s?|peneirad[ao]s?|fin[ao]s?|graud[ao]s?|amarelo?s?|verde?s?|vermelho?s?)(\s|$)/gi;
+const REGEX_PREPARO = new RegExp(`\\s+(?:${PREPARO_ALTERNACAO})(\\s|$)`, 'gi');
+
+// String composta APENAS por palavras de preparo (com conectivos) — fragmento,
+// não ingrediente. Sem flag g: usada com .test() em múltiplas chamadas.
+const REGEX_SO_PREPARO = new RegExp(`^(?:(?:${PREPARO_ALTERNACAO}|e|ou)\\s*)+$`, 'i');
 
 // Sinônimos regionais — mesma coisa, diferentes nomes por região do Brasil
 // Normaliza qualquer variante para o nome canônico
@@ -404,6 +415,11 @@ export class IngredientNormalizerService {
     if (!texto || texto.length < 2) return null;
     if (NAO_INGREDIENTE.has(texto)) return null;
 
+    // Particípio/adjetivo de preparo isolado não é ingrediente ("amassada",
+    // "bem picada") — REGEX_PREPARO só remove com espaço ANTES, então a
+    // palavra sozinha escaparia (bug real: Pudim de Canjica)
+    if (REGEX_SO_PREPARO.test(texto)) return null;
+
     // Descarta se parece código de produto (NFCe, abreviações industriais)
     if (REGEX_NAO_CULINARIO.some((r) => r.test(textoRaw))) return null;
 
@@ -459,7 +475,15 @@ export class IngredientNormalizerService {
     const ehInstrucao = /\b(para|com|sem|até|quando|após|antes|durante|enquanto)\b/i;
     if (ehInstrucao.test(texto)) return [texto];
 
-    return partes;
+    // Descarta partes que são só estado de preparo: em "canjica cozida e
+    // amassada" o " e " liga adjetivos, não ingredientes — "amassada" cai,
+    // "canjica cozida" segue para normalização
+    const partesValidas = partes.filter(
+      (p) => !REGEX_SO_PREPARO.test(p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()),
+    );
+    if (partesValidas.length === 0) return [texto];
+
+    return partesValidas;
   }
 
   /**
