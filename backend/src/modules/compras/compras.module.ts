@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Compra } from './entities/compra.entity';
 import { CompraItem } from './entities/compra-item.entity';
 import { ComprasService } from './compras.service';
+import { NfceConsultaService } from './nfce-consulta.service';
 import { ComprasController } from './compras.controller';
 import { Produto } from '../produtos/entities/produto.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
@@ -19,7 +20,7 @@ import { SubscriptionModule } from '../affiliate/subscription.module';
     SubscriptionModule,
     MetricasModule,
   ],
-  providers: [ComprasService],
+  providers: [ComprasService, NfceConsultaService],
   controllers: [ComprasController],
   exports: [TypeOrmModule, ComprasService],
 })

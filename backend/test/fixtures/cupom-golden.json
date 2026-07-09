@@ -1,62 +1,1053 @@
 {
   "_comment": "Golden set de canonização: pares reais (product_knowledge_base 2026-07) + casos difíceis de cupom. Expandir sempre que um caso real errar em produção. O teste mede acurácia OFFLINE (dicionário/regex/normalizer — sem estágios de banco).",
   "pares": [
-    { "nome_ocr": "CR LEITE ITALAC 200GR", "esperado": "creme de leite" },
-    { "nome_ocr": "ITALAC CR LEITE 200GR", "esperado": "creme de leite" },
-    { "nome_ocr": "CREME LT PIRACANJUBA 200G", "esperado": "creme de leite" },
-    { "nome_ocr": "Acucar Demerara Maisdoce 1Kg", "esperado": "açúcar demerara" },
-    { "nome_ocr": "ac demerara alto alegre", "esperado": "açúcar demerara" },
-    { "nome_ocr": "Acucar Ref Alto Alegre 1Kg", "esperado": "açúcar refinado" },
-    { "nome_ocr": "Amendoim Yoki Bco 500G", "esperado": "amendoim" },
-    { "nome_ocr": "cafe canecao trad vac", "esperado": "café" },
-    { "nome_ocr": "Cafe Melitta Vac 500G", "esperado": "café" },
-    { "nome_ocr": "Cafe Moraes Vacuo 500G", "esperado": "café" },
-    { "nome_ocr": "Canjica Yoki Branca 400G", "esperado": "canjica" },
-    { "nome_ocr": "Farinha Trigo Renata 1Kg", "esperado": "farinha de trigo" },
-    { "nome_ocr": "farinha trigo venturelli purissima", "esperado": "farinha de trigo" },
-    { "nome_ocr": "Feijao Broto Legal Carioca 1Kg", "esperado": "feijão carioca" },
-    { "nome_ocr": "Feijao Fugini Carioca 250G", "esperado": "feijão carioca" },
-    { "nome_ocr": "Mel Holanda Bisnaga 200Ml", "esperado": "mel" },
-    { "nome_ocr": "Oleo Soya Soja 900Ml", "esperado": "óleo de soja" },
-    { "nome_ocr": "Req Tirolez 200G", "esperado": "requeijão" },
-    { "nome_ocr": "Bacon Sadia Ped Kg", "esperado": "bacon" },
-    { "nome_ocr": "Arroz Grao Campo 5Kg", "esperado": "arroz" },
-    { "nome_ocr": "Arroz Prato Fino T1 5Kg", "esperado": "arroz" },
-    { "nome_ocr": "ARR BRANCO CAMIL 1KG", "esperado": "arroz" },
-    { "nome_ocr": "File Peito De Frango", "esperado": "peito de frango" },
-    { "nome_ocr": "Linguica Fina De Frango", "esperado": "linguiça de frango" },
-    { "nome_ocr": "Pao De Forma Panco 500G", "esperado": "pão de forma" },
-    { "nome_ocr": "Laranja Kg", "esperado": "laranja" },
-    { "nome_ocr": "Cebola Kg", "esperado": "cebola" },
-    { "nome_ocr": "Leite Italac Int C/Tampa 1L", "esperado": "leite" },
-    { "nome_ocr": "LT DESC PIRACANJUBA 1L", "esperado": "leite desnatado" },
-    { "nome_ocr": "Ovos Caipira Naturegg Verm C/10", "esperado": "ovo" },
-    { "nome_ocr": "PEITO FRANGO SADIA CONG KG", "esperado": "peito de frango" },
-    { "nome_ocr": "SOBRECOXA FRANGO BDJ KG", "esperado": "sobrecoxa de frango" },
-    { "nome_ocr": "CARNE MOIDA PATINHO KG", "esperado": "carne moída" },
-    { "nome_ocr": "LINGUICA CALABRESA SEARA 400G", "esperado": "linguiça calabresa" },
-    { "nome_ocr": "MUSSA FATIADA TIROLEZ 150G", "esperado": "mussarela" },
-    { "nome_ocr": "PARM RALADO QUATA 50G", "esperado": "parmesão" },
-    { "nome_ocr": "MANT EXTRA AVIACAO 200G", "esperado": "manteiga" },
-    { "nome_ocr": "MARG QUALY 500G", "esperado": "margarina" },
-    { "nome_ocr": "IOGUR MORANGO DANONE 900G", "esperado": "iogurte" },
-    { "nome_ocr": "MAC ESPAGUETE RENATA 500G", "esperado": "macarrão" },
-    { "nome_ocr": "FEJ PRETO CAMIL 1KG", "esperado": "feijão" },
-    { "nome_ocr": "AVEIA FLOCOS QUAKER 250G", "esperado": "aveia" },
-    { "nome_ocr": "FUBA MIMOSO YOKI 500G", "esperado": "fubá" },
-    { "nome_ocr": "AMID MILHO MAIZENA 200G", "esperado": "amido de milho" },
-    { "nome_ocr": "AZEITE PORTUGUES GALLO 500ML", "esperado": "azeite" },
-    { "nome_ocr": "VINAGRE ALCOOL CASTELO 750ML", "esperado": "vinagre" },
-    { "nome_ocr": "TOMATE ITALIANO KG", "esperado": "tomate" },
-    { "nome_ocr": "BATATA LAVADA KG", "esperado": "batata" },
-    { "nome_ocr": "CENOURA KG", "esperado": "cenoura" },
-    { "nome_ocr": "BANANA NANICA KG", "esperado": "banana" },
-    { "nome_ocr": "LIMAO TAITI KG", "esperado": "limão" },
-    { "nome_ocr": "ALHO GRAUDO KG", "esperado": "alho" },
-    { "nome_ocr": "PICANHA BOV FRIBOI KG", "esperado": "picanha" },
-    { "nome_ocr": "COSTELA SUINA CONG KG", "esperado": "costela" },
-    { "nome_ocr": "SAB EM PO OMO 1KG", "esperado": "sabão" },
-    { "nome_ocr": "CR DENT COLGATE 90G", "esperado": "creme dental" },
-    { "nome_ocr": "COND SEDA 325ML", "esperado": "condicionador" }
+    {
+      "nome_ocr": "CR LEITE ITALAC 200GR",
+      "esperado": "creme de leite"
+    },
+    {
+      "nome_ocr": "ITALAC CR LEITE 200GR",
+      "esperado": "creme de leite"
+    },
+    {
+      "nome_ocr": "CREME LT PIRACANJUBA 200G",
+      "esperado": "creme de leite"
+    },
+    {
+      "nome_ocr": "Acucar Demerara Maisdoce 1Kg",
+      "esperado": "açúcar demerara"
+    },
+    {
+      "nome_ocr": "ac demerara alto alegre",
+      "esperado": "açúcar demerara"
+    },
+    {
+      "nome_ocr": "Acucar Ref Alto Alegre 1Kg",
+      "esperado": "açúcar refinado"
+    },
+    {
+      "nome_ocr": "Amendoim Yoki Bco 500G",
+      "esperado": "amendoim"
+    },
+    {
+      "nome_ocr": "cafe canecao trad vac",
+      "esperado": "café"
+    },
+    {
+      "nome_ocr": "Cafe Melitta Vac 500G",
+      "esperado": "café"
+    },
+    {
+      "nome_ocr": "Cafe Moraes Vacuo 500G",
+      "esperado": "café"
+    },
+    {
+      "nome_ocr": "Canjica Yoki Branca 400G",
+      "esperado": "canjica"
+    },
+    {
+      "nome_ocr": "Farinha Trigo Renata 1Kg",
+      "esperado": "farinha de trigo"
+    },
+    {
+      "nome_ocr": "farinha trigo venturelli purissima",
+      "esperado": "farinha de trigo"
+    },
+    {
+      "nome_ocr": "Feijao Broto Legal Carioca 1Kg",
+      "esperado": "feijão carioca"
+    },
+    {
+      "nome_ocr": "Feijao Fugini Carioca 250G",
+      "esperado": "feijão carioca"
+    },
+    {
+      "nome_ocr": "Mel Holanda Bisnaga 200Ml",
+      "esperado": "mel"
+    },
+    {
+      "nome_ocr": "Oleo Soya Soja 900Ml",
+      "esperado": "óleo de soja"
+    },
+    {
+      "nome_ocr": "Req Tirolez 200G",
+      "esperado": "requeijão"
+    },
+    {
+      "nome_ocr": "Bacon Sadia Ped Kg",
+      "esperado": "bacon"
+    },
+    {
+      "nome_ocr": "Arroz Grao Campo 5Kg",
+      "esperado": "arroz"
+    },
+    {
+      "nome_ocr": "Arroz Prato Fino T1 5Kg",
+      "esperado": "arroz"
+    },
+    {
+      "nome_ocr": "ARR BRANCO CAMIL 1KG",
+      "esperado": "arroz"
+    },
+    {
+      "nome_ocr": "File Peito De Frango",
+      "esperado": "peito de frango"
+    },
+    {
+      "nome_ocr": "Linguica Fina De Frango",
+      "esperado": "linguiça de frango"
+    },
+    {
+      "nome_ocr": "Pao De Forma Panco 500G",
+      "esperado": "pão de forma"
+    },
+    {
+      "nome_ocr": "Laranja Kg",
+      "esperado": "laranja"
+    },
+    {
+      "nome_ocr": "Cebola Kg",
+      "esperado": "cebola"
+    },
+    {
+      "nome_ocr": "Leite Italac Int C/Tampa 1L",
+      "esperado": "leite"
+    },
+    {
+      "nome_ocr": "LT DESC PIRACANJUBA 1L",
+      "esperado": "leite desnatado"
+    },
+    {
+      "nome_ocr": "Ovos Caipira Naturegg Verm C/10",
+      "esperado": "ovo"
+    },
+    {
+      "nome_ocr": "PEITO FRANGO SADIA CONG KG",
+      "esperado": "peito de frango"
+    },
+    {
+      "nome_ocr": "SOBRECOXA FRANGO BDJ KG",
+      "esperado": "sobrecoxa de frango"
+    },
+    {
+      "nome_ocr": "CARNE MOIDA PATINHO KG",
+      "esperado": "carne moída"
+    },
+    {
+      "nome_ocr": "LINGUICA CALABRESA SEARA 400G",
+      "esperado": "linguiça calabresa"
+    },
+    {
+      "nome_ocr": "MUSSA FATIADA TIROLEZ 150G",
+      "esperado": "mussarela"
+    },
+    {
+      "nome_ocr": "PARM RALADO QUATA 50G",
+      "esperado": "parmesão"
+    },
+    {
+      "nome_ocr": "MANT EXTRA AVIACAO 200G",
+      "esperado": "manteiga"
+    },
+    {
+      "nome_ocr": "MARG QUALY 500G",
+      "esperado": "margarina"
+    },
+    {
+      "nome_ocr": "IOGUR MORANGO DANONE 900G",
+      "esperado": "iogurte"
+    },
+    {
+      "nome_ocr": "MAC ESPAGUETE RENATA 500G",
+      "esperado": "macarrão"
+    },
+    {
+      "nome_ocr": "FEJ PRETO CAMIL 1KG",
+      "esperado": "feijão preto"
+    },
+    {
+      "nome_ocr": "AVEIA FLOCOS QUAKER 250G",
+      "esperado": "aveia"
+    },
+    {
+      "nome_ocr": "FUBA MIMOSO YOKI 500G",
+      "esperado": "fubá"
+    },
+    {
+      "nome_ocr": "AMID MILHO MAIZENA 200G",
+      "esperado": "amido de milho"
+    },
+    {
+      "nome_ocr": "AZEITE PORTUGUES GALLO 500ML",
+      "esperado": "azeite"
+    },
+    {
+      "nome_ocr": "VINAGRE ALCOOL CASTELO 750ML",
+      "esperado": "vinagre"
+    },
+    {
+      "nome_ocr": "TOMATE ITALIANO KG",
+      "esperado": "tomate italiano"
+    },
+    {
+      "nome_ocr": "BATATA LAVADA KG",
+      "esperado": "batata"
+    },
+    {
+      "nome_ocr": "CENOURA KG",
+      "esperado": "cenoura"
+    },
+    {
+      "nome_ocr": "BANANA NANICA KG",
+      "esperado": "banana"
+    },
+    {
+      "nome_ocr": "LIMAO TAITI KG",
+      "esperado": "limão"
+    },
+    {
+      "nome_ocr": "ALHO GRAUDO KG",
+      "esperado": "alho"
+    },
+    {
+      "nome_ocr": "PICANHA BOV FRIBOI KG",
+      "esperado": "picanha"
+    },
+    {
+      "nome_ocr": "COSTELA SUINA CONG KG",
+      "esperado": "costela"
+    },
+    {
+      "nome_ocr": "SAB EM PO OMO 1KG",
+      "esperado": "sabão"
+    },
+    {
+      "nome_ocr": "CR DENT COLGATE 90G",
+      "esperado": "creme dental"
+    },
+    {
+      "nome_ocr": "COND SEDA 325ML",
+      "esperado": "condicionador"
+    },
+    {
+      "nome_ocr": "LEITE COND MOCA 395G",
+      "esperado": "leite condensado"
+    },
+    {
+      "nome_ocr": "LT COND ITALAC TP 395G",
+      "esperado": "leite condensado"
+    },
+    {
+      "nome_ocr": "MILHO VDE QUERO LT 170G",
+      "esperado": "milho verde"
+    },
+    {
+      "nome_ocr": "ERVILHA QUERO SACHE 200G",
+      "esperado": "ervilha"
+    },
+    {
+      "nome_ocr": "MOLHO TOM QUERO TRAD 340G",
+      "esperado": "molho de tomate"
+    },
+    {
+      "nome_ocr": "EXTR TOMATE ELEFANTE 340G",
+      "esperado": "extrato de tomate"
+    },
+    {
+      "nome_ocr": "SARDINHA COQUEIRO OLEO 125G",
+      "esperado": "sardinha"
+    },
+    {
+      "nome_ocr": "ATUM GOMES DA COSTA SOLIDO 170G",
+      "esperado": "atum"
+    },
+    {
+      "nome_ocr": "AZEITONA VDE VALE FERTIL 160G",
+      "esperado": "azeitona"
+    },
+    {
+      "nome_ocr": "PALMITO PUPUNHA INT 300G",
+      "esperado": "palmito"
+    },
+    {
+      "nome_ocr": "SELETA LEGUMES QUERO 170G",
+      "esperado": "seleta de legumes"
+    },
+    {
+      "nome_ocr": "SALSICHA PERDIGAO KG",
+      "esperado": "salsicha"
+    },
+    {
+      "nome_ocr": "PRES COZIDO SADIA FAT 200G",
+      "esperado": "presunto"
+    },
+    {
+      "nome_ocr": "MORT BOLOGNA CERATTI 200G",
+      "esperado": "mortadela"
+    },
+    {
+      "nome_ocr": "QJO PRATO FAT POLENGHI 150G",
+      "esperado": "queijo prato"
+    },
+    {
+      "nome_ocr": "QUEIJO MINAS FRESCAL KG",
+      "esperado": "queijo minas frescal"
+    },
+    {
+      "nome_ocr": "QJO COALHO ESPETO KG",
+      "esperado": "queijo coalho"
+    },
+    {
+      "nome_ocr": "RICOTA FRESCA TIROLEZ 250G",
+      "esperado": "ricota"
+    },
+    {
+      "nome_ocr": "CREAM CHEESE PHILADELPHIA 150G",
+      "esperado": "cream cheese"
+    },
+    {
+      "nome_ocr": "PEITO PERU DEFUMADO SADIA FAT",
+      "esperado": "peito de peru"
+    },
+    {
+      "nome_ocr": "SALAME ITALIANO CERATTI 100G",
+      "esperado": "salame"
+    },
+    {
+      "nome_ocr": "LEITE PO NINHO INTEG 380G",
+      "esperado": "leite em pó"
+    },
+    {
+      "nome_ocr": "IOG NAT INTEGRAL BATAVO 170G",
+      "esperado": "iogurte natural"
+    },
+    {
+      "nome_ocr": "LEITE FERMENTADO YAKULT 6X80G",
+      "esperado": "leite fermentado"
+    },
+    {
+      "nome_ocr": "BEB LACTEA CHOC TODDYNHO 200ML",
+      "esperado": "bebida láctea"
+    },
+    {
+      "nome_ocr": "MANT C/SAL PRESIDENT 200G",
+      "esperado": "manteiga"
+    },
+    {
+      "nome_ocr": "DOCE LEITE ITAMBE 395G",
+      "esperado": "doce de leite"
+    },
+    {
+      "nome_ocr": "CHANTILLY CHANTYMIX 200ML",
+      "esperado": "chantilly"
+    },
+    {
+      "nome_ocr": "ACHOC PO NESCAU 2.0 400G",
+      "esperado": "achocolatado"
+    },
+    {
+      "nome_ocr": "CHOC PO 50% MAE TERRA 200G",
+      "esperado": "chocolate em pó"
+    },
+    {
+      "nome_ocr": "CAFE SOLUVEL NESCAFE 100G",
+      "esperado": "café solúvel"
+    },
+    {
+      "nome_ocr": "CEREAL SUCRILHOS KELLOGGS 240G",
+      "esperado": "cereal matinal"
+    },
+    {
+      "nome_ocr": "GRANOLA TRAD MAE TERRA 250G",
+      "esperado": "granola"
+    },
+    {
+      "nome_ocr": "PAO FRANCES KG",
+      "esperado": "pão francês"
+    },
+    {
+      "nome_ocr": "PAO QJO CONG FORNO MINAS 400G",
+      "esperado": "pão de queijo"
+    },
+    {
+      "nome_ocr": "BISC CREAM CRACKER PIRAQUE 200G",
+      "esperado": "biscoito cream cracker"
+    },
+    {
+      "nome_ocr": "BISC MAISENA PIRAQUE 200G",
+      "esperado": "biscoito maisena"
+    },
+    {
+      "nome_ocr": "BOLACHA AGUA E SAL ADRIA 200G",
+      "esperado": "biscoito água e sal"
+    },
+    {
+      "nome_ocr": "TORRADA BAUDUCCO TRAD 142G",
+      "esperado": "torrada"
+    },
+    {
+      "nome_ocr": "MARG BECEL CREMOSA 250G",
+      "esperado": "margarina"
+    },
+    {
+      "nome_ocr": "GELEIA MORANGO QUEENSBERRY 320G",
+      "esperado": "geleia"
+    },
+    {
+      "nome_ocr": "MEL SILVESTRE PURO 300G",
+      "esperado": "mel"
+    },
+    {
+      "nome_ocr": "FAR MANDIOCA TORRADA YOKI 500G",
+      "esperado": "farinha de mandioca"
+    },
+    {
+      "nome_ocr": "FAROFA PRONTA YOKI TEMP 400G",
+      "esperado": "farofa"
+    },
+    {
+      "nome_ocr": "POLVILHO DOCE YOKI 500G",
+      "esperado": "polvilho doce"
+    },
+    {
+      "nome_ocr": "TAPIOCA GRANULADA DA TERRINHA 500G",
+      "esperado": "tapioca"
+    },
+    {
+      "nome_ocr": "LENTILHA YOKI 500G",
+      "esperado": "lentilha"
+    },
+    {
+      "nome_ocr": "GRAO DE BICO YOKI 500G",
+      "esperado": "grão de bico"
+    },
+    {
+      "nome_ocr": "FEIJAO BRANCO CAMIL 500G",
+      "esperado": "feijão branco"
+    },
+    {
+      "nome_ocr": "FEJ FRADINHO CAMIL 500G",
+      "esperado": "feijão fradinho"
+    },
+    {
+      "nome_ocr": "MILHO PIPOCA YOKI PREMIUM 500G",
+      "esperado": "milho de pipoca"
+    },
+    {
+      "nome_ocr": "CANJIQUINHA MIMOSO 500G",
+      "esperado": "canjiquinha"
+    },
+    {
+      "nome_ocr": "MAC PARAFUSO GALO SEMOLA 500G",
+      "esperado": "macarrão"
+    },
+    {
+      "nome_ocr": "MAC INST NISSIN LAMEN GALINHA",
+      "esperado": "macarrão instantâneo"
+    },
+    {
+      "nome_ocr": "MASSA LASANHA RENATA 500G",
+      "esperado": "massa de lasanha"
+    },
+    {
+      "nome_ocr": "MASSA PASTEL ROMANHA 500G",
+      "esperado": "massa de pastel"
+    },
+    {
+      "nome_ocr": "ARROZ INTEGRAL TIO JOAO 1KG",
+      "esperado": "arroz integral"
+    },
+    {
+      "nome_ocr": "ARROZ PARBOILIZADO URBANO 1KG",
+      "esperado": "arroz parboilizado"
+    },
+    {
+      "nome_ocr": "QUINOA GRAOS JASMINE 200G",
+      "esperado": "quinoa"
+    },
+    {
+      "nome_ocr": "ACUCAR CRISTAL ALTO ALEGRE 2KG",
+      "esperado": "açúcar cristal"
+    },
+    {
+      "nome_ocr": "ACUCAR MASCAVO NATURALE 500G",
+      "esperado": "açúcar mascavo"
+    },
+    {
+      "nome_ocr": "ADOCANTE ZERO CAL SUCRALOSE 100ML",
+      "esperado": "adoçante"
+    },
+    {
+      "nome_ocr": "GELATINA PO MORANGO ROYAL 25G",
+      "esperado": "gelatina"
+    },
+    {
+      "nome_ocr": "FERMENTO PO ROYAL 100G",
+      "esperado": "fermento em pó"
+    },
+    {
+      "nome_ocr": "FERMENTO BIOL SECO FLEISCHMANN 10G",
+      "esperado": "fermento biológico"
+    },
+    {
+      "nome_ocr": "GOIABADA CASCAO PREDILECTA 300G",
+      "esperado": "goiabada"
+    },
+    {
+      "nome_ocr": "LEITE COCO SOCOCO 200ML",
+      "esperado": "leite de coco"
+    },
+    {
+      "nome_ocr": "COCO RALADO SOCOCO 100G",
+      "esperado": "coco ralado"
+    },
+    {
+      "nome_ocr": "CHOC BARRA AO LEITE LACTA 90G",
+      "esperado": "chocolate ao leite"
+    },
+    {
+      "nome_ocr": "CHOC MEIO AMARGO NESTLE 90G",
+      "esperado": "chocolate meio amargo"
+    },
+    {
+      "nome_ocr": "PACOCA ROLHA SANTA HELENA",
+      "esperado": "paçoca"
+    },
+    {
+      "nome_ocr": "RAPADURINHA DA ROCA 300G",
+      "esperado": "rapadura"
+    },
+    {
+      "nome_ocr": "MAION HELLMANNS TRAD 500G",
+      "esperado": "maionese"
+    },
+    {
+      "nome_ocr": "KETCHUP HEINZ TRAD 397G",
+      "esperado": "ketchup"
+    },
+    {
+      "nome_ocr": "MOSTARDA HEMMER 200G",
+      "esperado": "mostarda"
+    },
+    {
+      "nome_ocr": "MOLHO SHOYU SAKURA 150ML",
+      "esperado": "shoyu"
+    },
+    {
+      "nome_ocr": "MOLHO INGLES HEMMER 150ML",
+      "esperado": "molho inglês"
+    },
+    {
+      "nome_ocr": "MOLHO PIMENTA TABASCO 60ML",
+      "esperado": "molho de pimenta"
+    },
+    {
+      "nome_ocr": "SAL REFINADO CISNE 1KG",
+      "esperado": "sal"
+    },
+    {
+      "nome_ocr": "SAL GROSSO CHURRASCO CISNE 1KG",
+      "esperado": "sal grosso"
+    },
+    {
+      "nome_ocr": "PIM REINO MOIDA KITANO 30G",
+      "esperado": "pimenta do reino"
+    },
+    {
+      "nome_ocr": "OREGANO KITANO 10G",
+      "esperado": "orégano"
+    },
+    {
+      "nome_ocr": "COLORAU KITANO 100G",
+      "esperado": "colorau"
+    },
+    {
+      "nome_ocr": "COMINHO MOIDO KITANO 30G",
+      "esperado": "cominho"
+    },
+    {
+      "nome_ocr": "CANELA PO KITANO 30G",
+      "esperado": "canela"
+    },
+    {
+      "nome_ocr": "CRAVO DA INDIA KITANO 8G",
+      "esperado": "cravo"
+    },
+    {
+      "nome_ocr": "FOLHA LOURO KITANO 4G",
+      "esperado": "louro"
+    },
+    {
+      "nome_ocr": "CALDO GALINHA KNORR 57G",
+      "esperado": "caldo de galinha"
+    },
+    {
+      "nome_ocr": "CALDO CARNE MAGGI 63G",
+      "esperado": "caldo de carne"
+    },
+    {
+      "nome_ocr": "TEMPERO COMPLETO SAZON 60G",
+      "esperado": "tempero completo"
+    },
+    {
+      "nome_ocr": "VINAGRE MACA CASTELO 750ML",
+      "esperado": "vinagre de maçã"
+    },
+    {
+      "nome_ocr": "ACETO BALSAMICO PAGANINI 250ML",
+      "esperado": "aceto balsâmico"
+    },
+    {
+      "nome_ocr": "AZEITE EXTRA VIRGEM ANDORINHA 500ML",
+      "esperado": "azeite"
+    },
+    {
+      "nome_ocr": "OLEO MILHO LIZA 900ML",
+      "esperado": "óleo de milho"
+    },
+    {
+      "nome_ocr": "OLEO GIRASSOL LIZA 900ML",
+      "esperado": "óleo de girassol"
+    },
+    {
+      "nome_ocr": "ACEM BOV MOIDO KG",
+      "esperado": "acém"
+    },
+    {
+      "nome_ocr": "ALCATRA BOV PECA KG",
+      "esperado": "alcatra"
+    },
+    {
+      "nome_ocr": "CONTRA FILE BOV KG",
+      "esperado": "contra filé"
+    },
+    {
+      "nome_ocr": "COXAO MOLE BOV KG",
+      "esperado": "coxão mole"
+    },
+    {
+      "nome_ocr": "COXAO DURO BOV KG",
+      "esperado": "coxão duro"
+    },
+    {
+      "nome_ocr": "CUPIM BOV KG",
+      "esperado": "cupim"
+    },
+    {
+      "nome_ocr": "FILE MIGNON BOV KG",
+      "esperado": "filé mignon"
+    },
+    {
+      "nome_ocr": "PATINHO BOV BIFE KG",
+      "esperado": "patinho"
+    },
+    {
+      "nome_ocr": "MUSCULO BOV KG",
+      "esperado": "músculo"
+    },
+    {
+      "nome_ocr": "FIGADO BOV BIFE KG",
+      "esperado": "fígado"
+    },
+    {
+      "nome_ocr": "FRALDINHA BOV KG",
+      "esperado": "fraldinha"
+    },
+    {
+      "nome_ocr": "MAMINHA BOV FRIBOI KG",
+      "esperado": "maminha"
+    },
+    {
+      "nome_ocr": "FRANGO INTEIRO CONG SADIA KG",
+      "esperado": "frango inteiro"
+    },
+    {
+      "nome_ocr": "COXA C/SOBRECOXA FGO BDJ KG",
+      "esperado": "coxa de frango"
+    },
+    {
+      "nome_ocr": "ASA FGO CONG SEARA KG",
+      "esperado": "asa de frango"
+    },
+    {
+      "nome_ocr": "CORACAO FGO CONG BDJ KG",
+      "esperado": "coração de frango"
+    },
+    {
+      "nome_ocr": "LOMBO SUINO PECA KG",
+      "esperado": "lombo suíno"
+    },
+    {
+      "nome_ocr": "PERNIL SUINO S/OSSO KG",
+      "esperado": "pernil suíno"
+    },
+    {
+      "nome_ocr": "BISTECA SUINA KG",
+      "esperado": "bisteca suína"
+    },
+    {
+      "nome_ocr": "LING TOSCANA SEARA KG",
+      "esperado": "linguiça toscana"
+    },
+    {
+      "nome_ocr": "FILE TILAPIA CONG KG",
+      "esperado": "filé de tilápia"
+    },
+    {
+      "nome_ocr": "CAMARAO CINZA MEDIO KG",
+      "esperado": "camarão"
+    },
+    {
+      "nome_ocr": "SALMAO FILE FRESCO KG",
+      "esperado": "filé de salmão"
+    },
+    {
+      "nome_ocr": "HAMB BOV TEXAS SEARA 56G",
+      "esperado": "hambúrguer"
+    },
+    {
+      "nome_ocr": "EMPANADO FGO NUGGETS SADIA 300G",
+      "esperado": "nuggets"
+    },
+    {
+      "nome_ocr": "MACA GALA KG",
+      "esperado": "maçã"
+    },
+    {
+      "nome_ocr": "MAMAO FORMOSA KG",
+      "esperado": "mamão"
+    },
+    {
+      "nome_ocr": "ABACAXI PEROLA UN",
+      "esperado": "abacaxi"
+    },
+    {
+      "nome_ocr": "UVA THOMPSON S/SEMENTE 500G",
+      "esperado": "uva"
+    },
+    {
+      "nome_ocr": "MELANCIA KG",
+      "esperado": "melancia"
+    },
+    {
+      "nome_ocr": "MANGA PALMER KG",
+      "esperado": "manga"
+    },
+    {
+      "nome_ocr": "PERA WILLIAMS KG",
+      "esperado": "pêra"
+    },
+    {
+      "nome_ocr": "MORANGO BDJ 250G",
+      "esperado": "morango"
+    },
+    {
+      "nome_ocr": "ABACATE KG",
+      "esperado": "abacate"
+    },
+    {
+      "nome_ocr": "KIWI IMPORTADO KG",
+      "esperado": "kiwi"
+    },
+    {
+      "nome_ocr": "ABOBRINHA ITALIANA KG",
+      "esperado": "abobrinha"
+    },
+    {
+      "nome_ocr": "ABOBORA CABOTIA KG",
+      "esperado": "abóbora"
+    },
+    {
+      "nome_ocr": "BERINJELA KG",
+      "esperado": "berinjela"
+    },
+    {
+      "nome_ocr": "BETERRABA KG",
+      "esperado": "beterraba"
+    },
+    {
+      "nome_ocr": "BROCOLIS NINJA UN",
+      "esperado": "brócolis"
+    },
+    {
+      "nome_ocr": "COUVE FLOR UN",
+      "esperado": "couve-flor"
+    },
+    {
+      "nome_ocr": "ALFACE CRESPA UN",
+      "esperado": "alface"
+    },
+    {
+      "nome_ocr": "RUCULA MACO",
+      "esperado": "rúcula"
+    },
+    {
+      "nome_ocr": "COUVE MANTEIGA MACO",
+      "esperado": "couve"
+    },
+    {
+      "nome_ocr": "ESPINAFRE MACO",
+      "esperado": "espinafre"
+    },
+    {
+      "nome_ocr": "REPOLHO VERDE KG",
+      "esperado": "repolho"
+    },
+    {
+      "nome_ocr": "PEPINO COMUM KG",
+      "esperado": "pepino"
+    },
+    {
+      "nome_ocr": "PIMENTAO VERDE KG",
+      "esperado": "pimentão"
+    },
+    {
+      "nome_ocr": "CHUCHU KG",
+      "esperado": "chuchu"
+    },
+    {
+      "nome_ocr": "MANDIOCA DESCASCADA BDJ KG",
+      "esperado": "mandioca"
+    },
+    {
+      "nome_ocr": "BATATA DOCE KG",
+      "esperado": "batata doce"
+    },
+    {
+      "nome_ocr": "INHAME KG",
+      "esperado": "inhame"
+    },
+    {
+      "nome_ocr": "MILHO VERDE ESPIGA BDJ",
+      "esperado": "milho verde"
+    },
+    {
+      "nome_ocr": "GENGIBRE KG",
+      "esperado": "gengibre"
+    },
+    {
+      "nome_ocr": "SALSINHA MACO",
+      "esperado": "salsinha"
+    },
+    {
+      "nome_ocr": "CEBOLINHA MACO",
+      "esperado": "cebolinha"
+    },
+    {
+      "nome_ocr": "COENTRO MACO",
+      "esperado": "coentro"
+    },
+    {
+      "nome_ocr": "HORTELA MACO",
+      "esperado": "hortelã"
+    },
+    {
+      "nome_ocr": "MANJERICAO MACO",
+      "esperado": "manjericão"
+    },
+    {
+      "nome_ocr": "CEBOLA ROXA KG",
+      "esperado": "cebola roxa"
+    },
+    {
+      "nome_ocr": "QUIABO KG",
+      "esperado": "quiabo"
+    },
+    {
+      "nome_ocr": "VAGEM KG",
+      "esperado": "vagem"
+    },
+    {
+      "nome_ocr": "OVOS BRANCOS GRANDES C/30",
+      "esperado": "ovo"
+    },
+    {
+      "nome_ocr": "OVO VERMELHO C/12 GRANJEIRO",
+      "esperado": "ovo"
+    },
+    {
+      "nome_ocr": "OVO CODORNA C/30",
+      "esperado": "ovo de codorna"
+    },
+    {
+      "nome_ocr": "PIZZA CONG MUSSARELA SADIA 460G",
+      "esperado": "pizza"
+    },
+    {
+      "nome_ocr": "LASANHA BOLONHESA SADIA 600G",
+      "esperado": "lasanha"
+    },
+    {
+      "nome_ocr": "PAO ALHO TRAD SANTA MASSA 300G",
+      "esperado": "pão de alho"
+    },
+    {
+      "nome_ocr": "BATATA PALITO CONG MCCAIN 720G",
+      "esperado": "batata palito"
+    },
+    {
+      "nome_ocr": "SORVETE NAPOLITANO KIBON 2L",
+      "esperado": "sorvete"
+    },
+    {
+      "nome_ocr": "ACAI POLPA C/GUARANA 500G",
+      "esperado": "açaí"
+    },
+    {
+      "nome_ocr": "POLPA FRUTA MARACUJA 100G",
+      "esperado": "polpa de fruta"
+    },
+    {
+      "nome_ocr": "REFRIG COCA COLA PET 2L",
+      "esperado": "refrigerante"
+    },
+    {
+      "nome_ocr": "REFRIG GUARANA ANTARCTICA 2L",
+      "esperado": "refrigerante"
+    },
+    {
+      "nome_ocr": "SUCO UVA INTEGRAL ALIANCA 1.5L",
+      "esperado": "suco de uva"
+    },
+    {
+      "nome_ocr": "SUCO LARANJA NATURAL ONE 900ML",
+      "esperado": "suco de laranja"
+    },
+    {
+      "nome_ocr": "AGUA MIN S/GAS CRYSTAL 500ML",
+      "esperado": "água mineral"
+    },
+    {
+      "nome_ocr": "AGUA MIN C/GAS CRYSTAL 500ML",
+      "esperado": "água mineral com gás"
+    },
+    {
+      "nome_ocr": "AGUA COCO KERO COCO 1L",
+      "esperado": "água de coco"
+    },
+    {
+      "nome_ocr": "CHA MATE LEAO NATURAL 1.5L",
+      "esperado": "chá mate"
+    },
+    {
+      "nome_ocr": "CERVEJA HEINEKEN LT 350ML",
+      "esperado": "cerveja"
+    },
+    {
+      "nome_ocr": "VINHO TINTO SECO RESERVADO 750ML",
+      "esperado": "vinho tinto"
+    },
+    {
+      "nome_ocr": "ENERGETICO RED BULL 250ML",
+      "esperado": "energético"
+    },
+    {
+      "nome_ocr": "LEITE SOJA ORIGINAL ADES 1L",
+      "esperado": "leite de soja"
+    },
+    {
+      "nome_ocr": "DETERG YPE NEUTRO 500ML",
+      "esperado": "detergente"
+    },
+    {
+      "nome_ocr": "AMACIANTE COMFORT 2L",
+      "esperado": "amaciante"
+    },
+    {
+      "nome_ocr": "PAPEL HIG NEVE 12X30M",
+      "esperado": "papel higiênico"
+    },
+    {
+      "nome_ocr": "SHAMPOO SEDA CERAMIDAS 325ML",
+      "esperado": "shampoo"
+    },
+    {
+      "nome_ocr": "DESODORANTE REXONA AERO 150ML",
+      "esperado": "desodorante"
+    },
+    {
+      "nome_ocr": "AGUA SANITARIA QBOA 1L",
+      "esperado": "água sanitária"
+    },
+    {
+      "nome_ocr": "ESPONJA ACO BOMBRIL 8UN",
+      "esperado": "esponja de aço"
+    },
+    {
+      "nome_ocr": "PAO DE QUEIJO MASSA BOA 1G",
+      "esperado": "pão de queijo"
+    },
+    {
+      "nome_ocr": "PAO QUEIJO CONG FORNO MINAS",
+      "esperado": "pão de queijo"
+    },
+    {
+      "nome_ocr": "SALG PEPE LEGAL COSTELINHA C/LIM 70G",
+      "esperado": "salgadinho"
+    },
+    {
+      "nome_ocr": "SALGADINHO FANDANGOS QUEIJO 63G",
+      "esperado": "salgadinho"
+    },
+    {
+      "nome_ocr": "BATATA PALHA ELMA CHIPS",
+      "esperado": "batata palha"
+    },
+    {
+      "nome_ocr": "BATATA PALHA YOKI 105G",
+      "esperado": "batata palha"
+    },
+    {
+      "nome_ocr": "LEITE DE COCO DA TERRINHA",
+      "esperado": "leite de coco"
+    },
+    {
+      "nome_ocr": "LEITE DE COCO SOCOCO 200ML",
+      "esperado": "leite de coco"
+    },
+    {
+      "nome_ocr": "LEITE CONDENSADO MOCA",
+      "esperado": "leite condensado"
+    },
+    {
+      "nome_ocr": "LEITE CONDENSADO PIRACANJUBA 395G",
+      "esperado": "leite condensado"
+    },
+    {
+      "nome_ocr": "LEITE EM PO NINHO 380G",
+      "esperado": "leite em pó"
+    },
+    {
+      "nome_ocr": "CREME DE LEITE NESTLE 200G",
+      "esperado": "creme de leite"
+    },
+    {
+      "nome_ocr": "QUEIJO PROVOLONE QUATA FAT",
+      "esperado": "queijo provolone"
+    },
+    {
+      "nome_ocr": "FILE MERLUZA IGLU S/PELE 400G",
+      "esperado": "filé de merluza"
+    },
+    {
+      "nome_ocr": "QUEIJO MUSSARELA",
+      "esperado": "queijo mussarela"
+    },
+    {
+      "nome_ocr": "PROVOLONE QUATA 200G",
+      "esperado": "queijo provolone"
+    },
+    {
+      "nome_ocr": "QUEIJO PROVOL QUATA 200G",
+      "esperado": "queijo provolone"
+    },
+    {
+      "nome_ocr": "QUEIJO MUSS FAT 150G",
+      "esperado": "queijo mussarela"
+    },
+    {
+      "nome_ocr": "TOMATE SALADA KG",
+      "esperado": "tomate salada"
+    }
   ]
 }

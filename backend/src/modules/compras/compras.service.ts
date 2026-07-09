@@ -319,15 +319,8 @@ export class ComprasService {
   /**
    * Extrai itens de um cupom fiscal usando OCR com Google Gemini Vision
    */
-  async extrairItensCupom(imageBase64: string): Promise<any> {
-    try {
-      const genai = require('@google/generative-ai');
-      const { GoogleGenerativeAI } = genai;
-
-      const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = googleAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-      const prompt = `Você é um assistente especializado em ler cupons fiscais e notas fiscais.
+  // Prompt único de extração de cupom — compartilhado por Claude e Gemini
+  private readonly PROMPT_OCR_CUPOM = `Você é um assistente especializado em ler cupons fiscais e notas fiscais.
 
 Analise esta imagem de cupom fiscal ou nota fiscal e extraia as seguintes informações em formato JSON:
 
@@ -363,38 +356,98 @@ IMPORTANTE:
 - Retorne APENAS o JSON válido, sem texto adicional
 - Os nomes dos produtos devem ser os mais precisos possível`;
 
-      const response = await model.generateContent([
-        {
-          inlineData: {
-            data: imageBase64,
-            mimeType: 'image/jpeg',
-          },
-        },
-        prompt,
-      ]);
+  /** Remove cerca de markdown (```json … ```) de uma resposta de LLM. */
+  private limparCercaJson(texto: string): string {
+    let t = texto.trim();
+    if (t.startsWith('```json')) t = t.slice(7);
+    else if (t.startsWith('```')) t = t.slice(3);
+    if (t.endsWith('```')) t = t.slice(0, -3);
+    return t.trim();
+  }
 
-      const responseText = response.response.text();
+  /** Normaliza mimeType para o conjunto aceito pelos providers de visão. */
+  private mediaTypeSeguro(mediaType?: string): string {
+    const m = (mediaType || '').toLowerCase();
+    return /png|jpeg|jpg|webp|gif/.test(m) ? m.replace('jpg', 'jpeg') : 'image/jpeg';
+  }
 
-      // Limpar resposta de markdown se necessário
-      let jsonText = responseText.trim();
-      if (jsonText.startsWith('```json')) {
-        jsonText = jsonText.slice(7);
+  // ── Providers de OCR (visão) — cada um lê a imagem e devolve o JSON cru ──
+
+  /** Claude Haiku (multimodal). Precisa de CLAUDE_API_KEY/ANTHROPIC_API_KEY. */
+  private async ocrComHaiku(imageBase64: string, media: string): Promise<any> {
+    const key = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+    if (!key) throw new Error('CLAUDE_API_KEY ausente');
+    const modelo = process.env.OCR_HAIKU_MODEL || 'claude-haiku-4-5-20251001';
+    const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: key });
+    const msg = await client.messages.create({
+      model: modelo,
+      max_tokens: 4000,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: media, data: imageBase64 } },
+          { type: 'text', text: this.PROMPT_OCR_CUPOM },
+        ],
+      }],
+    });
+    const texto = (msg.content?.[0] as any)?.text ?? '';
+    return JSON.parse(this.limparCercaJson(texto));
+  }
+
+  /** Gemini Flash (multimodal). Precisa de GEMINI_API_KEY. Mais barato; cota free baixa. */
+  private async ocrComGemini(imageBase64: string, media: string): Promise<any> {
+    if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY ausente');
+    const modelo = process.env.OCR_GEMINI_MODEL || 'gemini-2.0-flash';
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = googleAI.getGenerativeModel({ model: modelo });
+    const response = await model.generateContent([
+      { inlineData: { data: imageBase64, mimeType: media } },
+      this.PROMPT_OCR_CUPOM,
+    ]);
+    return JSON.parse(this.limparCercaJson(response.response.text()));
+  }
+
+  /**
+   * Extrai itens de cupom fiscal por visão de IA.
+   *
+   * Provider configurável por env `OCR_PROVIDER`:
+   *   - `haiku`  → só Claude Haiku
+   *   - `gemini` → só Gemini Flash (mais barato)
+   *   - `auto` (padrão) → tenta o primário e cai no secundário se falhar
+   * A ordem do `auto` vem de `OCR_PROVIDER_PRIMARY` (default `haiku`).
+   *
+   * mediaType default 'image/jpeg' — o mobile envia PNG/JPEG conforme a foto.
+   */
+  async extrairItensCupom(imageBase64: string, mediaType = 'image/jpeg'): Promise<any> {
+    const media = this.mediaTypeSeguro(mediaType);
+    const provider = (process.env.OCR_PROVIDER || 'auto').toLowerCase();
+    const primary = (process.env.OCR_PROVIDER_PRIMARY || 'haiku').toLowerCase();
+
+    const runners: Record<string, () => Promise<any>> = {
+      haiku: () => this.ocrComHaiku(imageBase64, media),
+      gemini: () => this.ocrComGemini(imageBase64, media),
+    };
+
+    // Ordem de tentativa conforme a config
+    let ordem: string[];
+    if (provider === 'haiku') ordem = ['haiku'];
+    else if (provider === 'gemini') ordem = ['gemini'];
+    else ordem = primary === 'gemini' ? ['gemini', 'haiku'] : ['haiku', 'gemini']; // auto
+
+    let ultimoErro: any = null;
+    for (const nome of ordem) {
+      try {
+        const dados = await runners[nome]();
+        return this.normalizarDadosCupom(dados);
+      } catch (error) {
+        ultimoErro = error;
+        console.warn(`OCR provider "${nome}" falhou: ${(error as any)?.message}`);
       }
-      if (jsonText.startsWith('```')) {
-        jsonText = jsonText.slice(3);
-      }
-      if (jsonText.endsWith('```')) {
-        jsonText = jsonText.slice(0, -3);
-      }
-
-      const dados = JSON.parse(jsonText.trim());
-
-      // Normalizar dados
-      return this.normalizarDadosCupom(dados);
-    } catch (error) {
-      console.error('Erro ao processar OCR:', error);
-      throw new Error('Erro ao processar cupom fiscal. Tente novamente.');
     }
+    console.error('Erro ao processar OCR (todos os providers falharam):', ultimoErro);
+    throw new Error('Erro ao processar cupom fiscal. Tente novamente.');
   }
 
   // Remove CPF (11 dígitos) e CNPJ (14 dígitos) de strings — LGPD: PII não deve vazar em logs
