@@ -5,6 +5,7 @@
 
 export type EstagioResolucao =
   | 'ean'         // EAN aprendido na KB — certeza máxima
+  | 'correcao'    // correção humana explícita — flywheel, quase-certeza
   | 'dicionario'  // dicionário de abreviações (memória)
   | 'kb'          // knowledge base exata (normalized_name)
   | 'fuzzy'       // similaridade trigram (typos de OCR)
@@ -37,6 +38,7 @@ export interface ItemCanonizado {
 /** Confiança base por estágio — calibrada pela natureza de cada resolução. */
 export const CONFIANCA_POR_ESTAGIO: Record<EstagioResolucao, number> = {
   ean: 0.99,        // recompra do mesmo código de barras — quase certeza
+  correcao: 0.98,   // correção humana explícita — flywheel, só perde pro EAN
   dicionario: 0.95, // curadoria humana explícita
   kb: 0.92,         // já resolvido e persistido antes
   regex: 0.88,      // padrão específico de mercado

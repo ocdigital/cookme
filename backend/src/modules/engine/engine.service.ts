@@ -13,6 +13,7 @@ import {
 
 const MAPA_ESTAGIO: Record<EstagioCanonizacao, EstagioResolucao> = {
   ean: 'ean',
+  correcao: 'correcao',
   abreviacao: 'dicionario',
   kb_exato: 'kb',
   fuzzy: 'fuzzy',
@@ -42,6 +43,15 @@ export class EngineService {
     private readonly ocrAlias: OcrAliasService,
     @Optional() private readonly llmCanonizador?: LlmCanonizadorService,
   ) {}
+
+  /**
+   * Correção humana — ensina a base. O par (descrição → canônico) grava com
+   * prioridade máxima; a próxima vez que esse item aparecer, resolve no estágio
+   * `correcao` (confiança 0.98), nunca mais errando — para nenhum cliente.
+   */
+  async corrigir(descricao: string, produtoCanonico: string, ean?: string): Promise<void> {
+    await this.ocrAlias.registrarCorreção(descricao, produtoCanonico, ean);
+  }
 
   async canonizar(item: ItemEntrada): Promise<ItemCanonizado> {
     const descricao = (item.descricao || '').trim();

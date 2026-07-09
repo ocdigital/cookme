@@ -972,6 +972,54 @@
     {
       "nome_ocr": "ESPONJA ACO BOMBRIL 8UN",
       "esperado": "esponja de aço"
+    },
+    {
+      "nome_ocr": "PAO DE QUEIJO MASSA BOA 1G",
+      "esperado": "pão de queijo"
+    },
+    {
+      "nome_ocr": "PAO QUEIJO CONG FORNO MINAS",
+      "esperado": "pão de queijo"
+    },
+    {
+      "nome_ocr": "SALG PEPE LEGAL COSTELINHA C/LIM 70G",
+      "esperado": "salgadinho"
+    },
+    {
+      "nome_ocr": "SALGADINHO FANDANGOS QUEIJO 63G",
+      "esperado": "salgadinho"
+    },
+    {
+      "nome_ocr": "BATATA PALHA ELMA CHIPS",
+      "esperado": "batata palha"
+    },
+    {
+      "nome_ocr": "BATATA PALHA YOKI 105G",
+      "esperado": "batata palha"
+    },
+    {
+      "nome_ocr": "LEITE DE COCO DA TERRINHA",
+      "esperado": "leite de coco"
+    },
+    {
+      "nome_ocr": "LEITE DE COCO SOCOCO 200ML",
+      "esperado": "leite de coco"
+    },
+    {
+      "nome_ocr": "LEITE CONDENSADO MOCA",
+      "esperado": "leite condensado"
+    },
+    {
+      "nome_ocr": "LEITE CONDENSADO PIRACANJUBA 395G",
+      "esperado": "leite condensado"
+    },
+    {
+      "nome_ocr": "LEITE EM PO NINHO 380G",
+      "esperado": "leite em pó"
+    },
+    {
+      "nome_ocr": "CREME DE LEITE NESTLE 200G",
+      "esperado": "creme de leite"
     }
   ]
 }

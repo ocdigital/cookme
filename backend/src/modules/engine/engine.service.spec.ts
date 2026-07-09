@@ -11,11 +11,11 @@ import { extrairMarca } from './marcas';
  */
 describe('EngineService', () => {
   let engine: EngineService;
-  let ocrAlias: { resolverComEstagio: jest.Mock };
+  let ocrAlias: { resolverComEstagio: jest.Mock; registrarCorreção: jest.Mock };
   let llm: { canonizar: jest.Mock; habilitado: boolean };
 
   const montar = async (llmHabilitado = true) => {
-    ocrAlias = { resolverComEstagio: jest.fn() };
+    ocrAlias = { resolverComEstagio: jest.fn(), registrarCorreção: jest.fn().mockResolvedValue(undefined) };
     llm = { canonizar: jest.fn().mockResolvedValue(null), habilitado: llmHabilitado };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -97,6 +97,19 @@ describe('EngineService', () => {
 
     await engine.canonizar({ descricao: 'DETERGENTE YPE 500ML' });
     expect(llm.canonizar).not.toHaveBeenCalled();
+  });
+
+  it('estágio "correcao" (correção humana) → confiança 0.98', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'leite condensado', estagio: 'correcao' });
+    const r = await engine.canonizar({ descricao: 'LEITE CONDENSADO MOCA' });
+    expect(r.produto_canonico).toBe('leite condensado');
+    expect(r.estagio).toBe('correcao');
+    expect(r.confianca).toBe(0.98);
+  });
+
+  it('corrigir() delega pro ocrAlias (flywheel: a base aprende)', async () => {
+    await engine.corrigir('LEITE CONDENSADO MOCA', 'leite condensado', '7891000000000');
+    expect(ocrAlias.registrarCorreção).toHaveBeenCalledWith('LEITE CONDENSADO MOCA', 'leite condensado', '7891000000000');
   });
 
   it('canonizarLote preserva ordem e devolve todos', async () => {

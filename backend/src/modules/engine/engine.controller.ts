@@ -55,4 +55,21 @@ export class EngineController {
       confianca_media: Math.round((itens.reduce((s, i) => s + i.confianca, 0) / itens.length) * 100) / 100,
     };
   }
+
+  @Post('corrigir')
+  @Throttle({ global: { ttl: 60000, limit: 60 } })
+  @ApiOperation({
+    summary: 'Corrige a canonização de um item — a base APRENDE (flywheel)',
+    description:
+      'Ensina a Engine: o par (descrição suja → produto canônico correto) grava na base ' +
+      'com prioridade máxima. A próxima vez que esse item aparecer, resolve corretamente — ' +
+      'para todos os clientes. É o mecanismo que torna a Engine mais precisa com o uso.',
+  })
+  async corrigir(@Body() body: { descricao: string; produto_canonico: string; ean?: string }) {
+    if (!body?.descricao || !body?.produto_canonico) {
+      throw new BadRequestException('Envie { descricao, produto_canonico, ean? }');
+    }
+    await this.engine.corrigir(body.descricao, body.produto_canonico, body.ean);
+    return { ok: true, aprendido: { descricao: body.descricao, produto_canonico: body.produto_canonico } };
+  }
 }

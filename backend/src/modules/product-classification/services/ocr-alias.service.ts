@@ -88,6 +88,30 @@ const COMPOSTOS_PRIORITARIOS: Array<[RegExp, string]> = [
   [/\bchoc\w*\b.{0,12}\bmeio\s+amargo/i, 'chocolate meio amargo'],
   [/\bagua\s+e\s+sal\b/i, 'biscoito água e sal'],
   [/\bling\w*\b.{0,10}\bfrang/i, 'linguiça de frango'],
+
+  // Nuances LEITE — o qualificador vem DEPOIS de "leite", que o dicionário
+  // pegaria sozinho. Ordem importa: mais específico primeiro (condensado antes de coco).
+  [/\bleite\s+condensad/i, 'leite condensado'],
+  [/\bleite\s+(?:de\s+)?coc/i, 'leite de coco'],
+  [/\bleite\s+em\s+po\b/i, 'leite em pó'],
+  [/\bleite\s+ferment/i, 'leite fermentado'],
+  [/\bleite\s+(?:de\s+)?soja/i, 'leite de soja'],
+  [/\bcreme\s+(?:de\s+)?leite/i, 'creme de leite'],
+  [/\bdoce\s+(?:de\s+)?leite/i, 'doce de leite'],
+  // Pão de queijo — "pão" sozinho engoliria
+  [/\bpao\s+(?:de\s+)?queijo/i, 'pão de queijo'],
+  [/\bpao\s+(?:de\s+)?forma/i, 'pão de forma'],
+  [/\bpao\s+(?:de\s+)?alho/i, 'pão de alho'],
+  [/\bpao\s+franc/i, 'pão francês'],
+  // Batata palha (snack industrializado) — não é "batata" hortifruti
+  [/\bbatata\s+palha/i, 'batata palha'],
+  [/\bbatata\s+(?:doce|dolce)/i, 'batata doce'],
+  // Salgadinhos / snacks industrializados — categoria que caía em ruído
+  [/\bsalg\w*\b/i, 'salgadinho'],
+  // Amido, extrato, molho — genéricos que o 1º token confundia
+  [/\bamido\s+(?:de\s+)?milho/i, 'amido de milho'],
+  [/\bextrato\s+(?:de\s+)?tomate/i, 'extrato de tomate'],
+  [/\bmolho\s+(?:de\s+)?tomate/i, 'molho de tomate'],
 ];
 
 // Mapeamento direto de padrões OCR → ingrediente canônico
@@ -280,7 +304,7 @@ const OCR_MAPA: Array<[RegExp, string]> = [
 ];
 
 export type EstagioCanonizacao =
-  | 'ean' | 'abreviacao' | 'kb_exato' | 'fuzzy' | 'regex' | 'normalizer' | 'fallback';
+  | 'ean' | 'correcao' | 'abreviacao' | 'kb_exato' | 'fuzzy' | 'regex' | 'normalizer' | 'fallback';
 
 @Injectable()
 export class OcrAliasService {
@@ -289,7 +313,7 @@ export class OcrAliasService {
   // Contadores por estágio desde o último restart — mede onde as resoluções
   // acontecem e quanto cai no fallback (fila de curadoria)
   private readonly stats: Record<EstagioCanonizacao, number> = {
-    ean: 0, abreviacao: 0, kb_exato: 0, fuzzy: 0, regex: 0, normalizer: 0, fallback: 0,
+    ean: 0, correcao: 0, abreviacao: 0, kb_exato: 0, fuzzy: 0, regex: 0, normalizer: 0, fallback: 0,
   };
 
   constructor(
@@ -338,6 +362,17 @@ export class OcrAliasService {
         this.stats.ean++;
         return { canonical: porEan.canonical_ingredient, estagio: 'ean' };
       }
+    }
+
+    // 0.1. Correção humana explícita — prioridade máxima após EAN. Uma correção
+    // manual vence dicionário, compostos, tudo. É o flywheel: aprendeu, não erra mais.
+    const corrigido = await this.knowledgeRepo.findOne({
+      where: { normalized_name: normalizedKey, corrigido_manual: true },
+      select: ['canonical_ingredient'],
+    });
+    if (corrigido?.canonical_ingredient) {
+      this.stats.correcao++;
+      return { canonical: corrigido.canonical_ingredient, estagio: 'correcao' };
     }
 
     // 0.5. Compostos prioritários — qualificador com marca no meio; precisa
@@ -425,15 +460,38 @@ export class OcrAliasService {
   }
 
   /**
-   * Atualiza manualmente o canonical_ingredient de um produto.
-   * Chamado quando usuário corrige o nome no app.
+   * Correção humana explícita — a base APRENDE (flywheel). Cria a entrada se não
+   * existir, grava o EAN se fornecido, marca como corrigido manualmente.
+   * A partir daí o item resolve no estágio `correcao` (prioridade máxima após EAN),
+   * então NUNCA mais volta a errar — para nenhum cliente.
    */
-  async registrarCorreção(nomeOcr: string, nomeCanônico: string): Promise<void> {
+  async registrarCorreção(
+    nomeOcr: string,
+    nomeCanônico: string,
+    codigoBarras?: string,
+  ): Promise<void> {
     const normalizedKey = this.normalizarChave(nomeOcr);
+    const canonico = nomeCanônico.trim().toLowerCase();
     const existing = await this.knowledgeRepo.findOne({ where: { normalized_name: normalizedKey } });
     if (existing) {
-      await this.knowledgeRepo.update(existing.id, { canonical_ingredient: nomeCanônico });
+      await this.knowledgeRepo.update(existing.id, {
+        canonical_ingredient: canonico,
+        corrigido_manual: true,
+        ...(codigoBarras && !existing.codigo_barras ? { codigo_barras: codigoBarras.slice(0, 14) } : {}),
+      } as any);
+    } else {
+      await this.knowledgeRepo.save(
+        this.knowledgeRepo.create({
+          product_name: nomeOcr.slice(0, 255),
+          normalized_name: normalizedKey,
+          canonical_ingredient: canonico,
+          corrigido_manual: true,
+          codigo_barras: codigoBarras?.slice(0, 14) ?? null,
+          confidence_score: 1,
+        } as any),
+      );
     }
+    this.logger.log(`Correção aprendida: "${nomeOcr}" → "${canonico}"`);
   }
 
   /**

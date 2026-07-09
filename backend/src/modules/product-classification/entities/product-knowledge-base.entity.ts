@@ -38,6 +38,11 @@ export class ProductKnowledgeBase {
   @Index()
   codigo_barras: string | null;
 
+  // Correção humana explícita — prioridade máxima na resolução (só perde pro EAN).
+  // É o flywheel: uma correção ensina a base e nunca mais erra aquele item.
+  @Column({ type: 'boolean', default: false, nullable: true })
+  corrigido_manual: boolean | null;
+
   @Column({
     type: 'varchar',
     length: 50,
