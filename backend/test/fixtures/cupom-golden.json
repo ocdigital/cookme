@@ -187,7 +187,7 @@
     },
     {
       "nome_ocr": "TOMATE ITALIANO KG",
-      "esperado": "tomate"
+      "esperado": "tomate italiano"
     },
     {
       "nome_ocr": "BATATA LAVADA KG",
@@ -291,7 +291,7 @@
     },
     {
       "nome_ocr": "QUEIJO MINAS FRESCAL KG",
-      "esperado": "queijo minas"
+      "esperado": "queijo minas frescal"
     },
     {
       "nome_ocr": "QJO COALHO ESPETO KG",
@@ -699,7 +699,7 @@
     },
     {
       "nome_ocr": "SALMAO FILE FRESCO KG",
-      "esperado": "salmão"
+      "esperado": "filé de salmão"
     },
     {
       "nome_ocr": "HAMB BOV TEXAS SEARA 56G",
@@ -1020,6 +1020,34 @@
     {
       "nome_ocr": "CREME DE LEITE NESTLE 200G",
       "esperado": "creme de leite"
+    },
+    {
+      "nome_ocr": "QUEIJO PROVOLONE QUATA FAT",
+      "esperado": "queijo provolone"
+    },
+    {
+      "nome_ocr": "FILE MERLUZA IGLU S/PELE 400G",
+      "esperado": "filé de merluza"
+    },
+    {
+      "nome_ocr": "QUEIJO MUSSARELA",
+      "esperado": "queijo mussarela"
+    },
+    {
+      "nome_ocr": "PROVOLONE QUATA 200G",
+      "esperado": "queijo provolone"
+    },
+    {
+      "nome_ocr": "QUEIJO PROVOL QUATA 200G",
+      "esperado": "queijo provolone"
+    },
+    {
+      "nome_ocr": "QUEIJO MUSS FAT 150G",
+      "esperado": "queijo mussarela"
+    },
+    {
+      "nome_ocr": "TOMATE SALADA KG",
+      "esperado": "tomate salada"
     }
   ]
 }

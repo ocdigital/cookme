@@ -43,6 +43,13 @@ export class ProductKnowledgeBase {
   @Column({ type: 'boolean', default: false, nullable: true })
   corrigido_manual: boolean | null;
 
+  // Estágio que gerou este canonical_ingredient (dicionario/regex/normalizer/...).
+  // Sem isto, uma leitura futura via kb_exato reportaria confiança fixa (0.92)
+  // mesmo quando a origem foi um palpite fraco (normalizer 0.55) — lavagem de
+  // confiança (PLANO_PRECISAO_ENGINE.md §11 A3). Null = dado legado pré-fix.
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  origem_estagio: string | null;
+
   @Column({
     type: 'varchar',
     length: 50,

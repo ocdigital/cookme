@@ -8,10 +8,16 @@ export class ItemEntradaDto {
   })
   descricao: string;
 
-  @ApiPropertyOptional({ description: 'EAN/GTIN quando disponível — resolve com confiança máxima', example: '7898080640611' })
+  @ApiPropertyOptional({
+    description: 'EAN/GTIN quando disponível — resolve com confiança máxima',
+    example: '7898080640611',
+  })
   ean?: string;
 
-  @ApiPropertyOptional({ description: 'Preço unitário em reais', example: 3.49 })
+  @ApiPropertyOptional({
+    description: 'Preço unitário em reais',
+    example: 3.49,
+  })
   preco?: number;
 
   @ApiPropertyOptional({ description: 'Quantidade comprada', example: 2 })
@@ -23,7 +29,8 @@ export class ItemEntradaDto {
 
 export class CanonizarRequestDto {
   @ApiProperty({
-    description: 'Itens a canonizar — strings cruas ou objetos. Máximo 100 por chamada.',
+    description:
+      'Itens a canonizar — strings cruas ou objetos. Máximo 100 por chamada.',
     type: [ItemEntradaDto],
     example: [
       'CR LEITE ITALAC 200GR',
@@ -39,16 +46,22 @@ export class ItemCanonizadoDto {
   descricao_original: string;
 
   @ApiProperty({
-    description: 'Nome canônico do produto: minúsculas, sem marca, sem peso/embalagem',
+    description:
+      'Nome canônico do produto: minúsculas, sem marca, sem peso/embalagem',
     example: 'creme de leite',
   })
   produto_canonico: string;
 
-  @ApiProperty({ description: 'Marca detectada na descrição, ou null', example: 'Italac', nullable: true })
+  @ApiProperty({
+    description: 'Marca detectada na descrição, ou null',
+    example: 'Italac',
+    nullable: true,
+  })
   marca: string | null;
 
   @ApiProperty({
-    description: 'false = certeza de não-alimento (guard determinístico); null = indeterminado',
+    description:
+      'false = certeza de não-alimento (guard determinístico); null = indeterminado',
     example: null,
     nullable: true,
   })
@@ -74,10 +87,39 @@ export class ItemCanonizadoDto {
 
   @ApiProperty({
     description: 'Estágio do pipeline que resolveu o item',
-    enum: ['ean', 'dicionario', 'kb', 'fuzzy', 'regex', 'normalizer', 'ia', 'fallback'],
+    enum: [
+      'ean',
+      'correcao',
+      'dicionario',
+      'kb',
+      'fuzzy',
+      'regex',
+      'normalizer',
+      'ia',
+      'fallback',
+    ],
     example: 'dicionario',
   })
   estagio: EstagioResolucao;
+
+  @ApiProperty({
+    description:
+      'Núcleo do produto (ex: "queijo", "filé") quando resolvido por composição ' +
+      'núcleo+especificador. Útil para agrupar por categoria mesmo quando a ' +
+      'variedade exata não bate entre lojas (ex: uma receita que pede "queijo" ' +
+      'aceita qualquer provolone/mussarela). null quando não aplicável.',
+    example: 'queijo',
+    nullable: true,
+  })
+  nucleo: string | null;
+
+  @ApiProperty({
+    description:
+      'Variedade/corte específico (ex: "provolone", "merluza"). null se não aplicável.',
+    example: 'provolone',
+    nullable: true,
+  })
+  especificador: string | null;
 }
 
 export class CanonizarResponseDto {
@@ -87,7 +129,10 @@ export class CanonizarResponseDto {
   @ApiProperty({ example: 3 })
   total: number;
 
-  @ApiProperty({ description: 'Tempo de processamento do lote em ms', example: 17 })
+  @ApiProperty({
+    description: 'Tempo de processamento do lote em ms',
+    example: 17,
+  })
   latencia_ms: number;
 
   @ApiProperty({ description: 'Média das confianças do lote', example: 0.95 })

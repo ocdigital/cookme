@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { ProductKnowledgeBase } from '../entities/product-knowledge-base.entity';
 import { IngredientNormalizerService } from '../../receitas/services/ingredient-normalizer.service';
 import { AbbreviationService } from './abbreviation.service';
+import { resolverNucleoEspecificador, resolverApenasNucleo } from './especificadores';
 
 // Palavras de marca/embalagem comuns em nomes de produtos de supermercado
 // Usadas para extrair o nome base do ingrediente de nomes OCR sujos
@@ -347,7 +348,7 @@ export class OcrAliasService {
   async resolverComEstagio(
     nomeOcr: string,
     codigoBarras?: string,
-  ): Promise<{ canonical: string; estagio: EstagioCanonizacao }> {
+  ): Promise<{ canonical: string; estagio: EstagioCanonizacao; nucleo?: string; especificador?: string }> {
     const normalizedKey = this.normalizarChave(nomeOcr);
     const textoSemAcento = nomeOcr.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
@@ -379,10 +380,27 @@ export class OcrAliasService {
     // vencer o prefix-match genérico do dicionário (ver comentário no array)
     for (const [regex, canonical] of COMPOSTOS_PRIORITARIOS) {
       if (regex.test(textoSemAcento)) {
-        await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
+        await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras, 'regex');
         this.stats.regex++;
         return { canonical, estagio: 'regex' };
       }
+    }
+
+    // 0.6. Núcleo + especificador (Camada 1, PLANO_PRECISAO_ENGINE.md §3/§11 A11).
+    // Roda ANTES do dicionário genérico: senão o prefix-match de 1 token
+    // ("QUEIJO" → "queijo") responde primeiro e engole o especificador
+    // ("provolone", "merluza"). Nunca inventa: se o núcleo aparece mas nenhum
+    // especificador cadastrado casa, devolve só o núcleo (honesto).
+    const nucleoEspec = resolverNucleoEspecificador(textoSemAcento);
+    if (nucleoEspec) {
+      await this.persistirCanonical(normalizedKey, nomeOcr, nucleoEspec.canonical, undefined, codigoBarras, 'regex');
+      this.stats.regex++;
+      return {
+        canonical: nucleoEspec.canonical,
+        estagio: 'regex',
+        nucleo: nucleoEspec.nucleo,
+        especificador: nucleoEspec.especificador,
+      };
     }
 
     // 1. Tabela de abreviações (passo mais rápido — memória).
@@ -393,29 +411,32 @@ export class OcrAliasService {
       this.abbreviationService.expand(this.limparMarcasEEmbalagem(nomeOcr));
     if (abbrMatch) {
       this.logger.debug(`Abreviação: "${nomeOcr}" → "${abbrMatch.expanded}" (ingrediente=${abbrMatch.is_ingredient})`);
-      await this.persistirCanonical(normalizedKey, nomeOcr, abbrMatch.expanded, abbrMatch.is_ingredient, codigoBarras);
+      await this.persistirCanonical(normalizedKey, nomeOcr, abbrMatch.expanded, abbrMatch.is_ingredient, codigoBarras, 'abreviacao');
       this.stats.abreviacao++;
       return { canonical: abbrMatch.expanded, estagio: 'abreviacao' };
     }
 
-    // 2. Lookup exato no banco
+    // 2. Lookup exato no banco. A3 (lavagem de confiança): reporta a ORIGEM real
+    // gravada (origem_estagio), não um 'kb_exato' fixo — senão um palpite fraco
+    // (normalizer 0.55) vira "quase-certeza" (0.92) só por estar em cache.
     const cached = await this.knowledgeRepo.findOne({
       where: { normalized_name: normalizedKey },
-      select: ['canonical_ingredient'],
+      select: ['canonical_ingredient', 'origem_estagio'],
     });
 
     if (cached?.canonical_ingredient) {
+      const origemHerdada = (cached.origem_estagio as EstagioCanonizacao) || 'kb_exato';
       if (codigoBarras) {
-        await this.persistirCanonical(normalizedKey, nomeOcr, cached.canonical_ingredient, undefined, codigoBarras);
+        await this.persistirCanonical(normalizedKey, nomeOcr, cached.canonical_ingredient, undefined, codigoBarras, origemHerdada);
       }
       this.stats.kb_exato++;
-      return { canonical: cached.canonical_ingredient, estagio: 'kb_exato' };
+      return { canonical: cached.canonical_ingredient, estagio: origemHerdada };
     }
 
     // 3. Fuzzy lookup via trigram (pega typos OCR e variações de nome)
     const fuzzyResult = await this.fuzzyLookup(nomeOcr);
     if (fuzzyResult) {
-      await this.persistirCanonical(normalizedKey, nomeOcr, fuzzyResult, undefined, codigoBarras);
+      await this.persistirCanonical(normalizedKey, nomeOcr, fuzzyResult, undefined, codigoBarras, 'fuzzy');
       this.stats.fuzzy++;
       return { canonical: fuzzyResult, estagio: 'fuzzy' };
     }
@@ -425,19 +446,32 @@ export class OcrAliasService {
     for (const [regex, canonical] of OCR_MAPA) {
       if (regex.test(textoLimpo)) {
         // Persiste para cache futuro
-        await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
+        await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras, 'regex');
         this.stats.regex++;
         return { canonical, estagio: 'regex' };
       }
     }
 
-    // 5. IngredientNormalizerService
+    // 5. IngredientNormalizerService — A3: estágio FRACO (confiança 0.55) NÃO
+    // persiste na KB. Se persistisse, a próxima leitura bateria em kb_exato e
+    // herdaria essa mesma origem 'normalizer' (correto agora) — mas o objetivo
+    // aqui é não fixar palpites fracos no cache: deixamos a heurística rodar de
+    // novo a cada vez, mais barato que errar com confiança emprestada.
     const norm = this.normalizer.normalizar(nomeOcr);
     if (norm && norm.nomeCanônico && norm.nomeCanônico.length > 1) {
       const canonical = norm.nomeCanônico;
-      await this.persistirCanonical(normalizedKey, nomeOcr, canonical, undefined, codigoBarras);
       this.stats.normalizer++;
       return { canonical, estagio: 'normalizer' };
+    }
+
+    // 5.5. Fallback do núcleo (Camada 1, quando não achou especificador). Só
+    // tentado AQUI — depois de dicionário/kb/fuzzy/OCR_MAPA/normalizer, que
+    // podem ter regra mais específica (ex: "EXTR TOM" no dicionário resolve
+    // "extrato de tomate", melhor que devolver só "tomate").
+    const apenasNucleo = resolverApenasNucleo(textoSemAcento);
+    if (apenasNucleo) {
+      this.stats.regex++;
+      return { canonical: apenasNucleo, estagio: 'regex' };
     }
 
     // 6. Fallback: limpar embalagem e pegar primeiras 2 palavras
@@ -536,24 +570,35 @@ export class OcrAliasService {
       .replace(/[^\w\s]/g, '');
   }
 
+  /**
+   * Grava o canonical_ingredient resolvido + a ORIGEM do estágio que decidiu.
+   * A3 (PLANO_PRECISAO_ENGINE.md §11): só chame isto para estágios CONFIÁVEIS
+   * (dicionario/abreviacao, regex, fuzzy). Estágios fracos (normalizer, fallback)
+   * nunca devem persistir — senão um palpite vira "quase-certeza" só por cache
+   * (ver resolverComEstagio, que já não chama persistirCanonical para eles).
+   */
   private async persistirCanonical(
     normalizedKey: string,
     nomeOcr: string,
     canonical: string,
     isIngredient?: boolean,
     codigoBarras?: string,
+    origemEstagio?: EstagioCanonizacao,
   ): Promise<void> {
     try {
       const existing = await this.knowledgeRepo.findOne({ where: { normalized_name: normalizedKey } });
       if (existing) {
         const update: Partial<ProductKnowledgeBase> = {};
-        if (!existing.canonical_ingredient) update.canonical_ingredient = canonical;
+        if (!existing.canonical_ingredient) {
+          update.canonical_ingredient = canonical;
+          if (origemEstagio) update.origem_estagio = origemEstagio;
+        }
         if (isIngredient !== undefined) update.ingrediente_receita = isIngredient;
         // Aprende o EAN — recompra do mesmo produto resolve sem heurística
         if (codigoBarras && !existing.codigo_barras) update.codigo_barras = codigoBarras;
         if (Object.keys(update).length > 0) {
           await this.knowledgeRepo.update(existing.id, update);
-          this.logger.debug(`KB atualizado: "${nomeOcr}" → "${canonical}"`);
+          this.logger.debug(`KB atualizado: "${nomeOcr}" → "${canonical}" (origem: ${origemEstagio ?? existing.origem_estagio ?? '?'})`);
         }
       }
     } catch (e) {

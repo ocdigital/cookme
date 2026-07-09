@@ -1,5 +1,8 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
-import { OcrAliasService, EstagioCanonizacao } from '../product-classification/services/ocr-alias.service';
+import {
+  OcrAliasService,
+  EstagioCanonizacao,
+} from '../product-classification/services/ocr-alias.service';
 import { ehNaoIngrediente } from '@common/nao-ingrediente.guard';
 import { extrairMarca } from './marcas';
 import { LlmCanonizadorService } from './llm-canonizador.service';
@@ -51,7 +54,11 @@ export class EngineService {
    * prioridade máxima; a próxima vez que esse item aparecer, resolve no estágio
    * `correcao` (confiança 0.98), nunca mais errando — para nenhum cliente.
    */
-  async corrigir(descricao: string, produtoCanonico: string, ean?: string): Promise<void> {
+  async corrigir(
+    descricao: string,
+    produtoCanonico: string,
+    ean?: string,
+  ): Promise<void> {
     await this.ocrAlias.registrarCorreção(descricao, produtoCanonico, ean);
   }
 
@@ -61,10 +68,12 @@ export class EngineService {
     // Guard determinístico: não-ingrediente decidido ANTES de qualquer resolução
     const naoIngrediente = ehNaoIngrediente(descricao);
 
-    const { canonical, estagio: estagioInterno } = await this.ocrAlias.resolverComEstagio(
-      descricao,
-      item.ean,
-    );
+    const {
+      canonical,
+      estagio: estagioInterno,
+      nucleo,
+      especificador,
+    } = await this.ocrAlias.resolverComEstagio(descricao, item.ean);
     let estagio = MAPA_ESTAGIO[estagioInterno];
     let produto = canonical;
     let confianca = CONFIANCA_POR_ESTAGIO[estagio];
@@ -84,12 +93,18 @@ export class EngineService {
         estagio = 'ean';
         confianca = CONFIANCA_POR_ESTAGIO.ean;
         // aprende com prioridade máxima: recompra do mesmo EAN sai no estágio ean
-        await this.ocrAlias.registrarCorreção(descricao, produto, item.ean).catch(() => {});
+        await this.ocrAlias
+          .registrarCorreção(descricao, produto, item.ean)
+          .catch(() => {});
       }
     }
 
     // Cauda longa, passo 2: IA (só se o EAN não resolveu). Aprende na KB.
-    if (confianca < LIMIAR_IA && this.llmCanonizador?.habilitado && !naoIngrediente) {
+    if (
+      confianca < LIMIAR_IA &&
+      this.llmCanonizador?.habilitado &&
+      !naoIngrediente
+    ) {
       const ia = await this.llmCanonizador.canonizar(descricao, item.ean);
       if (ia) {
         produto = ia.produto_canonico;
@@ -108,6 +123,8 @@ export class EngineService {
       quantidade: item.quantidade ?? null,
       confianca: naoIngrediente ? Math.max(confianca, 0.9) : confianca,
       estagio,
+      nucleo: nucleo ?? null,
+      especificador: especificador ?? null,
     };
   }
 
