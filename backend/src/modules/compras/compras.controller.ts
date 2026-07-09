@@ -18,6 +18,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ComprasService } from './compras.service';
+import { NfceConsultaService } from './nfce-consulta.service';
 import { SubscriptionService } from '../affiliate/services/subscription.service';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Usuario } from '../usuarios/entities/usuario.entity';
@@ -31,9 +32,21 @@ import { CreateCompraDto } from './dto/create-compra.dto';
 export class ComprasController {
   constructor(
     private readonly comprasService: ComprasService,
+    private readonly nfceConsultaService: NfceConsultaService,
     private readonly subscriptionService: SubscriptionService,
     private readonly metricas: MetricasService,
   ) {}
+
+  @Post('nfce-consulta')
+  @ApiOperation({ summary: 'Consulta itens de NFC-e a partir da URL do QR (proxy server-side, contorna CORS)' })
+  async nfceConsulta(
+    @CurrentUser() user: Usuario,
+    @Body() body: { url: string },
+  ) {
+    if (!body?.url) throw new BadRequestException('URL do QR é obrigatória');
+    await this.subscriptionService.registrarUso(user.id, 'ocr');
+    return this.nfceConsultaService.consultar(body.url);
+  }
 
   @Post()
   @ApiOperation({ summary: 'Criar nova compra com itens' })
@@ -92,7 +105,7 @@ export class ComprasController {
       throw new BadRequestException('Imagem em base64 é obrigatória');
     }
     await this.subscriptionService.registrarUso(user.id, 'ocr');
-    return this.comprasService.extrairItensCupom(body.image_base64);
+    return this.comprasService.extrairItensCupom(body.image_base64, body.image_type);
   }
 
   @Post('ocr-cupom/salvar-itens')
