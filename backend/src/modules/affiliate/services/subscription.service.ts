@@ -378,6 +378,10 @@ export class SubscriptionService {
   }
 
   async registrarUso(usuarioId: string, tipo: 'ocr' | 'ia'): Promise<void> {
+    // Killswitch para instâncias que não gerenciam plano (ex: API/leitor de teste).
+    // Produção do CookMe NÃO seta esta env → limite de plano continua valendo.
+    if (process.env.SUBSCRIPTION_LIMITS_DISABLED === 'true') return;
+
     let assinatura = await this.subscriptionRepository.findOne({
       where: { usuario_id: usuarioId, status: SubscriptionStatus.ACTIVE },
     });
