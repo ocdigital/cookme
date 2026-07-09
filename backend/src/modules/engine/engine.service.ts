@@ -7,6 +7,8 @@ import { ehNaoIngrediente } from '@common/nao-ingrediente.guard';
 import { extrairMarca } from './marcas';
 import { LlmCanonizadorService } from './llm-canonizador.service';
 import { EanEnricherService } from './ean-enricher.service';
+import { CuradoriaService } from './curadoria.service';
+import { assertCorrecaoPermitida } from './governanca-multi-cliente';
 import {
   ItemEntrada,
   ItemCanonizado,
@@ -47,19 +49,25 @@ export class EngineService {
     private readonly ocrAlias: OcrAliasService,
     @Optional() private readonly llmCanonizador?: LlmCanonizadorService,
     @Optional() private readonly eanEnricher?: EanEnricherService,
+    @Optional() private readonly curadoria?: CuradoriaService,
   ) {}
 
   /**
    * Correção humana — ensina a base. O par (descrição → canônico) grava com
    * prioridade máxima; a próxima vez que esse item aparecer, resolve no estágio
    * `correcao` (confiança 0.98), nunca mais errando — para nenhum cliente.
+   * Também tira o item da fila de curadoria (§7) — foi corrigido, não precisa
+   * mais de atenção humana.
    */
   async corrigir(
     descricao: string,
     produtoCanonico: string,
     ean?: string,
+    clienteId?: string | null,
   ): Promise<void> {
+    assertCorrecaoPermitida(clienteId);
     await this.ocrAlias.registrarCorreção(descricao, produtoCanonico, ean);
+    await this.curadoria?.marcarResolvido(descricao).catch(() => {});
   }
 
   async canonizar(item: ItemEntrada): Promise<ItemCanonizado> {
@@ -113,6 +121,16 @@ export class EngineService {
       }
     }
 
+    const confiancaFinal = naoIngrediente ? Math.max(confianca, 0.9) : confianca;
+
+    // Fila de curadoria (§7): item resolvido com confiança baixa entra na fila,
+    // priorizada por frequência — não bloqueia a resposta se falhar.
+    if (!naoIngrediente) {
+      this.curadoria
+        ?.registrarOcorrencia({ descricao, canonico: produto, estagio, confianca: confiancaFinal })
+        .catch(() => {});
+    }
+
     return {
       descricao_original: descricao,
       produto_canonico: produto,
@@ -121,7 +139,7 @@ export class EngineService {
       ean: item.ean ?? null,
       preco: item.preco ?? null,
       quantidade: item.quantidade ?? null,
-      confianca: naoIngrediente ? Math.max(confianca, 0.9) : confianca,
+      confianca: confiancaFinal,
       estagio,
       nucleo: nucleo ?? null,
       especificador: especificador ?? null,

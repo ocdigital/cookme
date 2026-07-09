@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EngineService } from './engine.service';
 import { LlmCanonizadorService } from './llm-canonizador.service';
 import { EanEnricherService } from './ean-enricher.service';
+import { CuradoriaService } from './curadoria.service';
 import { OcrAliasService } from '../product-classification/services/ocr-alias.service';
 import { extrairMarca } from './marcas';
 
@@ -197,6 +198,14 @@ describe('EngineService', () => {
     );
   });
 
+  it('A7: corrigir() com cliente_id e gate multi-cliente desligado — rejeita (não contamina base global)', async () => {
+    delete process.env.ENGINE_MULTI_CLIENTE_HABILITADO;
+    await expect(
+      engine.corrigir('X', 'y', undefined, 'cliente-b'),
+    ).rejects.toThrow(/ENGINE_MULTI_CLIENTE_HABILITADO/);
+    expect(ocrAlias.registrarCorreção).not.toHaveBeenCalled();
+  });
+
   it('cauda longa: item com EAN + resolução fraca → enricher aprende (estágio ean, 0.99)', async () => {
     ocrAlias.resolverComEstagio.mockResolvedValue({
       canonical: 'salg pepe legal',
@@ -277,6 +286,52 @@ describe('EngineService', () => {
       { descricao: 'FEIJAO CAR 1KG' },
     ]);
     expect(r.map((i) => i.produto_canonico)).toEqual(['arroz', 'feijão']);
+  });
+});
+
+describe('EngineService — integração com a fila de curadoria (§7)', () => {
+  let engine: EngineService;
+  let ocrAlias: { resolverComEstagio: jest.Mock; registrarCorreção: jest.Mock };
+  let curadoria: { registrarOcorrencia: jest.Mock; marcarResolvido: jest.Mock };
+
+  beforeEach(async () => {
+    ocrAlias = {
+      resolverComEstagio: jest.fn(),
+      registrarCorreção: jest.fn().mockResolvedValue(undefined),
+    };
+    curadoria = {
+      registrarOcorrencia: jest.fn().mockResolvedValue(undefined),
+      marcarResolvido: jest.fn().mockResolvedValue(undefined),
+    };
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        EngineService,
+        { provide: OcrAliasService, useValue: ocrAlias },
+        { provide: LlmCanonizadorService, useValue: { canonizar: jest.fn(), habilitado: false } },
+        { provide: EanEnricherService, useValue: { consultar: jest.fn(), habilitado: false } },
+        { provide: CuradoriaService, useValue: curadoria },
+      ],
+    }).compile();
+    engine = module.get(EngineService);
+  });
+
+  it('item de confiança baixa registra ocorrência na fila', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'produto xyz', estagio: 'fallback' });
+    await engine.canonizar({ descricao: 'PRODUTO ESQUISITO XYZ' });
+    expect(curadoria.registrarOcorrencia).toHaveBeenCalledWith(
+      expect.objectContaining({ descricao: 'PRODUTO ESQUISITO XYZ', confianca: 0.3 }),
+    );
+  });
+
+  it('não-ingrediente NÃO entra na fila (é decisão certa, não incerteza)', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'sabonete', estagio: 'fallback' });
+    await engine.canonizar({ descricao: 'SABONETE LIQUIDO PROTEX 250ML' });
+    expect(curadoria.registrarOcorrencia).not.toHaveBeenCalled();
+  });
+
+  it('corrigir() também marca resolvido na fila de curadoria', async () => {
+    await engine.corrigir('X', 'y');
+    expect(curadoria.marcarResolvido).toHaveBeenCalledWith('X');
   });
 });
 

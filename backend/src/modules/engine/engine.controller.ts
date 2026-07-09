@@ -62,14 +62,18 @@ export class EngineController {
     summary: 'Corrige a canonização de um item — a base APRENDE (flywheel)',
     description:
       'Ensina a Engine: o par (descrição suja → produto canônico correto) grava na base ' +
-      'com prioridade máxima. A próxima vez que esse item aparecer, resolve corretamente — ' +
-      'para todos os clientes. É o mecanismo que torna a Engine mais precisa com o uso.',
+      'com prioridade máxima. A próxima vez que esse item aparecer, resolve corretamente. ' +
+      'Hoje é sempre global (single-tenant, único corretor confiável é o CookMe). Se um ' +
+      '2º cliente B2B existir, cliente_id passa a ser exigido e a correção só vira global ' +
+      'via a governança do §11 A7 (ainda não implementada) — ver governanca-multi-cliente.ts.',
   })
-  async corrigir(@Body() body: { descricao: string; produto_canonico: string; ean?: string }) {
+  async corrigir(
+    @Body() body: { descricao: string; produto_canonico: string; ean?: string; cliente_id?: string },
+  ) {
     if (!body?.descricao || !body?.produto_canonico) {
       throw new BadRequestException('Envie { descricao, produto_canonico, ean? }');
     }
-    await this.engine.corrigir(body.descricao, body.produto_canonico, body.ean);
+    await this.engine.corrigir(body.descricao, body.produto_canonico, body.ean, body.cliente_id);
     return { ok: true, aprendido: { descricao: body.descricao, produto_canonico: body.produto_canonico } };
   }
 }
