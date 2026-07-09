@@ -5,6 +5,7 @@ import { ProductClassificationModule } from '../product-classification/product-c
 import { ProductKnowledgeBase } from '../product-classification/entities/product-knowledge-base.entity';
 import { EngineService } from './engine.service';
 import { LlmCanonizadorService } from './llm-canonizador.service';
+import { EanEnricherService } from './ean-enricher.service';
 import { EngineController } from './engine.controller';
 
 /**
@@ -18,7 +19,7 @@ import { EngineController } from './engine.controller';
     TypeOrmModule.forFeature([ProductKnowledgeBase]),
     ProductClassificationModule,
   ],
-  providers: [EngineService, LlmCanonizadorService],
+  providers: [EngineService, LlmCanonizadorService, EanEnricherService],
   controllers: [EngineController],
   exports: [EngineService],
 })

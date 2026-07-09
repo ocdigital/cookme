@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EngineService } from './engine.service';
 import { LlmCanonizadorService } from './llm-canonizador.service';
+import { EanEnricherService } from './ean-enricher.service';
 import { OcrAliasService } from '../product-classification/services/ocr-alias.service';
 import { extrairMarca } from './marcas';
 
@@ -23,6 +24,7 @@ describe('EngineService', () => {
         EngineService,
         { provide: OcrAliasService, useValue: ocrAlias },
         { provide: LlmCanonizadorService, useValue: llm },
+        { provide: EanEnricherService, useValue: { consultar: jest.fn().mockResolvedValue(null), habilitado: false } },
       ],
     }).compile();
     engine = module.get(EngineService);
@@ -110,6 +112,44 @@ describe('EngineService', () => {
   it('corrigir() delega pro ocrAlias (flywheel: a base aprende)', async () => {
     await engine.corrigir('LEITE CONDENSADO MOCA', 'leite condensado', '7891000000000');
     expect(ocrAlias.registrarCorreção).toHaveBeenCalledWith('LEITE CONDENSADO MOCA', 'leite condensado', '7891000000000');
+  });
+
+  it('cauda longa: item com EAN + resolução fraca → enricher aprende (estágio ean, 0.99)', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'salg pepe legal', estagio: 'fallback' });
+    var enricher = { consultar: jest.fn().mockResolvedValue({ produto_canonico: 'salgadinho', nome_completo: 'Salgadinho Pepe Legal', marca: 'Pepe Legal', fonte: 'openfoodfacts' }), habilitado: true };
+    const module = await Test.createTestingModule({
+      providers: [
+        EngineService,
+        { provide: OcrAliasService, useValue: ocrAlias },
+        { provide: LlmCanonizadorService, useValue: { canonizar: jest.fn(), habilitado: false } },
+        { provide: EanEnricherService, useValue: enricher },
+      ],
+    }).compile();
+    const eng = module.get(EngineService);
+
+    const r = await eng.canonizar({ descricao: 'SALG PEPE LEGAL COSTELINHA', ean: '7896950800110' });
+
+    expect(enricher.consultar).toHaveBeenCalledWith('7896950800110');
+    expect(r.produto_canonico).toBe('salgadinho');
+    expect(r.estagio).toBe('ean');
+    expect(r.confianca).toBe(0.99);
+    expect(ocrAlias.registrarCorreção).toHaveBeenCalledWith('SALG PEPE LEGAL COSTELINHA', 'salgadinho', '7896950800110');
+  });
+
+  it('EAN enricher NÃO chamado sem EAN', async () => {
+    ocrAlias.resolverComEstagio.mockResolvedValue({ canonical: 'xyz', estagio: 'fallback' });
+    var enricher = { consultar: jest.fn().mockResolvedValue(null), habilitado: true };
+    const module = await Test.createTestingModule({
+      providers: [
+        EngineService,
+        { provide: OcrAliasService, useValue: ocrAlias },
+        { provide: LlmCanonizadorService, useValue: { canonizar: jest.fn(), habilitado: false } },
+        { provide: EanEnricherService, useValue: enricher },
+      ],
+    }).compile();
+    const eng = module.get(EngineService);
+    await eng.canonizar({ descricao: 'XYZ SEM EAN' });
+    expect(enricher.consultar).not.toHaveBeenCalled();
   });
 
   it('canonizarLote preserva ordem e devolve todos', async () => {

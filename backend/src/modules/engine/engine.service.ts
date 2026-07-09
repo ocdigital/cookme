@@ -3,6 +3,7 @@ import { OcrAliasService, EstagioCanonizacao } from '../product-classification/s
 import { ehNaoIngrediente } from '@common/nao-ingrediente.guard';
 import { extrairMarca } from './marcas';
 import { LlmCanonizadorService } from './llm-canonizador.service';
+import { EanEnricherService } from './ean-enricher.service';
 import {
   ItemEntrada,
   ItemCanonizado,
@@ -42,6 +43,7 @@ export class EngineService {
   constructor(
     private readonly ocrAlias: OcrAliasService,
     @Optional() private readonly llmCanonizador?: LlmCanonizadorService,
+    @Optional() private readonly eanEnricher?: EanEnricherService,
   ) {}
 
   /**
@@ -67,7 +69,26 @@ export class EngineService {
     let produto = canonical;
     let confianca = CONFIANCA_POR_ESTAGIO[estagio];
 
-    // Cauda longa: resolução fraca → IA (aprende na KB; próxima vez sai no estágio kb/ean)
+    // Cauda longa, passo 1: enriquecimento por EAN. Se o item tem código de barras
+    // e a resolução foi fraca, consulta base pública (verdade absoluta do EAN) e
+    // APRENDE. Mais confiável que IA — o EAN identifica o produto oficialmente.
+    if (
+      confianca < LIMIAR_IA &&
+      item.ean &&
+      this.eanEnricher?.habilitado &&
+      !naoIngrediente
+    ) {
+      const eanRes = await this.eanEnricher.consultar(item.ean);
+      if (eanRes) {
+        produto = eanRes.produto_canonico;
+        estagio = 'ean';
+        confianca = CONFIANCA_POR_ESTAGIO.ean;
+        // aprende com prioridade máxima: recompra do mesmo EAN sai no estágio ean
+        await this.ocrAlias.registrarCorreção(descricao, produto, item.ean).catch(() => {});
+      }
+    }
+
+    // Cauda longa, passo 2: IA (só se o EAN não resolveu). Aprende na KB.
     if (confianca < LIMIAR_IA && this.llmCanonizador?.habilitado && !naoIngrediente) {
       const ia = await this.llmCanonizador.canonizar(descricao, item.ean);
       if (ia) {
