@@ -1,3 +1,5 @@
+import { ForbiddenException } from '@nestjs/common';
+
 /**
  * Governança multi-cliente (PLANO_PRECISAO_ENGINE.md §11 A7): hoje
  * `POST /engine/corrigir` grava globalmente porque o único corretor confiável
@@ -31,7 +33,7 @@ export function multiClienteHabilitado(): boolean {
 export function assertCorrecaoPermitida(clienteId?: string | null): void {
   if (!clienteId) return; // single-tenant (CookMe) — comportamento de sempre
   if (!multiClienteHabilitado()) {
-    throw new Error(
+    throw new ForbiddenException(
       'Correção com cliente_id requer ENGINE_MULTI_CLIENTE_HABILITADO=true e a ' +
         'camada de override por cliente implementada (PLANO_PRECISAO_ENGINE.md §11 A7). ' +
         'Gate não passa — não abra /engine/corrigir para 2º cliente sem isso.',
