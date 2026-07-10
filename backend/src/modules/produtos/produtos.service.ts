@@ -14,7 +14,7 @@ import { UpdateProdutoDto } from './dto/update-produto.dto';
 import { CreateMarcaDto } from './dto/create-marca.dto';
 import { CreateCategoriaDto } from './dto/create-categoria.dto';
 import { ProductType } from '@common/enums/product-type.enum';
-import { OcrAliasService } from '../product-classification/services/ocr-alias.service';
+import { EngineClientService } from '../engine-client/engine-client.service';
 
 @Injectable()
 export class ProdutosService {
@@ -25,7 +25,7 @@ export class ProdutosService {
     private readonly marcaRepository: Repository<Marca>,
     @InjectRepository(Categoria)
     private readonly categoriaRepository: Repository<Categoria>,
-    private readonly ocrAliasService: OcrAliasService,
+    private readonly engineClient: EngineClientService,
   ) { }
 
   // ========== PRODUTOS ==========
@@ -77,11 +77,12 @@ export class ProdutosService {
     });
     const saved = await this.produtoRepository.save(produto);
 
-    // Normalizar nome OCR → nome_display em background (não bloqueia resposta)
+    // Normalizar nome via Engine (HTTP) → nome_display em background (não bloqueia resposta)
     if (!saved.nome_display) {
-      this.ocrAliasService
-        .resolverNomeCanônico(saved.nome)
-        .then((nomeDisplay) => {
+      this.engineClient
+        .canonizar({ descricao: saved.nome })
+        .then((resultado) => {
+          const nomeDisplay = resultado.produto_canonico;
           if (nomeDisplay && nomeDisplay !== saved.nome.toLowerCase()) {
             return this.produtoRepository.update(saved.id, { nome_display: nomeDisplay });
           }
