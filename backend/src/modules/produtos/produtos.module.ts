@@ -6,12 +6,12 @@ import { Marca } from './entities/marca.entity';
 import { ProdutosService } from './produtos.service';
 import { ProductImageService } from './services/product-image.service';
 import { ProdutosController } from './produtos.controller';
-import { ProductClassificationModule } from '../product-classification/product-classification.module';
+import { EngineClientModule } from '../engine-client/engine-client.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Produto, Categoria, Marca]),
-    ProductClassificationModule,
+    EngineClientModule,
   ],
   providers: [ProdutosService, ProductImageService],
   controllers: [ProdutosController],
