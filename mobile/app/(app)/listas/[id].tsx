@@ -8,10 +8,12 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useListas } from '@/hooks/useListas';
+import listaService from '@/services/lista.service';
 import { colors as C, radius, typography as T, shadows } from '@/constants/theme';
 import ScreenWrapper from '@/components/ScreenWrapper';
 
-type ModalMode = 'form' | 'camera';
+type ModalMode = 'form' | 'camera' | 'busca';
+type ResultadoBusca = { titulo: string; descricao: string };
 
 export default function ListDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -32,6 +34,8 @@ export default function ListDetailScreen() {
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const [buscandoWeb, setBuscandoWeb] = useState(false);
+  const [resultadosBusca, setResultadosBusca] = useState<ResultadoBusca[]>([]);
 
   useFocusEffect(useCallback(() => { if (id) carregarLista(id); }, [id, carregarLista]));
 
@@ -39,6 +43,7 @@ export default function ListDetailScreen() {
     setNome(''); setQtd('1'); setUnidade(''); setCodigoEscaneado('');
     setSelectedItem(null); setEditMode(false);
     setModalVisible(false); setScanned(false);
+    setBuscandoWeb(false); setResultadosBusca([]);
   };
 
   const openScanner = async () => {
@@ -51,11 +56,33 @@ export default function ListDetailScreen() {
     setModalVisible(true);
   };
 
-  const handleBarcodeScanned = ({ data: barcode }: { data: string }) => {
+  const handleBarcodeScanned = async ({ data: barcode }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
     Vibration.vibrate(80);
     setCodigoEscaneado(barcode);
+    // Busca o produto na web pelo EAN e mostra as opções encontradas
+    setResultadosBusca([]);
+    setBuscandoWeb(true);
+    setModalMode('busca');
+    try {
+      const resultados = await listaService.buscarPorBarcode(barcode);
+      setResultadosBusca(resultados);
+    } catch {
+      setResultadosBusca([]);
+    } finally {
+      setBuscandoWeb(false);
+    }
+  };
+
+  // Usuário escolheu um resultado da web → leva o nome para o formulário
+  const escolherResultado = (titulo: string) => {
+    setNome(titulo);
+    setModalMode('form');
+  };
+
+  // Nenhum resultado / preferiu digitar → vai direto ao form mantendo o código
+  const preencherManual = () => {
     setModalMode('form');
   };
 
@@ -208,6 +235,60 @@ export default function ListDetailScreen() {
                   <Text style={styles.cameraHint}>Aponte para o código de barras do produto</Text>
                 </View>
               </View>
+            </View>
+          )}
+
+          {/* ── Resultados da busca web ── */}
+          {modalMode === 'busca' && (
+            <View style={styles.modal}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Buscar produto</Text>
+                <TouchableOpacity onPress={resetForm} style={styles.closeBtn}>
+                  <MaterialCommunityIcons name="close" size={18} color={C.ink[700]} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.codigoTag}>
+                <MaterialCommunityIcons name="barcode" size={13} color={C.ink[500]} />
+                <Text style={styles.codigoText}>{codigoEscaneado}</Text>
+              </View>
+
+              {buscandoWeb ? (
+                <View style={styles.buscaLoading}>
+                  <ActivityIndicator size="small" color={C.green[600]} />
+                  <Text style={styles.buscaLoadingText}>Procurando na web…</Text>
+                </View>
+              ) : resultadosBusca.length > 0 ? (
+                <>
+                  <Text style={[styles.label, { marginTop: 14, marginBottom: 8 }]}>
+                    Encontramos estes produtos
+                  </Text>
+                  {resultadosBusca.map((r, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={styles.resultadoItem}
+                      onPress={() => escolherResultado(r.titulo)}
+                    >
+                      <MaterialCommunityIcons name="package-variant-closed" size={18} color={C.green[600]} />
+                      <Text style={styles.resultadoText} numberOfLines={2}>{r.titulo}</Text>
+                      <MaterialCommunityIcons name="chevron-right" size={18} color={C.ink[400]} />
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity style={styles.buscaManualBtn} onPress={preencherManual}>
+                    <Text style={styles.buscaManualText}>Nenhum destes — digitar manualmente</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.buscaVazia}>
+                  <MaterialCommunityIcons name="magnify-close" size={32} color={C.ink[300]} />
+                  <Text style={styles.buscaVaziaText}>
+                    Não encontramos esse produto na web.
+                  </Text>
+                  <TouchableOpacity style={styles.btnSave} onPress={preencherManual}>
+                    <Text style={styles.btnSaveText}>Digitar manualmente</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
 
@@ -393,6 +474,20 @@ const styles = StyleSheet.create({
     backgroundColor: C.ink[100], borderRadius: radius.sm, alignSelf: 'flex-start',
   },
   codigoText: { ...T.micro, color: C.ink[600], fontFamily: 'monospace' },
+
+  buscaLoading: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 28, justifyContent: 'center' },
+  buscaLoadingText: { ...T.body, color: C.ink[600] },
+  resultadoItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 12, paddingHorizontal: 12, marginBottom: 8,
+    backgroundColor: C.ink[50], borderRadius: radius.md,
+    borderWidth: 1, borderColor: C.ink[100],
+  },
+  resultadoText: { ...T.body, color: C.ink[800], flex: 1 },
+  buscaManualBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  buscaManualText: { ...T.small, color: C.green[600], fontWeight: '600' },
+  buscaVazia: { alignItems: 'center', gap: 12, paddingVertical: 24 },
+  buscaVaziaText: { ...T.body, color: C.ink[500], textAlign: 'center' },
 
   label: { ...T.small, color: C.ink[700], fontWeight: '600', marginBottom: 6 },
   input: {

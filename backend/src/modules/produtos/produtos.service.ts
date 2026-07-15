@@ -230,6 +230,54 @@ export class ProdutosService {
   }
 
   async buscarPorBarcode(codigo: string): Promise<{ titulo: string; descricao: string }[]> {
+    const cod = (codigo || '').trim();
+    if (!cod) return [];
+
+    // 1) Open Food Facts — base pública gratuita, cobre EANs brasileiros (fonte primária)
+    const off = await this.buscarOpenFoodFacts(cod);
+    if (off.length > 0) return off;
+
+    // 2) Fallback: scraping Google (frágil — Google costuma bloquear/mudar layout)
+    return this.buscarGoogleBarcode(cod);
+  }
+
+  /**
+   * Consulta o Open Food Facts pelo EAN. Retorna [] se não encontrar.
+   * Fonte confiável e gratuita para produtos de mercado (inclui marcas BR).
+   */
+  async buscarOpenFoodFacts(
+    codigo: string,
+  ): Promise<{ titulo: string; descricao: string }[]> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const axios = require('axios');
+    try {
+      const { data } = await axios.get(
+        `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`,
+        {
+          params: { fields: 'product_name,product_name_pt,brands,quantity' },
+          timeout: 8000,
+          headers: { 'User-Agent': 'CookMe/1.0 (contato@cookme.com.br)' },
+        },
+      );
+      if (data?.status !== 1 || !data?.product) return [];
+      const p = data.product;
+      const nome: string = (p.product_name_pt || p.product_name || '').trim();
+      if (!nome) return [];
+      const marca: string = (p.brands || '').split(',')[0]?.trim() || '';
+      const quantidade: string = (p.quantity || '').trim();
+      // Título amigável: "Nome Marca Quantidade" sem duplicar a marca já contida no nome
+      const partes = [nome];
+      if (marca && !nome.toLowerCase().includes(marca.toLowerCase())) partes.push(marca);
+      if (quantidade) partes.push(quantidade);
+      return [{ titulo: partes.join(' '), descricao: marca }];
+    } catch {
+      return [];
+    }
+  }
+
+  private async buscarGoogleBarcode(
+    codigo: string,
+  ): Promise<{ titulo: string; descricao: string }[]> {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const https = require('https');
     const url = `https://www.google.com/search?q=${encodeURIComponent(codigo)}&hl=pt-BR&gl=br&num=8`;

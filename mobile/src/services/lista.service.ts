@@ -133,6 +133,21 @@ class ListaService {
     return data;
   }
 
+  // ==================== BUSCA WEB POR CÓDIGO DE BARRAS ====================
+
+  /**
+   * Busca informações do produto na web pelo código de barras (EAN).
+   * Backend consulta Open Food Facts (fonte primária) com fallback Google.
+   */
+  async buscarPorBarcode(
+    codigo: string,
+  ): Promise<{ titulo: string; descricao: string }[]> {
+    const { data } = await api.get('/produtos/buscar-barcode', {
+      params: { codigo },
+    });
+    return Array.isArray(data) ? data : [];
+  }
+
   // ==================== UTILITÁRIOS ====================
 
   calcularProgresso(lista: Lista): number {
