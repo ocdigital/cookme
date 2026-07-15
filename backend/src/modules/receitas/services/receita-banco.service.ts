@@ -251,12 +251,19 @@ export class ReceitaBancoService {
       .limit(50)
       .getMany() : [];
 
-    const receitas = [...receitasPublicas];
+    // Importadas entram no MESMO cálculo de cobertura das públicas — "importar"
+    // é salvar a receita, não garantir que o usuário tem os ingredientes. O
+    // conjunto de ids importados dispensa apenas o corte por cobertura mínima
+    // (o usuário quer vê-las mesmo faltando itens), NUNCA marca disponivel=true
+    // sem o inventário bater.
+    const idsImportadas = new Set(receitasUsuario.map((r) => r.id));
+    const receitas = [...receitasPublicas, ...receitasUsuario];
 
     type ItemResultado = { receita: Receita; cobertura: number; disponivel: boolean; temProtagonista: boolean; faltando: string[] };
 
     const resultado: ItemResultado[] = receitas
       .map((receita): ItemResultado | null => {
+        const importada = idsImportadas.has(receita.id);
         // Ingredientes "a gosto" (sal, pimenta) não bloqueiam uma receita
         const riList = receita.ingredientes || [];
         const riPorChave = new Map<string, boolean>(); // chave → a_gosto
@@ -326,12 +333,16 @@ export class ReceitaBancoService {
         const protagonistaNomeFaltando = [...PROTAGONISTAS].some(
           (prot) => nomeNorm.includes(prot) && faltando.some((f) => f.includes(prot) || prot.includes(f)),
         );
-        if (protagonistaNomeFaltando) return null;
-
-        // Sem protagonista no inventário → exige 50% de cobertura
-        // Com protagonista presente → exige 40% mínimo
-        const limiteMinimo = temProtagonista ? 0.4 : 0.5;
-        if (cobertura < limiteMinimo) return null;
+        // Importadas nunca são cortadas (o usuário salvou, quer vê-las) — mas
+        // com cobertura e `faltando` REAIS, então disponivel só fica true se
+        // o inventário realmente bate.
+        if (!importada) {
+          if (protagonistaNomeFaltando) return null;
+          // Sem protagonista no inventário → exige 50% de cobertura
+          // Com protagonista presente → exige 40% mínimo
+          const limiteMinimo = temProtagonista ? 0.4 : 0.5;
+          if (cobertura < limiteMinimo) return null;
+        }
 
         return { receita, cobertura, disponivel: faltando.length === 0, temProtagonista, faltando };
       })
@@ -344,22 +355,11 @@ export class ReceitaBancoService {
       })
       .slice(0, limite);
 
-    // Adiciona receitas importadas pelo usuário com disponivel=true (ele importou, portanto tem os ingredientes)
-    const resultadoImportadas = receitasUsuario.map((receita) => ({
-      receita,
-      cobertura: 1,
-      disponivel: true,
-      temProtagonista: true,
-      faltando: [] as string[],
-    }));
-
-    const resultadoFinal = [...resultadoImportadas, ...resultado].slice(0, limite);
-
     this.logger.log(
-      `Listagem: ${ingredientes.length} ingredientes → ${resultadoFinal.filter(r => r.disponivel).length} disponíveis (${resultadoImportadas.length} importadas), ${resultadoFinal.filter(r => !r.disponivel && r.temProtagonista).length} com protagonista, ${resultadoFinal.filter(r => !r.disponivel && !r.temProtagonista).length} parciais`,
+      `Listagem: ${ingredientes.length} ingredientes → ${resultado.filter(r => r.disponivel).length} disponíveis, ${resultado.filter(r => !r.disponivel && r.temProtagonista).length} com protagonista, ${resultado.filter(r => !r.disponivel && !r.temProtagonista).length} parciais`,
     );
 
-    return resultadoFinal;
+    return resultado;
   }
 
   /**
