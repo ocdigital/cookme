@@ -198,6 +198,9 @@ export default function AppLayout() {
         <Drawer.Screen name="profile" />
         <Drawer.Screen name="settings" />
         <Drawer.Screen name="receita/[id]" />
+        <Drawer.Screen name="categorias/index" />
+        <Drawer.Screen name="categoria/[id]" />
+        <Drawer.Screen name="pesquisa/index" />
         <Drawer.Screen name="nova-receita/index" />
         <Drawer.Screen name="compras/index" />
         <Drawer.Screen name="planos/index" />
