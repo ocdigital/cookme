@@ -57,15 +57,17 @@ export class ReceitasUsuarioController {
   @Get('disponiveis')
   @ApiOperation({ summary: 'Lista receitas disponíveis baseado no inventário do usuário' })
   async listarDisponiveis(@CurrentUser() user: Usuario) {
-    const [ingredientes, vencendo, pref] = await Promise.all([
+    const [ingredientes, vencendo, pref, prefsAprendidas] = await Promise.all([
       this.inventarioService.ingredientesDisponiveis(user.id),
       this.inventarioService.findExpiringSoon(user.id, 7),
       this.preferenciaRepo.findOne({ where: { usuario_id: user.id } }),
+      this.prefAprendidaRepo.find({ where: { usuario_id: user.id } }),
     ]);
 
     const modoAlimentar = pref?.modo_alimentar || 'normal';
+    const preferencias = this.mapearPreferencias(prefsAprendidas);
     this.logger.log(`ingredientesDisponiveis (${ingredientes.length}): ${ingredientes.slice(0, 20).join(', ')}`);
-    const resultado = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes, 50, user.id);
+    const resultado = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes, 50, user.id, preferencias);
 
     // Banco com poucas receitas → gerar via Haiku em background
     let previewsWeb: Array<{ titulo: string; url: string; site: string }> = [];
@@ -611,5 +613,23 @@ export class ReceitasUsuarioController {
       { conflictPaths: ['usuario_id', 'tipo', 'valor'] },
     );
     return { ok: true };
+  }
+
+  /**
+   * Converte as preferências aprendidas em Maps (valor → score) de favoritos e
+   * aversões, para o ranking de receitas respeitar o perfil do usuário.
+   */
+  private mapearPreferencias(prefs: PreferenciaAprendida[]): {
+    favoritos: Map<string, number>;
+    aversoes: Map<string, number>;
+  } {
+    return {
+      favoritos: new Map(
+        prefs.filter((p) => p.tipo === TipoPreferencia.INGREDIENTE_FAVORITO).map((p) => [p.valor, p.score]),
+      ),
+      aversoes: new Map(
+        prefs.filter((p) => p.tipo === TipoPreferencia.INGREDIENTE_AVERSAO).map((p) => [p.valor, p.score]),
+      ),
+    };
   }
 }
