@@ -47,6 +47,25 @@ export interface SuggestionResult {
   };
 }
 
+/**
+ * Maior score entre as chaves de uma receita que casam com um mapa de preferências
+ * (valor canônico → score). Match por inclusão mútua, como o matching de ingredientes.
+ * Retorna 0 se nenhuma chave casar.
+ */
+export function maiorScore(chaves: string[], prefs: Map<string, number>): number {
+  if (prefs.size === 0) return 0;
+  let melhor = 0;
+  for (const chaveBruta of chaves) {
+    const chave = chaveBruta.toLowerCase().trim();
+    for (const [valor, score] of prefs) {
+      if ((chave.includes(valor) || valor.includes(chave)) && score > melhor) {
+        melhor = score;
+      }
+    }
+  }
+  return melhor;
+}
+
 @Injectable()
 export class RecipeSuggestionService {
   private readonly logger = new Logger(RecipeSuggestionService.name);
@@ -250,13 +269,14 @@ export class RecipeSuggestionService {
         .map(i => i.produto_id),
     );
 
-    // 2. Preferências aprendidas
+    // 2. Preferências aprendidas — valores são ingredientes canônicos (mesma base
+    //    de `ingredientes_chave`); Map guarda o score para ponderar a intensidade.
     const prefs = await this.prefAprendidaRepository.find({ where: { usuario_id: usuarioId } });
-    const favoritos = new Set(
-      prefs.filter(p => p.tipo === TipoPreferencia.INGREDIENTE_FAVORITO).map(p => p.valor),
+    const favoritos = new Map(
+      prefs.filter(p => p.tipo === TipoPreferencia.INGREDIENTE_FAVORITO).map(p => [p.valor, p.score]),
     );
-    const aversoes = new Set(
-      prefs.filter(p => p.tipo === TipoPreferencia.INGREDIENTE_AVERSAO).map(p => p.valor),
+    const aversoes = new Map(
+      prefs.filter(p => p.tipo === TipoPreferencia.INGREDIENTE_AVERSAO).map(p => [p.valor, p.score]),
     );
 
     // 3. Receitas feitas nos últimos 7 dias
@@ -286,27 +306,29 @@ export class RecipeSuggestionService {
 
       let cobertos = 0;
       let temVencendo = false;
-      let temFavorito = false;
-      let temAversao = false;
 
       for (const ing of ingredientes) {
         const produtoId = ing.produto_id;
-        const nome = ing.produto?.nome?.toLowerCase().trim() ?? '';
-
         if (idsDisponiveis.has(produtoId)) cobertos++;
         if (idsVencendo.has(produtoId)) temVencendo = true;
-        if (favoritos.has(nome)) temFavorito = true;
-        if (aversoes.has(nome)) temAversao = true;
       }
+
+      // Favorito/aversão casam pela chave canônica da receita (ingredientes_chave),
+      // não por produto.nome — assim funciona também para os ~39% de receitas sem
+      // receita_ingredientes populado, e usa a fonte limpa do aprendizado.
+      const chaves = receita.ingredientes_chave || [];
+      const scoreFavorito = maiorScore(chaves, favoritos);
+      const scoreAversao = maiorScore(chaves, aversoes);
 
       const cobertura = cobertos / total;
 
       let score = cobertura * 0.5;
-      if (temFavorito) score += 0.3;
+      // Boost/penalidade proporcionais ao score da preferência (favorito forte pesa mais)
+      if (scoreFavorito > 0) score += 0.3 * scoreFavorito;
       // Usar o que está vencendo importa mais que preferência num horizonte
       // de 3 dias — é o loop anti-desperdício (Fase 7.3 do plano)
       if (temVencendo) score += 0.25;
-      if (temAversao) score -= 0.4;
+      if (scoreAversao > 0) score -= 0.4 * scoreAversao;
       if (idsRecentes.has(receita.id)) score -= 0.6;
 
       return { receita, score, cobertura: Math.round(cobertura * 100) };
