@@ -527,7 +527,16 @@ export default function HomeScreen() {
   const maisFeita: ReceitaSimples | null = maisfeitaData?.id ? maisfeitaData : null;
   const escolhidos: ReceitaSimples[] = paraMimData ?? [];
   const desafios: ReceitaDesafio[] = desafiosData ?? [];
-  const recentes: ReceitaSimples[] = recentesData ?? [];
+  // Dedup também aqui (não só no queryFn) — cache persistido pode conter a lista
+  // antiga com ids repetidos; garante keys únicas no render independente da fonte.
+  const recentes: ReceitaSimples[] = (() => {
+    const vistos = new Set<string>();
+    return (recentesData ?? []).filter((r) => {
+      if (!r?.id || vistos.has(r.id)) return false;
+      vistos.add(r.id);
+      return true;
+    });
+  })();
   const sextou: ReceitaSimples[] = sextouData ?? [];
 
   const receitaDoDia = useMemo(() => planejamentoHoje?.receita ?? null, [planejamentoHoje]);
