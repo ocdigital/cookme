@@ -223,6 +223,7 @@ export default function DespensaScreen() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [editando, setEditando] = useState<Produto | null>(null);
+  const [menuItem, setMenuItem] = useState<Produto | null>(null);
   const [importando, setImportando] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult>(null);
   const [editandoNome, setEditandoNome] = useState<Produto | null>(null);
@@ -543,7 +544,12 @@ export default function DespensaScreen() {
               C.ink[150];
 
             return (
-              <View style={[styles.card, item.esgotado && styles.cardEsgotado, { borderColor: cardBorder }]}>
+              <TouchableOpacity
+                style={[styles.card, item.esgotado && styles.cardEsgotado, { borderColor: cardBorder }]}
+                activeOpacity={0.85}
+                onLongPress={() => { Vibration.vibrate(30); setMenuItem(item); }}
+                delayLongPress={280}
+              >
                 <View style={[styles.cardIcon, {
                   backgroundColor: item.esgotado ? C.ink[100] :
                     status === 'vencido' || status === 'urgente' ? C.red[50] :
@@ -588,30 +594,15 @@ export default function DespensaScreen() {
                 </View>
 
                 <View style={styles.cardRight}>
-                  {item.ingrediente_receita !== false && (
-                    <TouchableOpacity
-                      style={[styles.btnAcabou, item.esgotado && styles.btnAcabouAtivo]}
-                      onPress={() => marcarEsgotado(item.id, !item.esgotado)}
-                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                    >
-                      <MaterialCommunityIcons
-                        name={item.esgotado ? 'refresh' : 'close-circle-outline'}
-                        size={13}
-                        color={item.esgotado ? C.green[600] : C.red[500]}
-                      />
-                      <Text style={[styles.btnAcabouText, item.esgotado && { color: C.green[600] }]}>
-                        {item.esgotado ? 'Tem ainda' : 'Acabou'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity onPress={() => abrirEditNome(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <MaterialCommunityIcons name="pencil-outline" size={16} color={C.ink[300]} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => removerProduto(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <MaterialCommunityIcons name="trash-can-outline" size={18} color={C.ink[300]} />
+                  <TouchableOpacity
+                    onPress={() => { Vibration.vibrate(30); setMenuItem(item); }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.cardMenuBtn}
+                  >
+                    <MaterialCommunityIcons name="dots-vertical" size={22} color={C.ink[400]} />
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           }}
         />
@@ -751,6 +742,60 @@ export default function DespensaScreen() {
         onClose={() => setEditando(null)}
         onSave={salvarValidade}
       />
+
+      {/* Menu de ações do item (long-press) */}
+      <Modal visible={menuItem !== null} transparent animationType="slide" onRequestClose={() => setMenuItem(null)}>
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setMenuItem(null)}>
+          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle} numberOfLines={1}>{menuItem?.nome}</Text>
+
+            <TouchableOpacity
+              style={styles.sheetAcao}
+              onPress={() => { const it = menuItem; setMenuItem(null); if (it) abrirEditNome(it); }}
+            >
+              <MaterialCommunityIcons name="pencil-outline" size={20} color={C.ink[700]} />
+              <Text style={styles.sheetAcaoTxt}>Editar nome</Text>
+            </TouchableOpacity>
+
+            {!menuItem?.esgotado && (
+              <TouchableOpacity
+                style={styles.sheetAcao}
+                onPress={() => { const it = menuItem; setMenuItem(null); if (it) setEditando(it); }}
+              >
+                <MaterialCommunityIcons name="calendar-edit" size={20} color={C.ink[700]} />
+                <Text style={styles.sheetAcaoTxt}>Editar validade</Text>
+              </TouchableOpacity>
+            )}
+
+            {menuItem?.ingrediente_receita !== false && (
+              <TouchableOpacity
+                style={styles.sheetAcao}
+                onPress={() => { const it = menuItem; setMenuItem(null); if (it) marcarEsgotado(it.id, !it.esgotado); }}
+              >
+                <MaterialCommunityIcons
+                  name={menuItem?.esgotado ? 'refresh' : 'close-circle-outline'}
+                  size={20}
+                  color={menuItem?.esgotado ? C.green[600] : C.red[500]}
+                />
+                <Text style={styles.sheetAcaoTxt}>{menuItem?.esgotado ? 'Marcar que tem ainda' : 'Marcar que acabou'}</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.sheetAcao}
+              onPress={() => { const it = menuItem; setMenuItem(null); if (it) removerProduto(it.id); }}
+            >
+              <MaterialCommunityIcons name="trash-can-outline" size={20} color={C.red[500]} />
+              <Text style={[styles.sheetAcaoTxt, { color: C.red[500] }]}>Excluir da despensa</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.sheetCancelar} onPress={() => setMenuItem(null)}>
+              <Text style={styles.sheetCancelarTxt}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Modal editar nome do ingrediente */}
       <Modal visible={editandoNome !== null} transparent animationType="fade" onRequestClose={() => setEditandoNome(null)}>
@@ -932,14 +977,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: C.red[100],
   },
   tagEsgotadoText: { ...T.micro, color: C.red[600], fontWeight: '700' },
-  btnAcabou: {
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    borderWidth: 1, borderColor: C.red[200], borderRadius: radius.pill,
-    paddingHorizontal: 8, paddingVertical: 4, backgroundColor: C.red[50],
+  cardRight: { alignItems: 'flex-end', justifyContent: 'center' },
+  cardMenuBtn: { padding: 4 },
+
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: C.ink[0],
+    borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl,
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24,
   },
-  btnAcabouAtivo: { borderColor: C.green[200], backgroundColor: C.green[50] },
-  btnAcabouText: { ...T.micro, color: C.red[500], fontWeight: '700' },
-  cardRight: { alignItems: 'flex-end', gap: 6 },
+  sheetHandle: {
+    width: 40, height: 4, borderRadius: 2, backgroundColor: C.ink[200],
+    alignSelf: 'center', marginBottom: 12,
+  },
+  sheetTitle: { ...T.h3, color: C.ink[900], marginBottom: 8, paddingHorizontal: 4 },
+  sheetAcao: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingVertical: 14, paddingHorizontal: 4,
+  },
+  sheetAcaoTxt: { ...T.body, color: C.ink[800] },
+  sheetCancelar: {
+    marginTop: 8, paddingVertical: 14, borderRadius: radius.md,
+    backgroundColor: C.ink[50], alignItems: 'center',
+  },
+  sheetCancelarTxt: { ...T.body, color: C.ink[600], fontWeight: '700' },
+
   vencBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: radius.pill, borderWidth: 1,
