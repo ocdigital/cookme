@@ -491,7 +491,19 @@ export default function HomeScreen() {
     queryKey: queryKeys.receitasExecutadasRecentes(),
     queryFn: () => api.get('/receitas/executadas').then(r => {
       const lista: any[] = r.data?.receitas || r.data || [];
-      return lista.slice(0, 6).map((e: any) => e.receita || e) as ReceitaSimples[];
+      // /executadas retorna 1 linha por execução — a mesma receita feita N vezes
+      // aparece N vezes. Deduplica por id (mantém a 1ª/mais recente) para não
+      // gerar keys repetidas no render.
+      const vistos = new Set<string>();
+      const unicas: ReceitaSimples[] = [];
+      for (const e of lista) {
+        const receita = e.receita || e;
+        if (!receita?.id || vistos.has(receita.id)) continue;
+        vistos.add(receita.id);
+        unicas.push(receita);
+        if (unicas.length >= 6) break;
+      }
+      return unicas;
     }),
     staleTime: STALE_TIMES.historico,
     gcTime: GC_TIMES.historico,
