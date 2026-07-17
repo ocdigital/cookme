@@ -31,6 +31,36 @@ const api: AxiosInstance = axios.create({
   },
 });
 
+// Single-flight do refresh: quando várias requisições recebem 401 ao mesmo tempo
+// (ex: detalhe da receita + minha-avaliacao + comentarios + favoritado disparados
+// juntos), apenas UMA renova o token. As demais aguardam o mesmo resultado.
+// Sem isso, o backend rotaciona o refresh_token na 1ª renovação e as concorrentes
+// falham com 401 → sessão cai indevidamente ("Não foi possível carregar a receita").
+let refreshPromise: Promise<string | null> | null = null;
+
+async function renovarAccessToken(): Promise<string | null> {
+  const refreshToken = await SecureStore.getItemAsync('refreshToken');
+  if (!refreshToken) return null;
+  try {
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+      refresh_token: refreshToken,
+    });
+    const newAccessToken = response.data.access_token || response.data.accessToken;
+    const newRefreshToken = response.data.refresh_token || response.data.refreshToken;
+    if (!newAccessToken) return null;
+    await SecureStore.setItemAsync('accessToken', newAccessToken);
+    if (newRefreshToken) {
+      await SecureStore.setItemAsync('refreshToken', newRefreshToken);
+    }
+    api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
+    return newAccessToken;
+  } catch {
+    await SecureStore.deleteItemAsync('accessToken');
+    await SecureStore.deleteItemAsync('refreshToken');
+    return null;
+  }
+}
+
 // Request interceptor
 api.interceptors.request.use(
   async (config) => {
@@ -94,34 +124,22 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      try {
-        const refreshToken = await SecureStore.getItemAsync('refreshToken');
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refresh_token: refreshToken, // Backend espera refresh_token
-          });
-
-          // Backend retorna AuthResponseDto diretamente
-          const newAccessToken = response.data.access_token || response.data.accessToken;
-          const newRefreshToken = response.data.refresh_token || response.data.refreshToken;
-          if (newAccessToken) {
-            await SecureStore.setItemAsync('accessToken', newAccessToken);
-            if (newRefreshToken) {
-              await SecureStore.setItemAsync('refreshToken', newRefreshToken);
-            }
-
-            api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-            (originalRequest as any).headers.Authorization = `Bearer ${newAccessToken}`;
-            return api(originalRequest);
-          }
-        }
-      } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
-        await SecureStore.deleteItemAsync('accessToken');
-        await SecureStore.deleteItemAsync('refreshToken');
-        apiEvents.emit('session-expired');
-        return Promise.reject(new Error('Session expired. Please login again.'));
+      // Reaproveita um refresh já em andamento (single-flight) — evita a corrida
+      // que invalidava o refresh_token para as requisições concorrentes.
+      if (!refreshPromise) {
+        refreshPromise = renovarAccessToken().finally(() => {
+          refreshPromise = null;
+        });
       }
+
+      const newAccessToken = await refreshPromise;
+      if (newAccessToken) {
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
+      }
+
+      apiEvents.emit('session-expired');
+      return Promise.reject(new Error('Session expired. Please login again.'));
     }
 
     return Promise.reject(error);
