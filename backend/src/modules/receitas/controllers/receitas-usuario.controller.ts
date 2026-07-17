@@ -454,6 +454,15 @@ export class ReceitasUsuarioController {
     };
   }
 
+  // IMPORTANTE: rotas estáticas (perfil-aprendizado) precisam vir ANTES de
+  // @Get(':id') — senão o Nest casa a rota literal com o parâmetro :id e trata
+  // "perfil-aprendizado" como um receitaId (→ 500 / receita não encontrada).
+  @Get('perfil-aprendizado')
+  @ApiOperation({ summary: 'Retorna o progresso de aprendizado do CookMe sobre o usuário' })
+  async perfilAprendizado(@CurrentUser() user: Usuario) {
+    return this.aprendizadoService.perfilAprendizado(user.id);
+  }
+
   /**
    * Busca uma receita por ID com cobertura calculada para o inventário do usuário.
    */
@@ -551,12 +560,6 @@ export class ReceitasUsuarioController {
       ingredientes_receita: receita.ingredientes_chave || [],
       mensagem: 'Receita registrada! Algum ingrediente acabou?',
     };
-  }
-
-  @Get('perfil-aprendizado')
-  @ApiOperation({ summary: 'Retorna o progresso de aprendizado do CookMe sobre o usuário' })
-  async perfilAprendizado(@CurrentUser() user: Usuario) {
-    return this.aprendizadoService.perfilAprendizado(user.id);
   }
 
   // ── Busca web personalizada ───────────────────────────────────────────────
