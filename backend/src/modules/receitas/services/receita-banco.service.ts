@@ -167,6 +167,74 @@ export class ReceitaBancoService {
   }
 
   /**
+   * Cobertura ponderada de UMA receita contra um inventário já normalizado.
+   * Fonte única usada tanto pela listagem quanto pelo detalhe da receita — assim
+   * o detalhe nunca fica com cobertura 0 só por a receita ter sido cortada da lista.
+   */
+  calcularCoberturaReceita(
+    receita: Receita,
+    normalizados: string[],
+  ): { cobertura: number; disponivel: boolean; temProtagonista: boolean; faltando: string[]; protagonistaNomeFaltando: boolean } {
+    // Ingredientes "a gosto" (sal, pimenta) não bloqueiam uma receita
+    const riList = receita.ingredientes || [];
+    const riPorChave = new Map<string, boolean>();
+    for (const ri of riList) {
+      const p = ri.produto as any;
+      const chave = this.normalizar(p?.nome_display || p?.nome || '');
+      if (chave) riPorChave.set(chave, ri.a_gosto || p?.sempre_a_gosto || p?.opcional_por_natureza || false);
+    }
+
+    // Protagonistas do nome que não estão nas chaves (ex: "Molho branco com azeite")
+    const nomeNormalizado = this.normalizar(receita.nome);
+    const protagonistasDoNome = [...PROTAGONISTAS].filter(
+      (prot) =>
+        nomeNormalizado.includes(prot) &&
+        !(receita.ingredientes_chave || []).some((c) => c.includes(prot) || prot.includes(c)),
+    );
+    const chaves = [...(receita.ingredientes_chave || []), ...protagonistasDoNome];
+    if (chaves.length === 0) {
+      return { cobertura: 0, disponivel: false, temProtagonista: false, faltando: [], protagonistaNomeFaltando: false };
+    }
+
+    const chavesBloqueadoras = chaves.filter((c) => {
+      const aGosto = riPorChave.get(c);
+      if (aGosto !== undefined) return !aGosto;
+      return true;
+    });
+    const chavesParaCalculo = chavesBloqueadoras.length > 0 ? chavesBloqueadoras : chaves;
+
+    let pesoTotal = 0;
+    let pesoEncontrado = 0;
+    let temProtagonista = false;
+    const faltando: string[] = [];
+
+    for (let idx = 0; idx < chavesParaCalculo.length; idx++) {
+      const chave = chavesParaCalculo[idx];
+      let peso = this.pesoIngrediente(chave, receita.nome);
+      if (idx === 0 && !AUXILIARES.has(chave) && peso < 3) peso = 3;
+      else if (idx === 1 && !AUXILIARES.has(chave) && peso < 2) peso = 2;
+
+      pesoTotal += peso;
+      const presente = normalizados.some((n) => n.includes(chave) || chave.includes(n)) ||
+        [...PROTAGONISTAS].some((prot) => chave.includes(prot) && normalizados.some((n) => n.includes(prot)));
+      if (presente) {
+        pesoEncontrado += peso;
+        if (peso >= 3) temProtagonista = true;
+      } else {
+        faltando.push(chave);
+      }
+    }
+
+    const cobertura = pesoTotal > 0 ? pesoEncontrado / pesoTotal : 0;
+    const nomeNorm = this.normalizar(receita.nome);
+    const protagonistaNomeFaltando = [...PROTAGONISTAS].some(
+      (prot) => nomeNorm.includes(prot) && faltando.some((f) => f.includes(prot) || prot.includes(f)),
+    );
+
+    return { cobertura, disponivel: faltando.length === 0, temProtagonista, faltando, protagonistaNomeFaltando };
+  }
+
+  /**
    * Busca receitas no banco que podem ser feitas com os ingredientes disponíveis.
    * Uma receita é retornada se pelo menos `percentualMinimo`% dos seus ingredientes
    * estão na lista do usuário.
@@ -291,75 +359,13 @@ export class ReceitaBancoService {
     const resultado: ItemResultado[] = receitas
       .map((receita): ItemResultado | null => {
         const importada = idsImportadas.has(receita.id);
-        // Ingredientes "a gosto" (sal, pimenta) não bloqueiam uma receita
-        const riList = receita.ingredientes || [];
-        const riPorChave = new Map<string, boolean>(); // chave → a_gosto
-        for (const ri of riList) {
-          const p = ri.produto as any;
-          const chave = this.normalizar(p?.nome_display || p?.nome || '');
-          if (chave) riPorChave.set(chave, ri.a_gosto || p?.sempre_a_gosto || p?.opcional_por_natureza || false);
+        const { cobertura, disponivel, temProtagonista, faltando, protagonistaNomeFaltando } =
+          this.calcularCoberturaReceita(receita, normalizados);
+        if ((receita.ingredientes_chave || []).length === 0 && faltando.length === 0 && cobertura === 0) {
+          // receita sem chaves — não entra na listagem
+          return null;
         }
 
-        // Extrair protagonistas do nome da receita que não estejam nas chaves
-        // Ex: "Molho branco com azeite de oliva" → adiciona 'azeite' se ausente
-        const nomeNormalizado = this.normalizar(receita.nome);
-        const protagonistasDoNome = [...PROTAGONISTAS].filter(
-          (prot) =>
-            nomeNormalizado.includes(prot) &&
-            !(receita.ingredientes_chave || []).some((c) => c.includes(prot) || prot.includes(c)),
-        );
-        const chaves = [...(receita.ingredientes_chave || []), ...protagonistasDoNome];
-        if (chaves.length === 0) return null;
-
-        const chavesBloqueadoras = chaves.filter((c) => {
-          const aGosto = riPorChave.get(c);
-          if (aGosto !== undefined) return !aGosto;
-          return true;
-        });
-
-        const chavesParaCalculo = chavesBloqueadoras.length > 0 ? chavesBloqueadoras : chaves;
-
-        // Weighted coverage: protagonistas valem 3×, auxiliares 0.3×
-        // Dica culinária: ingredientes_chave[0] é SEMPRE o ingrediente principal da receita
-        // Usamos posição como sinal adicional — posição 0 é protagonista por definição
-        let pesoTotal = 0;
-        let pesoEncontrado = 0;
-        let temProtagonista = false;
-        const faltando: string[] = [];
-
-        for (let idx = 0; idx < chavesParaCalculo.length; idx++) {
-          const chave = chavesParaCalculo[idx];
-          let peso = this.pesoIngrediente(chave, receita.nome);
-
-          // Primeiros ingredientes = protagonistas por posição
-          // (caso não estejam na lista PROTAGONISTAS hardcoded, ex: "massa", "macarrão artesanal")
-          if (idx === 0 && !AUXILIARES.has(chave) && peso < 3) {
-            peso = 3; // primeira posição = protagonista da receita
-          } else if (idx === 1 && !AUXILIARES.has(chave) && peso < 2) {
-            peso = 2; // segunda posição = ingrediente importante
-          }
-
-          pesoTotal += peso;
-          // Match direto OU via protagonista compartilhado
-          // Ex: chave="coxas de frango", inv="frango coxinha da asa" → ambos contêm "frango" → match
-          const presente = normalizados.some((n) => n.includes(chave) || chave.includes(n)) ||
-            [...PROTAGONISTAS].some((prot) => chave.includes(prot) && normalizados.some((n) => n.includes(prot)));
-          if (presente) {
-            pesoEncontrado += peso;
-            // Marca se algum protagonista está presente
-            if (peso >= 3) temProtagonista = true;
-          } else {
-            faltando.push(chave);
-          }
-        }
-
-        const cobertura = pesoTotal > 0 ? pesoEncontrado / pesoTotal : 0;
-
-        // Se alguma palavra do nome da receita é protagonista e está faltando → bloquear
-        const nomeNorm = this.normalizar(receita.nome);
-        const protagonistaNomeFaltando = [...PROTAGONISTAS].some(
-          (prot) => nomeNorm.includes(prot) && faltando.some((f) => f.includes(prot) || prot.includes(f)),
-        );
         // Importadas nunca são cortadas (o usuário salvou, quer vê-las) — mas
         // com cobertura e `faltando` REAIS, então disponivel só fica true se
         // o inventário realmente bate.
@@ -373,10 +379,11 @@ export class ReceitaBancoService {
 
         // Afinidade com o perfil aprendido: +score por ingrediente favorito,
         // −score por aversão (via ingredientes_chave, mesma base do matching).
+        const chaves = receita.ingredientes_chave || [];
         const afinidade =
           this.maiorAfinidade(chaves, favoritos) - this.maiorAfinidade(chaves, aversoes);
 
-        return { receita, cobertura, disponivel: faltando.length === 0, temProtagonista, faltando, afinidade };
+        return { receita, cobertura, disponivel, temProtagonista, faltando, afinidade };
       })
       .filter((r): r is ItemResultado => r !== null)
       // Ordena: disponíveis > protagonista presente > (cobertura + afinidade do perfil).
