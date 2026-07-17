@@ -148,6 +148,25 @@ export class ReceitaBancoService {
   }
 
   /**
+   * Maior score entre as chaves de uma receita que casam com um mapa de
+   * preferências (valor canônico → score). Match por inclusão mútua, igual ao
+   * matching de ingredientes. Retorna 0 se nada casar ou se o mapa está vazio.
+   */
+  private maiorAfinidade(chaves: string[], prefs: Map<string, number>): number {
+    if (prefs.size === 0) return 0;
+    let melhor = 0;
+    for (const chaveBruta of chaves) {
+      const chave = this.normalizar(chaveBruta);
+      for (const [valor, score] of prefs) {
+        if ((chave.includes(valor) || valor.includes(chave)) && score > melhor) {
+          melhor = score;
+        }
+      }
+    }
+    return melhor;
+  }
+
+  /**
    * Busca receitas no banco que podem ser feitas com os ingredientes disponíveis.
    * Uma receita é retornada se pelo menos `percentualMinimo`% dos seus ingredientes
    * estão na lista do usuário.
@@ -220,6 +239,7 @@ export class ReceitaBancoService {
     ingredientes: string[],
     limite = 50,
     usuarioId?: string,
+    preferencias?: { favoritos: Map<string, number>; aversoes: Map<string, number> },
   ): Promise<Array<{
     receita: Receita;
     cobertura: number;
@@ -228,6 +248,8 @@ export class ReceitaBancoService {
     faltando: string[];
   }>> {
     const normalizados = this.normalizarLista(ingredientes);
+    const favoritos = preferencias?.favoritos ?? new Map<string, number>();
+    const aversoes = preferencias?.aversoes ?? new Map<string, number>();
 
     // Receitas do banco público (sem url_fonte, sem autor)
     const receitasPublicas = await this.receitaRepo
@@ -264,7 +286,7 @@ export class ReceitaBancoService {
     const idsImportadas = new Set(receitasUsuario.map((r) => r.id));
     const receitas = [...receitasPublicas, ...receitasUsuario];
 
-    type ItemResultado = { receita: Receita; cobertura: number; disponivel: boolean; temProtagonista: boolean; faltando: string[] };
+    type ItemResultado = { receita: Receita; cobertura: number; disponivel: boolean; temProtagonista: boolean; faltando: string[]; afinidade: number };
 
     const resultado: ItemResultado[] = receitas
       .map((receita): ItemResultado | null => {
@@ -349,14 +371,21 @@ export class ReceitaBancoService {
           if (cobertura < limiteMinimo) return null;
         }
 
-        return { receita, cobertura, disponivel: faltando.length === 0, temProtagonista, faltando };
+        // Afinidade com o perfil aprendido: +score por ingrediente favorito,
+        // −score por aversão (via ingredientes_chave, mesma base do matching).
+        const afinidade =
+          this.maiorAfinidade(chaves, favoritos) - this.maiorAfinidade(chaves, aversoes);
+
+        return { receita, cobertura, disponivel: faltando.length === 0, temProtagonista, faltando, afinidade };
       })
       .filter((r): r is ItemResultado => r !== null)
-      // Ordena: disponíveis > protagonista presente > maior cobertura
+      // Ordena: disponíveis > protagonista presente > (cobertura + afinidade do perfil).
+      // A afinidade entra como desempate ponderado APÓS os critérios fortes — nunca
+      // coloca uma receita indisponível acima de uma disponível.
       .sort((a, b) => {
         if (a.disponivel !== b.disponivel) return a.disponivel ? -1 : 1;
         if (a.temProtagonista !== b.temProtagonista) return a.temProtagonista ? -1 : 1;
-        return b.cobertura - a.cobertura;
+        return (b.cobertura + 0.15 * b.afinidade) - (a.cobertura + 0.15 * a.afinidade);
       })
       .slice(0, limite);
 
