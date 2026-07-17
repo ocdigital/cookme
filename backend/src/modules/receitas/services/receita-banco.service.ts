@@ -39,7 +39,9 @@ const PROTAGONISTAS = new Set([
 ]);
 
 // Generic support ingredients — low weight (everyone has them or can easily get)
-const AUXILIARES = new Set([
+// Exportado para reuso: o aprendizado de perfil ignora auxiliares (não faz sentido
+// "aprender" que o usuário gosta de sal/água/óleo).
+export const AUXILIARES = new Set([
   // Essenciais de tempero
   'sal', 'agua', 'pimenta', 'pimenta do reino', 'pimenta calabresa', 'pimenta vermelha',
   'tempero', 'tempero pronto', 'sazon', 'knorr', 'maggi', 'caldo', 'caldo de galinha',
