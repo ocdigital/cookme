@@ -70,6 +70,25 @@ const CONTEXTO_SENSIVEL: Record<string, string[]> = {
   'oleo': ['bolo', 'fritura', 'frito'],
 };
 
+// Categorias culinárias (estilo TudoGostoso) derivadas por protagonista.
+// `porNome` casa no nome da receita; `porChave` casa nos ingredientes_chave.
+// A ordem do array é a precedência: proteína animal antes de massa antes de doce/salada.
+export const CATEGORIAS_CULINARIAS: {
+  id: string;
+  label: string;
+  icon: string;
+  porChave?: string[];
+  porNome?: string[];
+}[] = [
+  { id: 'aves', label: 'Aves', icon: 'food-drumstick', porChave: ['frango', 'galinha', 'peru', 'chester', 'ave'] },
+  { id: 'carnes', label: 'Carnes', icon: 'food-steak', porChave: ['carne', 'acem', 'bisteca', 'costela', 'patinho', 'picanha', 'bovino', 'porco', 'suina', 'linguica', 'bacon', 'alcatra', 'maminha', 'coxao', 'file'] },
+  { id: 'peixes', label: 'Peixes e frutos do mar', icon: 'fish', porChave: ['peixe', 'camarao', 'atum', 'salmao', 'tilapia', 'sardinha', 'lula', 'polvo', 'bacalhau', 'marisco'] },
+  { id: 'massas', label: 'Massas', icon: 'pasta', porChave: ['macarrao', 'espaguete', 'massa', 'lasanha', 'nhoque', 'penne', 'talharim', 'ravioli'] },
+  { id: 'bolos-tortas', label: 'Bolos e tortas', icon: 'cake-variant', porNome: ['bolo', 'torta', 'pudim', 'mousse', 'brigadeiro', 'cupcake', 'pave'] },
+  { id: 'sobremesas', label: 'Sobremesas', icon: 'ice-cream', porNome: ['doce', 'sobremesa', 'creme', 'gelatina', 'sorvete', 'brigadeiro', 'beijinho', 'canjica', 'arroz doce'] },
+  { id: 'saladas', label: 'Saladas', icon: 'bowl-mix', porNome: ['salada'] },
+];
+
 @Injectable()
 export class ReceitaBancoService {
   private readonly logger = new Logger('ReceitaBancoService');
@@ -232,6 +251,83 @@ export class ReceitaBancoService {
     );
 
     return { cobertura, disponivel: faltando.length === 0, temProtagonista, faltando, protagonistaNomeFaltando };
+  }
+
+  /**
+   * Classifica uma receita numa categoria culinária (aves, carnes, bolos…) por
+   * protagonista. Retorna o id da primeira categoria que casar (a ordem de
+   * CATEGORIAS_CULINARIAS é a precedência), ou null se nenhuma casar.
+   */
+  classificarCategoria(receita: Pick<Receita, 'nome' | 'ingredientes_chave'>): string | null {
+    const nome = this.normalizar(receita.nome || '');
+    const chaves = (receita.ingredientes_chave || []).map((c) => this.normalizar(c));
+    for (const cat of CATEGORIAS_CULINARIAS) {
+      const casaNome = (cat.porNome || []).some((t) => nome.includes(t));
+      const casaChave = (cat.porChave || []).some(
+        (t) => chaves.some((c) => c.includes(t)) || nome.includes(t),
+      );
+      if (casaNome || casaChave) return cat.id;
+    }
+    return null;
+  }
+
+  /** Receitas públicas `ok` (banco compartilhado — sem autor, sem url_fonte). */
+  private async receitasPublicasOk(): Promise<Receita[]> {
+    return this.receitaRepo
+      .createQueryBuilder('r')
+      .where("r.status_moderacao = 'ok'")
+      .andWhere('r.autor_id IS NULL')
+      .andWhere('r.url_fonte IS NULL')
+      .getMany();
+  }
+
+  /**
+   * Lista as categorias culinárias com contagem e uma imagem representativa,
+   * ocultando as vazias. Usado pelo grid da tela Categorias.
+   */
+  async listarCategorias(): Promise<
+    { id: string; label: string; icon: string; total: number; imagem_url: string | null }[]
+  > {
+    const receitas = await this.receitasPublicasOk();
+    const acc = new Map<string, { total: number; imagem: string | null }>();
+    for (const r of receitas) {
+      const cat = this.classificarCategoria(r);
+      if (!cat) continue;
+      const cur = acc.get(cat) ?? { total: 0, imagem: null };
+      cur.total++;
+      if (!cur.imagem && r.imagem_url) cur.imagem = r.imagem_url;
+      acc.set(cat, cur);
+    }
+    return CATEGORIAS_CULINARIAS.filter((c) => acc.has(c.id)).map((c) => ({
+      id: c.id,
+      label: c.label,
+      icon: c.icon,
+      total: acc.get(c.id)!.total,
+      imagem_url: acc.get(c.id)!.imagem,
+    }));
+  }
+
+  /** Receitas de uma categoria, no formato de card (entidadeParaFormato). */
+  async receitasPorCategoria(categoriaId: string): Promise<any[]> {
+    const receitas = await this.receitasPublicasOk();
+    return receitas
+      .filter((r) => this.classificarCategoria(r) === categoriaId)
+      .map((r) => ({ ...this.entidadeParaFormato(r), id: r.id, avaliacao_media: r.avaliacao_media, vezes_executada: r.vezes_executada }));
+  }
+
+  /** Busca textual nas receitas públicas `ok` (nome ou ingrediente), formato de card. */
+  async buscarPorTexto(termo: string, limite = 30): Promise<any[]> {
+    const q = this.normalizar(termo);
+    if (q.length < 2) return [];
+    const receitas = await this.receitasPublicasOk();
+    return receitas
+      .filter((r) => {
+        const nome = this.normalizar(r.nome || '');
+        if (nome.includes(q)) return true;
+        return (r.ingredientes_chave || []).some((c) => this.normalizar(c).includes(q));
+      })
+      .slice(0, limite)
+      .map((r) => ({ ...this.entidadeParaFormato(r), id: r.id, avaliacao_media: r.avaliacao_media, vezes_executada: r.vezes_executada }));
   }
 
   /**

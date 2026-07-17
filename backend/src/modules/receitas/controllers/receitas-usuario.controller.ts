@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards, ForbiddenException, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Query, Body, UseGuards, ForbiddenException, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { Receita } from '../entities/receita.entity';
 import { ReceitaFavorita } from '../entities/receita-favorita.entity';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { CurrentUser } from '@common/decorators/current-user.decorator';
 import { Usuario } from '@modules/usuarios/entities/usuario.entity';
@@ -467,6 +467,26 @@ export class ReceitasUsuarioController {
   @ApiOperation({ summary: 'Retorna o progresso de aprendizado do CookMe sobre o usuário' })
   async perfilAprendizado(@CurrentUser() user: Usuario) {
     return this.aprendizadoService.perfilAprendizado(user.id);
+  }
+
+  // ── Categorias e busca (rotas estáticas ANTES de :id) ─────────────────────
+  @Get('categorias')
+  @ApiOperation({ summary: 'Lista as categorias culinárias com contagem e imagem' })
+  async listarCategorias() {
+    return this.receitaBancoService.listarCategorias();
+  }
+
+  @Get('categoria/:id')
+  @ApiOperation({ summary: 'Lista receitas de uma categoria culinária' })
+  async receitasPorCategoria(@Param('id') id: string) {
+    return this.receitaBancoService.receitasPorCategoria(id);
+  }
+
+  @Get('buscar')
+  @ApiOperation({ summary: 'Busca textual de receitas por nome ou ingrediente' })
+  @ApiQuery({ name: 'q', required: true })
+  async buscar(@Query('q') q: string) {
+    return this.receitaBancoService.buscarPorTexto(q || '');
   }
 
   /**
