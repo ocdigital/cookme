@@ -7,6 +7,10 @@ export interface PerfilAprendizado {
   ritmo_de_cozinha: number;
   categorias_preferidas: number;
   total_avaliacoes: number;
+  // Listas acionáveis (o que o app aprendeu) — top por score
+  favoritos: string[];
+  aversoes: string[];
+  categorias_favoritas: string[];
 }
 
 const VAZIO: PerfilAprendizado = {
@@ -15,6 +19,9 @@ const VAZIO: PerfilAprendizado = {
   ritmo_de_cozinha: 0,
   categorias_preferidas: 0,
   total_avaliacoes: 0,
+  favoritos: [],
+  aversoes: [],
+  categorias_favoritas: [],
 };
 
 export function useCookMeAprendizado() {
@@ -23,7 +30,7 @@ export function useCookMeAprendizado() {
 
   useEffect(() => {
     api.get('/receitas/perfil-aprendizado')
-      .then(r => setPerfil(r.data))
+      .then(r => setPerfil({ ...VAZIO, ...r.data }))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

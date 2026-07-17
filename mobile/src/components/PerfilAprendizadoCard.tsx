@@ -62,7 +62,7 @@ export function PerfilAprendizadoCard({ perfil, progressoGeral }: Props) {
               <Text style={[styles.nivelTxt, { color: nivel.cor }]}>{nivel.label}</Text>
             </View>
             <Text style={styles.avaliacoesTxt}>
-              {perfil.total_avaliacoes} avaliação{perfil.total_avaliacoes !== 1 ? 'ões' : ''}
+              {perfil.total_avaliacoes} {perfil.total_avaliacoes === 1 ? 'avaliação' : 'avaliações'}
             </Text>
           </View>
         </View>
@@ -75,6 +75,29 @@ export function PerfilAprendizadoCard({ perfil, progressoGeral }: Props) {
       <View style={styles.dimensoes}>
         {dimensoes.map(d => <BarraDimensao key={d.label} {...d} />)}
       </View>
+
+      {(perfil.favoritos.length > 0 || perfil.aversoes.length > 0) && (
+        <View style={styles.aprendido}>
+          {perfil.favoritos.length > 0 && (
+            <View style={styles.aprendidoLinha}>
+              <MaterialCommunityIcons name="heart" size={13} color={C.green[500]} />
+              <Text style={styles.aprendidoLabel}>Você curte</Text>
+              <Text style={styles.aprendidoValores} numberOfLines={1}>
+                {perfil.favoritos.join(' · ')}
+              </Text>
+            </View>
+          )}
+          {perfil.aversoes.length > 0 && (
+            <View style={styles.aprendidoLinha}>
+              <MaterialCommunityIcons name="close-circle-outline" size={13} color={C.ink[400]} />
+              <Text style={styles.aprendidoLabel}>Evita</Text>
+              <Text style={styles.aprendidoValores} numberOfLines={1}>
+                {perfil.aversoes.join(' · ')}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {perfil.total_avaliacoes === 0 && (
         <View style={styles.dica}>
@@ -132,6 +155,15 @@ const styles = StyleSheet.create({
     borderRadius: 3, overflow: 'hidden',
   },
   preenchimento: { height: '100%', borderRadius: 3 },
+
+  aprendido: {
+    marginTop: 14, paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: C.ink[100],
+    gap: 6,
+  },
+  aprendidoLinha: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  aprendidoLabel: { ...T.micro, color: C.ink[500], fontWeight: '700', width: 56 } as any,
+  aprendidoValores: { ...T.small, color: C.ink[700], flex: 1 } as any,
 
   dica: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
