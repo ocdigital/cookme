@@ -478,8 +478,11 @@ export class ReceitasUsuarioController {
     // Checagem de dono: receita importada é invisível para terceiros (404)
     const receita = await this.receitaBancoService.buscarPorId(receitaId, user.id);
     const ingredientes = await this.inventarioService.ingredientesDisponiveis(user.id);
-    const todas = await this.receitaBancoService.listarDisponiveisParaUsuario(ingredientes);
-    const match = todas.find((r) => r.receita.id === receitaId);
+    // Cobertura calculada DIRETAMENTE para esta receita — não depende de ela
+    // estar na lista de /disponiveis (que corta por limiar/limite), o que antes
+    // fazia o detalhe cair em cobertura 0 / faltando [] mesmo sem match.
+    const normalizados = this.receitaBancoService.normalizarLista(ingredientes);
+    const match = this.receitaBancoService.calcularCoberturaReceita(receita, normalizados);
 
     // Badge de fonte: extrai domínio limpo da url_fonte
     let fonte: { tipo: 'cookme' | 'web' | 'usuario'; site?: string; url?: string; autor_nome?: string; autor_avatar?: string } = { tipo: 'cookme' };
@@ -505,10 +508,10 @@ export class ReceitasUsuarioController {
       receita: {
         ...this.receitaBancoService.entidadeParaFormato(receita),
         id: receita.id,
-        cobertura: match ? Math.round(match.cobertura * 100) : 0,
-        disponivel: match ? match.disponivel : false,
-        tem_protagonista: match ? match.temProtagonista : false,
-        faltando: match ? match.faltando : [],
+        cobertura: Math.round(match.cobertura * 100),
+        disponivel: match.disponivel,
+        tem_protagonista: match.temProtagonista,
+        faltando: match.faltando,
         vezes_executada: receita.vezes_executada,
         avaliacao_media: receita.avaliacao_media,
         fonte,
