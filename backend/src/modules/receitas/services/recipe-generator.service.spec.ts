@@ -395,4 +395,24 @@ describe('RecipeGeneratorService', () => {
       expect(url).toMatch(/^https:\/\//);
     });
   });
+
+  describe('buildPromptReceitas — injeção do perfil aprendido', () => {
+    it('sem perfil: não adiciona bloco de preferências', () => {
+      const { user } = (service as any).buildPromptReceitas(['arroz', 'feijao'], 3);
+      expect(user).not.toContain('PERFIL DO USUÁRIO');
+    });
+
+    it('com favoritos e aversões: injeta o bloco no prompt', () => {
+      const perfil = { favoritos: ['frango', 'tomate'], aversoes: ['fígado'] };
+      const { user } = (service as any).buildPromptReceitas(['arroz'], 3, perfil);
+      expect(user).toContain('PERFIL DO USUÁRIO');
+      expect(user).toContain('Costuma gostar de: frango, tomate');
+      expect(user).toContain('Costuma evitar: fígado');
+    });
+
+    it('perfil vazio: não injeta bloco', () => {
+      const { user } = (service as any).buildPromptReceitas(['arroz'], 3, { favoritos: [], aversoes: [] });
+      expect(user).not.toContain('PERFIL DO USUÁRIO');
+    });
+  });
 });

@@ -13,6 +13,12 @@ import { ReceitaArrayLLMSchema } from '../schemas/receita-llm.schema';
 import { retryWithBackoff, isTransientError } from '@common/utils/retry.util';
 import { getRequestId } from '@common/request-context';
 
+/** Perfil aprendido do usuário para orientar a geração (preferência, não filtro). */
+export interface PerfilGeracao {
+  favoritos: string[];
+  aversoes: string[];
+}
+
 export interface Receita {
   titulo: string;
   descricao: string;
@@ -61,7 +67,12 @@ export class RecipeGeneratorService {
     }
   }
 
-  async gerarReceitas(ingredientes: string[], forcarIA = false, modoAlimentar?: string): Promise<Receita[]> {
+  async gerarReceitas(
+    ingredientes: string[],
+    forcarIA = false,
+    modoAlimentar?: string,
+    perfil?: PerfilGeracao,
+  ): Promise<Receita[]> {
     if (ingredientes.length === 0) return [];
 
     // 1. Banco compartilhado — receitas reais já salvas de buscas anteriores
@@ -105,7 +116,7 @@ export class RecipeGeneratorService {
     // 3. Geração via Claude Haiku com os ingredientes do usuário
     const jaTemRAG = receitaRAG ? 1 : 0;
     const quantidadeGerar = forcarIA ? 5 : Math.max(1, 5 - receitasDoBanco.length - jaTemRAG);
-    let receitasIA = await this.gerarComHaiku(ingredientes, quantidadeGerar);
+    let receitasIA = await this.gerarComHaiku(ingredientes, quantidadeGerar, perfil);
 
     if (receitaRAG) receitasIA = [receitaRAG, ...receitasIA];
 
@@ -139,7 +150,11 @@ export class RecipeGeneratorService {
     return resultado;
   }
 
-  private buildPromptReceitas(ingredientes: string[], quantidade: number): { system: string; user: string } {
+  private buildPromptReceitas(
+    ingredientes: string[],
+    quantidade: number,
+    perfil?: PerfilGeracao,
+  ): { system: string; user: string } {
     const system = `Você é um chef brasileiro apaixonado por culinária regional. Especialista em transformar ingredientes simples em pratos memoráveis.
 
 REGRAS ABSOLUTAS:
@@ -153,9 +168,18 @@ REGRAS ABSOLUTAS:
 - "Peito de Frango Selado ao Molho Rústico de Passata com Alho Confit" / "Crosta dourada por fora, suculento por dentro, molho encorpado reduzido lentamente"
 - "Espaguete ao Creme de Queijo Mineiro com Abobrinha Grelhada" / "Massa al dente envolta em creme sedoso, abobrinha com marcas de grelha e pimenta-do-reino"`;
 
+    const favoritos = perfil?.favoritos?.slice(0, 8) ?? [];
+    const aversoes = perfil?.aversoes?.slice(0, 8) ?? [];
+    const blocoPerfil =
+      favoritos.length > 0 || aversoes.length > 0
+        ? `\nPERFIL DO USUÁRIO (preferência, não regra rígida):
+${favoritos.length ? `- Costuma gostar de: ${favoritos.join(', ')} — PRIORIZE quando combinar com os ingredientes disponíveis.` : ''}
+${aversoes.length ? `- Costuma evitar: ${aversoes.join(', ')} — EVITE usar como protagonista, a menos que seja essencial.` : ''}\n`
+        : '';
+
     const user = `INGREDIENTES DISPONÍVEIS NA DESPENSA:
 ${ingredientes.slice(0, 15).join(', ')}
-
+${blocoPerfil}
 ${exemplos}
 
 Crie ${quantidade} receitas originais, cada uma com combinação e técnica DIFERENTE. Varie as categorias (almoço, jantar, café da manhã, lanche, sobremesa).
@@ -189,8 +213,8 @@ Retorne APENAS array JSON com exatamente ${quantidade} receitas:
     return result.data as Receita[];
   }
 
-  private async gerarComHaiku(ingredientes: string[], quantidade: number): Promise<Receita[]> {
-    const { system, user } = this.buildPromptReceitas(ingredientes, quantidade);
+  private async gerarComHaiku(ingredientes: string[], quantidade: number, perfil?: PerfilGeracao): Promise<Receita[]> {
+    const { system, user } = this.buildPromptReceitas(ingredientes, quantidade, perfil);
 
     // Tenta Haiku primeiro, com retry em erros transitórios (429, 503, timeout)
     if (this.anthropic) {
