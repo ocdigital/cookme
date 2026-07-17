@@ -103,26 +103,26 @@ describe('Separação jurídica — receitas importadas não vazam', () => {
 
     it('receita importada é invisível para terceiros (404, não 403)', async () => {
       findOneMock.mockResolvedValue({
-        id: 'r1',
+        id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
         autor_id: 'usuario-A',
         url_fonte: 'https://exemplo.com/receita',
       });
 
-      await expect(service.buscarPorId('r1', 'usuario-B')).rejects.toThrow(NotFoundException);
+      await expect(service.buscarPorId('aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa', 'usuario-B')).rejects.toThrow(NotFoundException);
     });
 
     it('dono acessa a própria receita importada', async () => {
-      const receita = { id: 'r1', autor_id: 'usuario-A', url_fonte: 'https://exemplo.com/x' };
+      const receita = { id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa', autor_id: 'usuario-A', url_fonte: 'https://exemplo.com/x' };
       findOneMock.mockResolvedValue(receita);
 
-      await expect(service.buscarPorId('r1', 'usuario-A')).resolves.toEqual(receita);
+      await expect(service.buscarPorId('aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa', 'usuario-A')).resolves.toEqual(receita);
     });
 
     it('receita pública é acessível por qualquer usuário', async () => {
-      const receita = { id: 'r2', autor_id: null, url_fonte: null };
+      const receita = { id: 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb', autor_id: null, url_fonte: null };
       findOneMock.mockResolvedValue(receita);
 
-      await expect(service.buscarPorId('r2', 'usuario-B')).resolves.toEqual(receita);
+      await expect(service.buscarPorId('bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb', 'usuario-B')).resolves.toEqual(receita);
     });
   });
 

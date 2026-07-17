@@ -72,6 +72,9 @@ const CONTEXTO_SENSIVEL: Record<string, string[]> = {
 export class ReceitaBancoService {
   private readonly logger = new Logger('ReceitaBancoService');
 
+  private static readonly UUID_REGEX =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   constructor(
     @InjectRepository(Receita)
     private readonly receitaRepo: Repository<Receita>,
@@ -506,6 +509,11 @@ export class ReceitaBancoService {
    * confirmar a existência).
    */
   async buscarPorId(id: string, paraUsuarioId?: string): Promise<Receita> {
+    // ID não-UUID (ex: receita gerada na hora com id temporário) nunca existe no
+    // banco — responde 404 em vez de deixar o Postgres estourar 500 na query uuid.
+    if (!ReceitaBancoService.UUID_REGEX.test(id)) {
+      throw new NotFoundException(`Receita ${id} não encontrada`);
+    }
     const receita = await this.receitaRepo.findOne({ where: { id } });
     if (!receita) throw new NotFoundException(`Receita ${id} não encontrada`);
     if (
