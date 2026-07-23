@@ -36,7 +36,7 @@ leite, creme de leite e uma escova de dentes que não é alimento.
 ## 2. O mercado existe e paga — referência global de preço
 
 | Player global | Preço/documento | Acurácia prometida |
-|---|---|---|
+| --- | --- | --- |
 | [Veryfi](https://www.veryfi.com/pricing/) | mínimo **US$ 500/mês** (~6.250 cupons ⇒ ~US$ 0,08/doc) | "99%+" |
 | [Taggun](https://www.taggun.io/pricing) | US$ 0,05–0,08/scan | "90%+ (99% em campos-chave)" |
 | [Mindee](https://www.mindee.com/pricing) | US$ 0,01–0,10/doc (250 grátis/mês) | "90%+, precisão >95% por campo" |
@@ -50,7 +50,7 @@ nativamente, entende abreviação de PDV brasileiro, nem entrega canonização c
 ## 3. Quem compra no Brasil (segmentos, do mais quente ao mais frio)
 
 | Segmento | Exemplos | O que compram | Ticket estimado |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Finanças pessoais** | Mobills, Organizze, Minhas Economias | Quebrar "Mercado R$ 487" em itens categorizados — feature muito pedida e cara de construir | R$ 0,5–3k/mês |
 | **Nutrição/dieta** | Dietbox, Webdiet, apps de macro | Compra → diário alimentar automático | R$ 0,5–2k/mês |
 | **Cashback/fidelidade regional** | dezenas de players menores que o Méliuz | Cashback por PRODUTO (não por loja) exige item-level | R$ 1–5k/mês |
@@ -111,7 +111,7 @@ honestidade instrumentada é diferencial num mercado de claims infláveis.
 ### 5.3 Roadmap de acurácia (75% → 95%)
 
 | Etapa | Ação | Ganho esperado | Custo |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **Medir o número real combinado em produção** (contadores por estágio já existem) | baseline honesto | 0 — já instrumentado |
 | 2 | Golden set 57 → **500+ casos** (coletar cupons reais variados: mercados, farmácias, atacarejo, padarias, outras regiões) | detecção fina de gaps | dias, contínuo |
 | 3 | **Curadoria da fila de fallback** (itens que caem no último estágio = exatamente os erros) — rotina semanal de virar fallback em dicionário/KB | +5–10 pts | 1-2h/semana |
@@ -126,7 +126,7 @@ itens · GA: ≥92% · tier enterprise: ≥95–98% com revisão.
 ## 6. Projeção dos demais desafios
 
 | Desafio | Gravidade | Mitigação |
-|---|---|---|
+| --- | --- | --- |
 | **Cobertura QR só SP** | alta p/ clientes nacionais | Caminho universal = foto/OCR (já nacional); QR multi-UF via URL autenticada do QR v2 ou InfoSimples (decisão pendente do PLANO 6.3) — clientes B2B podem mandar o XML/texto direto, o que elimina o problema para vários segmentos |
 | **SLA de uptime num VPS de US$ 8** | alta p/ B2B | Contrato B2B exige o gatilho da Fase 2-3 do CRONOGRAMA_INFRA antecipado (managed PG + 2 nós) — custo entra no pricing |
 | **LGPD — cupom com CPF do consumidor** | média | Descartar CPF no parse, nunca armazenar; DPA padrão com clientes; cláusula de uso p/ melhoria do serviço (KB) |

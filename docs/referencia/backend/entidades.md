@@ -3,7 +3,7 @@
 ## `usuarios` (Usuario)
 
 | Coluna | Tipo | Obs |
-|--------|------|-----|
+| -------- | ------ | ----- |
 | `id` | uuid PK | |
 | `email` | string unique | indexado |
 | `senha` | string | **`senha`** (não `senha_hash`), excluída das responses |
@@ -28,7 +28,7 @@
 ## `preferencias` (Preferencia)
 
 | Coluna | Tipo | Obs |
-|--------|------|-----|
+| -------- | ------ | ----- |
 | `id` | uuid PK | |
 | `usuario_id` | uuid FK | |
 | `modo_alimentar` | string | `normal` \| `fitness` \| `vegetariano` \| `vegano` |
@@ -40,7 +40,7 @@
 ## `receitas` (Receita)
 
 | Coluna | Tipo | Obs |
-|--------|------|-----|
+| -------- | ------ | ----- |
 | `id` | uuid PK | |
 | `nome` | string | indexado |
 | `descricao` | text nullable | |
@@ -71,7 +71,7 @@
 ## `receita_ingredientes` (ReceitaIngrediente)
 
 | Coluna | Tipo | Obs |
-|--------|------|-----|
+| -------- | ------ | ----- |
 | `id` | uuid PK | |
 | `receita_id` | uuid FK | |
 | `observacao` | string | texto livre: "500g de frango" |
@@ -83,7 +83,7 @@
 ## `receitas_executadas` (ReceitaExecutada)
 
 | Coluna | Tipo | Obs |
-|--------|------|-----|
+| -------- | ------ | ----- |
 | `id` | uuid PK | |
 | `usuario_id` | uuid FK | |
 | `receita_id` | uuid FK | |
@@ -94,7 +94,7 @@
 ## `receitas_favoritas` (ReceitaFavorita)
 
 | Coluna | Tipo | |
-|--------|------|-|
+| -------- | ------ | - |
 | `id` | uuid PK | |
 | `usuario_id` | uuid FK | |
 | `receita_id` | uuid FK | |
@@ -104,7 +104,7 @@
 ## `inventario` (Inventario)
 
 | Coluna | Tipo | Obs |
-|--------|------|-----|
+| -------- | ------ | ----- |
 | `id` | uuid PK | |
 | `usuario_id` | uuid FK | indexado |
 | `produto_id` | uuid FK | indexado |
@@ -125,7 +125,7 @@
 ## `produtos` (Produto)
 
 | Coluna | Tipo | Obs |
-|--------|------|-----|
+| -------- | ------ | ----- |
 | `id` | uuid PK | |
 | `nome` | string | |
 | `nome_display` | string nullable | nome humanizado |
@@ -143,7 +143,7 @@
 ## `listas` (Lista)
 
 | Coluna | Tipo | |
-|--------|------|-|
+| -------- | ------ | - |
 | `id` | uuid PK | |
 | `usuario_id` | uuid FK | |
 | `titulo` | string | |
@@ -153,7 +153,7 @@
 ## `item_lista` (ItemLista)
 
 | Coluna | Tipo | |
-|--------|------|-|
+| -------- | ------ | - |
 | `id` | uuid PK | |
 | `lista_id` | uuid FK | |
 | `nome` | string | |
@@ -168,7 +168,7 @@
 ## `compras` (Compra)
 
 | Coluna | Tipo | |
-|--------|------|-|
+| -------- | ------ | - |
 | `id` | uuid PK | |
 | `usuario_id` | uuid FK | |
 | `estabelecimento_nome` | string nullable | |
@@ -181,7 +181,7 @@
 ## `compra_itens` (CompraItem)
 
 | Coluna | Tipo | |
-|--------|------|-|
+| -------- | ------ | - |
 | `id` | uuid PK | |
 | `compra_id` | uuid FK | |
 | `produto_id` | uuid FK nullable | |
@@ -197,7 +197,7 @@
 ## `planejamento_semanal` (PlanejamentoSemanal)
 
 | Coluna | Tipo | Obs |
-|--------|------|-----|
+| -------- | ------ | ----- |
 | `id` | uuid PK | |
 | `usuario_id` | uuid FK | |
 | `receita_id` | uuid FK nullable | |
@@ -213,7 +213,7 @@
 ## `notificacoes` (Notificacao)
 
 | Coluna | Tipo | |
-|--------|------|-|
+| -------- | ------ | - |
 | `id` | uuid PK | |
 | `usuario_id` | uuid FK | admin owner |
 | `titulo` | string | |
@@ -230,7 +230,7 @@
 Cache compartilhado de classificação de produtos entre usuários.
 
 | Coluna | Tipo | Obs |
-|--------|------|-----|
+| -------- | ------ | ----- |
 | `id` | uuid PK | |
 | `produto` | string | nome normalizado |
 | `categoria` | string | `alimento` \| `nao-alimento` \| `indefinido` |
@@ -246,7 +246,7 @@ Cache compartilhado de classificação de produtos entre usuários.
 ## `subscriptions` (Subscription)
 
 | Coluna | Tipo | |
-|--------|------|-|
+| -------- | ------ | - |
 | `id` | uuid PK | |
 | `usuario_id` | uuid FK | |
 | `plano` | enum | `free` \| `premium` \| `premium_plus` |
@@ -259,7 +259,7 @@ Cache compartilhado de classificação de produtos entre usuários.
 ## Enums
 
 | Enum | Valores |
-|------|---------|
+| ------ | --------- |
 | `UnidadeMedida` | `g`, `kg`, `ml`, `l`, `un`, `cx`, `pct`, `dz`, `lata`, `garrafa`, `saco` |
 | `DificuldadeReceita` | `facil`, `media`, `dificil` |
 | `UserRole` | `user`, `admin` |

@@ -22,6 +22,7 @@
 ```
 
 **Vantagens:**
+
 - Você vê os logs e QR code em tempo real
 - Fácil fazer reload de qualquer serviço
 - Melhor para debugging
@@ -55,16 +56,17 @@ npx expo start
 
 ## Acessando os Serviços
 
-| Serviço  | URL | Descrição |
-|----------|-----|-----------|
-| **Frontend** | http://localhost:5173 | App web |
-| **Backend** | http://localhost:3000 | API REST |
-| **Swagger** | http://localhost:3000/api/docs | Documentação da API |
+| Serviço | URL | Descrição |
+| ---------- | ----- | ----------- |
+| **Frontend** | <http://localhost:5173> | App web |
+| **Backend** | <http://localhost:3000> | API REST |
+| **Swagger** | <http://localhost:3000/api/docs> | Documentação da API |
 | **Mobile** | Scan QR code | App mobile (Expo Go) |
 
 ## Banco de Dados
 
 ### PostgreSQL
+
 - **Host:** localhost
 - **Porta:** 5432
 - **User:** cookme
@@ -72,6 +74,7 @@ npx expo start
 - **Database:** cookme_db
 
 ### Redis
+
 - **Host:** localhost
 - **Porta:** 6379
 
@@ -91,6 +94,7 @@ docker-compose logs -f redis
 ## Comandos Úteis
 
 ### Backend
+
 ```bash
 cd backend
 npm run start:dev       # Modo desenvolvimento (hot reload)
@@ -100,6 +104,7 @@ npm run test            # Rodar testes
 ```
 
 ### Frontend
+
 ```bash
 cd frontend
 npm run dev             # Desenvolvimento (hot reload)
@@ -110,6 +115,7 @@ npm run lint            # Verificar código
 ```
 
 ### Mobile
+
 ```bash
 cd mobile
 npx expo start          # Inicia Expo (mostra QR code)
@@ -119,6 +125,7 @@ npm run test            # Rodar testes
 ```
 
 ### Docker
+
 ```bash
 docker-compose up       # Inicia serviços
 docker-compose down     # Para serviços
@@ -130,12 +137,14 @@ docker-compose restart  # Reiniciar
 ## Testando o App Mobile no Expo Go
 
 ### Opção 1: Smartphone (Recomendado)
+
 1. Baixe o **Expo Go** na App Store ou Google Play
 2. Execute `./dev.sh mobile` no terminal
 3. Scan o QR code com a câmera do seu smartphone
 4. O app abre automaticamente no Expo Go
 
 ### Opção 2: Emulador/Simulador
+
 ```bash
 cd mobile
 npx expo start
@@ -146,6 +155,7 @@ npx expo start
 ```
 
 ### Opção 3: Web (para testes rápidos)
+
 ```bash
 cd mobile
 npx expo start --web
@@ -155,6 +165,7 @@ npx expo start --web
 ## Troubleshooting
 
 ### "Port already in use"
+
 ```bash
 # Encontrar processo usando a porta
 lsof -i :3000    # Backend
@@ -166,6 +177,7 @@ kill -9 <PID>
 ```
 
 ### Expo não gera QR code
+
 ```bash
 # Limpar cache
 cd mobile
@@ -176,11 +188,13 @@ tail -f /tmp/mobile.log
 ```
 
 ### Erro de conexão com API
+
 1. Verifique se o backend está rodando: `curl http://localhost:3000/api/auth/login`
 2. Verifique o arquivo `mobile/src/config/api.js` - a URL está correta?
 3. Tente limpar o cache do Expo: `npx expo start -c`
 
 ### Banco de dados não conecta
+
 ```bash
 # Verificar status do Docker
 docker-compose ps
@@ -217,7 +231,7 @@ Veja os exemplos `.env.example` para referência.
 1. **Hot Reload:** Todos os 3 serviços têm hot reload automático
 2. **QR Code:** Se fechar o Expo, o QR code continua válido por alguns minutos
 3. **Debug:** Use React DevTools para frontend/mobile
-4. **API Testing:** Use Swagger em http://localhost:3000/api/docs
+4. **API Testing:** Use Swagger em <http://localhost:3000/api/docs>
 5. **Logs:** Manter os 3 terminais abertos ajuda no debugging
 
 ## Próximos Passos

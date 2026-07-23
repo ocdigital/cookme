@@ -8,7 +8,7 @@
 ## 1. Servidor
 
 | Campo | Valor |
-|---|---|
+| --- | --- |
 | Provedor | DigitalOcean |
 | IP | `206.189.239.250` |
 | OS | Ubuntu 24.04.4 LTS |
@@ -23,7 +23,7 @@
 DNS gerenciado no **Cloudflare**. Ativar proxy (laranjinha) após subir o servidor.
 
 | Domínio | Aponta para | Proxy CF |
-|---|---|---|
+| --- | --- | --- |
 | `api.cookme.com.br` | `206.189.239.250` | ativar |
 | `admin.cookme.com.br` | `206.189.239.250` | ativar |
 
@@ -54,7 +54,7 @@ DNS gerenciado no **Cloudflare**. Ativar proxy (laranjinha) após subir o servid
 ## 4. Software Instalado
 
 | Software | Versão | Como instalar |
-|---|---|---|
+| --- | --- | --- |
 | Node.js | v20.20.2 | `curl -fsSL https://deb.nodesource.com/setup_20.x \| bash - && apt-get install -y nodejs` |
 | npm | 10.8.2 | vem com Node |
 | PM2 | 7.0.1 | `npm install -g pm2` |
@@ -69,6 +69,7 @@ DNS gerenciado no **Cloudflare**. Ativar proxy (laranjinha) após subir o servid
 ## 5. PostgreSQL
 
 ### Banco e usuário
+
 ```sql
 -- Criar usuário e banco
 CREATE USER cookme WITH PASSWORD 'cookme123';
@@ -82,6 +83,7 @@ CREATE EXTENSION IF NOT EXISTS "unaccent";
 ```
 
 ### Restaurar backup
+
 ```bash
 # Listar backups disponíveis
 ls -lh /var/backups/cookme/
@@ -92,6 +94,7 @@ PGPASSWORD=cookme123 gunzip -c /var/backups/cookme/cookme_YYYYMMDD_HHMMSS.sql.gz
 ```
 
 ### Acesso direto
+
 ```bash
 PGPASSWORD=cookme123 psql -h localhost -U cookme -d cookme_db
 ```
@@ -115,6 +118,7 @@ chown -R cookme-app:cookme-app /var/www/cookme
 ## 7. PM2
 
 ### Ecosystem config (`/var/www/cookme/ecosystem.config.cjs`)
+
 ```javascript
 module.exports = {
   apps: [{
@@ -140,6 +144,7 @@ module.exports = {
 ```
 
 ### Comandos essenciais
+
 ```bash
 cd /var/www/cookme
 pm2 start ecosystem.config.cjs   # Primeira vez
@@ -157,12 +162,14 @@ pm2 save
 ## 8. Nginx
 
 Config em `/etc/nginx/sites-available/cookme`. Habilitar:
+
 ```bash
 ln -sf /etc/nginx/sites-available/cookme /etc/nginx/sites-enabled/cookme
 nginx -t && systemctl reload nginx
 ```
 
 ### O que o config faz
+
 - `api.cookme.com.br` → proxy para `127.0.0.1:3000` (NestJS)
 - `admin.cookme.com.br` → arquivos estáticos em `/var/www/cookme/frontend/dist`
 - Bloqueia (`444`) qualquer IP que não seja do Cloudflare
@@ -173,6 +180,7 @@ nginx -t && systemctl reload nginx
 - Security headers: HSTS, X-Frame-Options, X-Content-Type-Options
 
 ### SSL (Certbot)
+
 ```bash
 certbot --nginx -d api.cookme.com.br
 certbot --nginx -d admin.cookme.com.br
@@ -253,7 +261,7 @@ fail2ban-client status   # Verificar jails
 > Valores reais guardados em local seguro (não no git).
 
 | Variável | Descrição |
-|---|---|
+| --- | --- |
 | `NODE_ENV` | `production` |
 | `PORT` | `3000` |
 | `DB_HOST` | `localhost` |
@@ -291,7 +299,7 @@ fail2ban-client status   # Verificar jails
 ## 12. Scripts de Ops (`/usr/local/bin/`)
 
 | Script | Cron | Função |
-|---|---|---|
+| --- | --- | --- |
 | `cookme-health.sh` | `*/5 * * * *` | Healthcheck `/api/health` — reinicia PM2 se falhar |
 | `cookme-backup.sh` | `0 3 * * *` | pg_dump → gzip → `/var/backups/cookme/` (7 últimos) |
 | `cookme-cleanup.sh` | `0 4 * * 0` | Limpa PM2 logs, npm cache, journalctl >7d, apt cache |
@@ -304,6 +312,7 @@ Logs em `/var/log/cookme-*.log`.
 ## 13. Deploy — Passo a Passo
 
 ### Backend
+
 ```bash
 # Local
 cd /home/eduardo/projetos/cookme/backend
@@ -315,6 +324,7 @@ ssh root@206.189.239.250 "pm2 restart cookme-backend"
 ```
 
 ### Admin Frontend
+
 ```bash
 # Local
 cd /home/eduardo/projetos/cookme/frontend
@@ -435,7 +445,7 @@ curl -sI http://206.189.239.250 | head -3   # deve retornar vazio (444) ou conne
 ## 16. Monitoramento
 
 | O que monitorar | Onde ver |
-|---|---|
+| --- | --- |
 | Logs do backend | `pm2 logs cookme-backend --lines 100` |
 | Healthcheck | `/var/log/cookme-health.log` |
 | Backups | `/var/log/cookme-backup.log` |

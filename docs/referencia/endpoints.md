@@ -3,7 +3,7 @@
 ## 📍 Portas de Acesso
 
 | Serviço | Porta | Protocolo | Status |
-|---------|-------|-----------|--------|
+| --------- | ------- | ----------- | -------- |
 | Backend API | 3000 | HTTP | ✅ Ativo |
 | Frontend | 5173 | HTTP | ✅ Ativo |
 | Mobile (Expo) | 8081 | HTTP | ✅ Ativo |
@@ -15,15 +15,18 @@
 ## 🌐 URLs Principais
 
 ### Backend
-- **Base**: http://localhost:3000
-- **API Docs (Swagger)**: http://localhost:3000/api/docs
-- **Health Check**: http://localhost:3000/api/health (404 esperado)
+
+- **Base**: <http://localhost:3000>
+- **API Docs (Swagger)**: <http://localhost:3000/api/docs>
+- **Health Check**: <http://localhost:3000/api/health> (404 esperado)
 
 ### Frontend
-- **App**: http://localhost:5173
-- **Dev**: http://localhost:5173 (hot reload ativado)
+
+- **App**: <http://localhost:5173>
+- **Dev**: <http://localhost:5173> (hot reload ativado)
 
 ### Mobile
+
 - **Expo**: Scan QR code no terminal
 - **Tunnel**: Disponível após iniciar `npx expo start`
 
@@ -32,6 +35,7 @@
 ## 🔐 Autenticação
 
 ### Endpoints Públicos (sem token)
+
 ```
 POST   /api/auth/register
 POST   /api/auth/login
@@ -40,13 +44,15 @@ GET    /api/receitas
 ```
 
 ### Endpoints Protegidos (com Bearer token)
+
 ```
 GET    /api/auth/me
 PATCH  /api/usuarios/me
 GET    /api/usuarios/me
 ```
 
-### Como usar token:
+### Como usar token
+
 1. Login: `POST /api/auth/login`
 2. Copie o `access_token` da resposta
 3. Header: `Authorization: Bearer {seu_token}`
@@ -56,6 +62,7 @@ GET    /api/usuarios/me
 ## 📚 Endpoints Principais
 
 ### Autenticação
+
 ```
 POST   /api/auth/register        Registrar novo usuário
 POST   /api/auth/login           Fazer login
@@ -65,6 +72,7 @@ GET    /api/auth/me              Obter usuário atual
 ```
 
 ### Usuários
+
 ```
 GET    /api/usuarios/me          Obter perfil do usuário
 PATCH  /api/usuarios/me          Atualizar perfil
@@ -75,6 +83,7 @@ PATCH  /api/usuarios/preferencias Atualizar preferências
 ```
 
 ### Produtos
+
 ```
 GET    /api/produtos             Listar produtos
 POST   /api/produtos             Criar produto
@@ -86,6 +95,7 @@ GET    /api/produtos/barcode/:codigo Buscar por barcode
 ```
 
 ### Receitas
+
 ```
 GET    /api/receitas             Listar receitas
 POST   /api/receitas             Criar receita
@@ -101,6 +111,7 @@ POST   /api/receitas/gerar-semana Gerar semana
 ```
 
 ### Inventário
+
 ```
 GET    /api/inventario           Listar itens
 POST   /api/inventario           Adicionar item
@@ -113,6 +124,7 @@ GET    /api/inventario/vencidos  Itens vencidos
 ```
 
 ### Compras
+
 ```
 GET    /api/compras              Listar compras
 POST   /api/compras              Criar compra
@@ -122,6 +134,7 @@ GET    /api/compras/stats        Estatísticas
 ```
 
 ### Admin
+
 ```
 GET    /api/admin/produtos       Listar produtos (admin)
 GET    /api/admin/produtos/stats Stats de produtos
@@ -131,6 +144,7 @@ GET    /api/admin/dashboard/stats Dashboard stats
 ```
 
 ### Notificações
+
 ```
 GET    /api/notificacoes         Listar notificações
 GET    /api/notificacoes/unread-count Contar não-lidas
@@ -140,6 +154,7 @@ DELETE /api/notificacoes/:id     Deletar notificação
 ```
 
 ### IA
+
 ```
 POST   /api/ia/classificar-produto Classificar produto
 POST   /api/ia/gerar-receita     Gerar receita
@@ -148,6 +163,7 @@ GET    /api/ia/analisar-nutricional Análise nutricional
 ```
 
 ### Scraper
+
 ```
 POST   /api/scraper/consultas    Criar consulta
 GET    /api/scraper/consultas/:sessionId Obter consulta
@@ -158,11 +174,13 @@ DELETE /api/scraper/minhas-consultas Deletar minhas consultas
 ```
 
 ### Barcode
+
 ```
 GET    /api/barcode/scan/:codigo Escanear código
 ```
 
 ### Affiliate
+
 ```
 POST   /api/api/affiliate/registrar-clique Registrar clique
 GET    /api/api/affiliate/links/:receitaId Links da receita
@@ -179,6 +197,7 @@ GET    /api/api/affiliate/subscriptions/features/:feature Features
 ```
 
 ### Product Classification
+
 ```
 GET    /api/api/product-classification/classify/:productName Classificar
 POST   /api/api/product-classification/classify-batch Batch
@@ -195,6 +214,7 @@ GET    /api/api/product-classification/nao-alimentos Não-alimentos
 ## 💾 Databases
 
 ### PostgreSQL
+
 ```
 Host: localhost
 Port: 5432
@@ -204,6 +224,7 @@ Database: cookme_db
 ```
 
 ### Redis
+
 ```
 Host: localhost
 Port: 6379
@@ -270,8 +291,8 @@ const response = await fetch('http://localhost:3000/api/auth/login', {
 
 ## 🔗 Links Úteis
 
-- API Docs: http://localhost:3000/api/docs
-- Frontend: http://localhost:5173
+- API Docs: <http://localhost:3000/api/docs>
+- Frontend: <http://localhost:5173>
 - Postman Collection: Pode ser gerada via `/api/docs`
 - Mobile Expo: Scan QR code no terminal
 

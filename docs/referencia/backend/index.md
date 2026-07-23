@@ -5,7 +5,7 @@ NestJS 11 + TypeScript + TypeORM + PostgreSQL. Porta **3000**. API prefix `/api`
 ## Stack
 
 | Camada | Tecnologia |
-|--------|-----------|
+| -------- | ----------- |
 | Framework | NestJS 11 |
 | ORM | TypeORM |
 | Banco | PostgreSQL 5432 |
@@ -54,7 +54,7 @@ STRIPE_PRICE_FAMILIA=...
 ## Módulos
 
 | Módulo | Path | Responsabilidade |
-|--------|------|-----------------|
+| -------- | ------ | ----------------- |
 | `auth` | `src/modules/auth` | JWT login/registro/refresh/logout, Google OAuth, Apple Sign In |
 | `usuarios` | `src/modules/usuarios` | Perfil, preferências, avatar, push token |
 | `produtos` | `src/modules/produtos` | Catálogo de produtos, marcas, categorias, imagens |
@@ -87,7 +87,7 @@ STRIPE_PRICE_FAMILIA=...
 ## Guards e Decorators
 
 | Item | Uso |
-|------|-----|
+| ------ | ----- |
 | `@Public()` | Remove JwtAuthGuard da rota |
 | `@CurrentUser()` | Injeta entidade `Usuario` do JWT |
 | `@UseGuards(JwtAuthGuard)` | Protege rota (global por padrão no app) |
@@ -96,7 +96,7 @@ STRIPE_PRICE_FAMILIA=...
 ## Planos de Assinatura
 
 | Plano | Preço | Features |
-|-------|-------|---------|
+| ------- | ------- | --------- |
 | `free` | R$0 | receitas básicas, inventário, busca |
 | `premium` | R$9,90/mês | + vídeos HD, receitas ilimitadas, recomendações personalizadas |
 | `premium_plus` | R$19,90/mês | + consultoria nutricional, plano personalizado, relatórios |
@@ -123,7 +123,7 @@ npx ts-node -r tsconfig-paths/register src/database/seeds/seed-popular-banco.ts 
 ## Usuários de Teste (senha: `cookme123`)
 
 | Email | Nome | Modo |
-|-------|------|------|
+| ------- | ------ | ------ |
 | `joao@cookme.test` | João Silva | normal |
 | `ana@cookme.test` | Ana Fitness | fitness |
 | `carlos@cookme.test` | Carlos Vegetariano | vegetariano |

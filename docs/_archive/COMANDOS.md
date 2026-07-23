@@ -18,7 +18,7 @@ Logs em `.backend.log`, `.frontend.log`, `.mobile.log`.
 ## Docker (Postgres + Redis)
 
 | Ação | Comando |
-|------|---------|
+| ------ | --------- |
 | Subir | `docker compose up -d postgres redis` |
 | Parar | `docker compose stop postgres redis` |
 | Derrubar (remove containers) | `docker compose down` |
@@ -105,10 +105,10 @@ tail -f .mobile.log
 ## Endereços
 
 | Serviço | URL |
-|---------|-----|
-| Backend API | http://localhost:3000 |
-| Frontend Admin | http://localhost:5173 |
-| Expo DevTools | http://localhost:8081 |
+| --------- | ----- |
+| Backend API | <http://localhost:3000> |
+| Frontend Admin | <http://localhost:5173> |
+| Expo DevTools | <http://localhost:8081> |
 | Postgres | localhost:5432 |
 | Redis | localhost:6379 |
 

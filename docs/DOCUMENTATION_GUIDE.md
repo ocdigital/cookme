@@ -51,6 +51,7 @@ npm run docs:preview
 3. Atualize o sidebar conforme necessário
 
 Exemplo:
+
 ```typescript
 // Em config.ts, na seção sidebar:
 {
@@ -64,6 +65,7 @@ Exemplo:
 VitePress suporta Markdown padrão com extensões:
 
 ### Headings
+
 ```markdown
 # H1
 ## H2
@@ -71,6 +73,7 @@ VitePress suporta Markdown padrão com extensões:
 ```
 
 ### Listas
+
 ```markdown
 - Item 1
 - Item 2
@@ -82,6 +85,7 @@ VitePress suporta Markdown padrão com extensões:
 ```
 
 ### Código
+
 ```markdown
 Inline: `const x = 1`
 
@@ -93,17 +97,20 @@ console.log(x);
 ```
 
 ### Links
+
 ```markdown
 [Texto do link](./arquivo-local.md)
 [Link externo](https://exemplo.com)
 ```
 
 ### Imagens
+
 ```markdown
 ![Alt text](./imagem.png)
 ```
 
 ### Containers (Callouts)
+
 ```markdown
 ::: tip
 Dica útil
@@ -123,6 +130,7 @@ Conteúdo escondido
 ```
 
 ### Tabelas
+
 ```markdown
 | Coluna 1 | Coluna 2 |
 |----------|----------|
@@ -210,12 +218,15 @@ search: {
 ## Deploy
 
 ### Vercel
+
 ```bash
 vercel
 ```
 
 ### Netlify
+
 Crie arquivo `netlify.toml`:
+
 ```toml
 [build]
   command = "npm run docs:build"
@@ -223,6 +234,7 @@ Crie arquivo `netlify.toml`:
 ```
 
 ### GitHub Pages
+
 1. Configure `docs/.vitepress/config.ts` com `base: '/cookme/'`
 2. Crie workflow GitHub Actions
 3. Push para main

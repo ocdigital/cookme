@@ -11,7 +11,7 @@
 Investidor não compra ideia. Compra **evidência de que algo está funcionando + capacidade do fundador de executar**. O que muda por estágio é qual evidência:
 
 | Estágio | O que compra | Cheque típico (BR) | Equity cedido |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Anjo / Pré-seed** | Fundador + problema real + protótipo com sinal de tração | R$ 100k – 1M | 5–15% |
 | **Seed** | Tração comprovada + máquina de crescimento nascendo | R$ 1M – 5M | 10–20% |
 | **Série A** | Unit economics saudáveis + crescimento previsível | R$ 10M+ | 15–25% |
@@ -25,7 +25,7 @@ Você está mirando **anjo/pré-seed**. Nesse estágio a conversa é 60% sobre v
 Pergunta errada → resposta errada. O número absoluto importa menos que a **curva**. Referências realistas para app consumer BR em pré-seed:
 
 | Métrica | Mínimo para conversar | Bom | Excelente |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Usuários ativos mensais (MAU) | 500–1.000 | 3.000–10.000 | 10.000+ |
 | Retenção D30 | > 8% (2x a mediana da categoria, que é ~4%) | > 15% | > 25% |
 | Crescimento semanal (orgânico) | 3–5% | 7–10% | > 10% sustentado |
@@ -33,6 +33,7 @@ Pergunta errada → resposta errada. O número absoluto importa menos que a **cu
 | Pagantes (se paywall ligado) | qualquer > 0 com conversão medida | conversão ≥ 2% | ≥ 4% + churn mensal < 8% |
 
 **As três frases que abrem carteira em pré-seed:**
+
 1. "Retenção D30 de X% numa categoria cuja mediana é 4%" ← a mais forte para o CookMe
 2. "Crescendo X% por semana há N semanas, sem gastar em mídia"
 3. "X% dos usuários que escaneiam 2+ cupons no primeiro mês continuam ativos 90 dias depois"
@@ -48,15 +49,18 @@ Com 500 usuários e D30 de 20%, você tem conversa. Com 50.000 usuários e D30 d
 Apresente **um modelo principal + um expansível**. Mais que isso soa como "não sei qual funciona".
 
 **Principal — Assinatura (CookMe+):**
+
 - Freemium: grátis escaneia X cupons/mês e Y receitas; pago = ilimitado + validade/alertas + gastos do mês + modos de dieta.
 - Preço de referência BR: R$ 9,90–19,90/mês. Ancoragem: "menos que um delivery".
 - Números que o investidor vai pedir: conversão free→paid (benchmark consumer: 2–5%), churn mensal (< 8% é ok, < 5% é bom), LTV = ticket ÷ churn, CAC por canal.
 
 **Expansível — mencionar sem prometer data:**
+
 - **API de ingestão de cupom B2B** (o pivô C da `ANALISE_MERCADO.md`): parsing + canonização por transação para apps de finanças/nutrição/cashback. Mostra que o mesmo ativo tem segunda avenida de receita — investidor gosta de opcionalidade.
 - **Afiliados/parcerias** (módulo já existe no código): receita → lista de compras → mercado parceiro/entrega.
 
 **O que NÃO apresentar como modelo:**
+
 - "Vender dados de consumo" — Horus/Scanntech dominam, e soa mal com LGPDs na mesa. Se perguntarem, a resposta é: "dados agregados são opcionalidade futura, com consentimento e anonimização; não é o plano".
 - Publicidade — precisa de milhões de usuários; em pré-seed é fantasia.
 
@@ -65,6 +69,7 @@ Apresente **um modelo principal + um expansível**. Mais que isso soa como "não
 ## 4. O kit de fundraising (prepare ANTES do primeiro contato)
 
 **a) Pitch deck — 10-12 slides, nesta ordem:**
+
 1. Capa + uma frase ("Fotografe a nota do mercado. O CookMe diz o que cozinhar.")
 2. Problema (as 3 dores: decisão diária, desperdício, delivery caro — com o dado dos ~128kg/Embrapa)
 3. Solução (o loop: cupom → despensa automática → receita → economia) — demo em vídeo de 30s aqui
@@ -78,6 +83,7 @@ Apresente **um modelo principal + um expansível**. Mais que isso soa como "não
 11. O pedido: quanto, para quê, até que marco (ex: "R$ 500k para 18 meses → 30k MAU e R$ 50k MRR")
 
 **b) Data room mínimo** (pasta organizada para due diligence):
+
 - Contrato social/CNPJ, cap table (mesmo que seja "100% fundador")
 - Métricas exportáveis (dashboards, não prints soltos)
 - Registro de marca no INPI (ver seção 6)
@@ -100,6 +106,7 @@ Apresente **um modelo principal + um expansível**. Mais que isso soa como "não
 5. **Y Combinator** — aceita solo founder brasileiro, aplicação gratuita, vale tentar a cada batch (o "não" não custa nada e o formulário organiza seu pensamento).
 
 **Como abordar (a parte que ninguém conta):**
+
 - **Warm intro vale 10x cold email.** Caminho: outros fundadores investidos > LinkedIn direto. Fundador que já recebeu cheque de um anjo apresentando você = melhor canal que existe. Vá a eventos de startup da sua cidade e conheça FUNDADORES, não investidores.
 - Cold outreach quando necessário: e-mail de 5 linhas — 1 frase do produto, 2 números de tração, 1 pedido claro ("15 min semana que vem?") + one-pager anexo. Nada de deck de 40 slides no primeiro contato.
 - **Fundraising é funil**: espere ~50 conversas para 1-3 propostas. Rode como sprint de 6-8 semanas com todas as conversas em paralelo (cria urgência natural), não uma reunião por mês durante um ano.
@@ -126,6 +133,7 @@ Verdade desconfortável primeiro: **ideias valem quase nada; execução + dados 
 ## 7. Armadilhas clássicas (como não cair)
 
 **Societárias/contratuais — as que mais matam:**
+
 - **Ceder equity demais cedo**: > 20% no pré-seed é bandeira vermelha para TODAS as rodadas futuras (VC de seed passa longe de cap table onde o fundador já tem pouco). Anjo pedindo 30-40%? Levante e agradeça.
 - **"Sócio-conselheiro" por equity**: advisor que pede 5-15% "pela mentoria e contatos". Advisor de verdade recebe 0,25-1% com vesting. Mais que isso é predador.
 - **Mútuo conversível com cláusulas tóxicas**: juros altos + vencimento curto + conversão obrigatória com desconto agressivo = dívida disfarçada. Peça cap E desconto razoáveis (cap de valuation + 15-25% de desconto é padrão).
@@ -133,6 +141,7 @@ Verdade desconfortável primeiro: **ideias valem quase nada; execução + dados 
 - **Vesting reverso do fundador sem cliff justo**: normal existir (protege o investidor de você sumir), mas os termos precisam ser simétricos e razoáveis (4 anos, cliff 1 ano, aceleração em venda).
 
 **De processo:**
+
 - **Dumb money**: cheque de quem não entende o jogo vira cobrança de lucro no mês 6 e bloqueio da rodada seguinte. Antes de aceitar, pergunte ao investidor: "posso falar com 2 fundadores que você já investiu?" — se ele se ofender, resposta dada.
 - **Levantar cedo demais**: cada mês de tração orgânica aumenta seu valuation e seu poder de barganha. Com as métricas melhorando semana a semana, esperar 3 meses pode valer 5% de equity.
 - **Valuation inflado no pré-seed**: parece vitória, vira armadilha — a próxima rodada precisa superá-lo ou você faz down round (e down round afugenta todo mundo). Valuation saudável > valuation máximo.
@@ -165,7 +174,7 @@ aquisição e bus factor. O plano de contratação ataca exatamente isso, por do
 por projeção.
 
 | Fase (MAU) | Time | Contratação | Racional |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 → 2k | 1 (founder + IA) | — | Validação: custo de folha zero, decisão instantânea |
 | 2k → 10k | 2 | **Generalista growth/suporte/conteúdo** (1ª contratação NÃO é dev) | O que afoga o founder é suporte+aquisição; a engenharia a IA já cobre |
 | 10k → 50k | 3 | **2º dev full-stack (+IA)** | Bus factor e plantão — resiliência, não velocidade; founder migra p/ produto/arquitetura |
@@ -173,13 +182,14 @@ por projeção.
 | 150k+ | 8-12 | squads, 1ª gestão | Fase de série A — plano refeito com o board |
 
 **Regras que sustentam o plano no pitch:**
+
 1. Contratação por **dor recorrente medida** (3 semanas seguidas da mesma tarefa roubando tempo de produto = a vaga), não por orçamento disponível — dinheiro de rodada não vira folha antecipada.
 2. O 2º dev entra por **resiliência** (bus factor) — é a resposta direta ao "e se você for atropelado".
 3. Use of funds típico da rodada pré-seed: ~50-60% time (as 2 primeiras contratações), ~25-35% aquisição, ~10-15% infra/ferramentas — infra e IA custam <5% da receita projetada (ver `ESTUDO_CUSTO_IA.md` e `CRONOGRAMA_INFRA.md`), o que sobra vai para gente e crescimento.
 
 ---
 
-## 9. Checklist — pronto para a primeira reunião quando:
+## 9. Checklist — pronto para a primeira reunião quando
 
 - [ ] Métricas D7/D30/conversão instrumentadas e num dashboard (Fase 5 do plano)
 - [ ] 8+ semanas de dados de retenção reais
@@ -196,7 +206,7 @@ por projeção.
 ## 10. Roteiro sugerido a partir de hoje
 
 | Quando | O quê |
-|---|---|
+| --- | --- |
 | Agora | Registrar marca no INPI (paralelo a tudo, não espera nada) |
 | Semanas 1-3 | Fases 0-2 + 5 do `PLANO_CORRECOES.md` → app medível na Play Store |
 | Semanas 4-12 | Validação orgânica (plano da `ANALISE_MERCADO.md`) + inscrição no InovAtiva + começar a frequentar comunidade local de fundadores (ainda SEM pitchar — construindo rede para as warm intros) |

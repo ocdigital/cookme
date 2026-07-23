@@ -26,6 +26,7 @@ Frase-síntese do produto (usar como assinatura em vários pontos):
 (ou quer cozinhar mais), sente culpa dupla: do dinheiro gasto no iFood e da comida estragando na geladeira.
 
 **As 3 dores (nesta ordem de força):**
+
 1. **Decisão diária exaustiva** — "o que eu faço de janta?" todo santo dia, às 19h, cansado(a).
 2. **Dinheiro no lixo** — comprou, esqueceu, venceu, jogou fora. A família brasileira desperdiça em média ~128 kg de comida por ano (Embrapa — citar fonte com link na página; usar "cerca de" e manter o número conservador).
 3. **Delivery por falta de ideia, não por vontade** — pede iFood não porque quer, mas porque não sabe o que fazer com o que tem.
@@ -35,6 +36,7 @@ Frase-síntese do produto (usar como assinatura em vários pontos):
 ## 3. Estrutura da página, seção por seção (com copy pronta)
 
 ### SEÇÃO 1 — Hero
+
 **Gatilhos: dor imediata + curiosidade + aversão à perda.**
 
 - **Headline:**
@@ -47,9 +49,11 @@ Frase-síntese do produto (usar como assinatura em vários pontos):
 - **Selo discreto:** `🇧🇷 Feito para o mercado brasileiro — lê NFC-e e cupom fiscal`
 
 ### SEÇÃO 2 — Agitação da dor (barra de contraste)
+
 **Gatilho: aversão à perda quantificada.**
 
 Faixa de 3 estatísticas curtas, sem enrolação:
+
 - `~128 kg de comida por ano` — é o que uma família brasileira joga fora, em média. *(linkar fonte Embrapa)*
 - `R$ 40–60` — o que custa "resolver no delivery" uma noite sem ideia.
 - `19h04` — a hora em que a pergunta "o que eu faço de janta?" ataca. Todo dia.
@@ -57,6 +61,7 @@ Faixa de 3 estatísticas curtas, sem enrolação:
 Frase de transição: `A comida que resolve seu jantar de hoje já está na sua cozinha. Você só não está vendo.`
 
 ### SEÇÃO 3 — Como funciona (3 passos)
+
 **Gatilho: simplicidade / redução de esforço percebido. Regra: verbos no imperativo, zero jargão.**
 
 1. **📸 Fotografe a nota** — `Aponte a câmera para o cupom do mercado (ou escaneie o QR code). Só isso.`
@@ -66,6 +71,7 @@ Frase de transição: `A comida que resolve seu jantar de hoje já está na sua 
 **Nota de design:** o passo 2 merece destaque visual (antes/depois: linha crua do cupom → ingrediente limpo). É o diferencial técnico traduzido em mágica visível. Nenhum concorrente resolve isso para cupom brasileiro.
 
 ### SEÇÃO 4 — O diferencial brasileiro
+
 **Gatilhos: exclusividade + identificação tribal.**
 
 - **Título:** `Feito para a cozinha brasileira. De verdade.`
@@ -76,6 +82,7 @@ Frase de transição: `A comida que resolve seu jantar de hoje já está na sua 
   - `Modo fitness, vegetariano e vegano — a despensa é a mesma, as receitas respeitam a sua escolha.`
 
 ### SEÇÃO 5 — Quanto custa a sua cozinha (feature de dinheiro)
+
 **Gatilho: ganho financeiro tangível.**
 
 - **Título:** `Seu mercado, em números.`
@@ -84,6 +91,7 @@ Frase de transição: `A comida que resolve seu jantar de hoje já está na sua 
 - **Sub-claim:** `Quem cozinha com o que tem, em vez de pedir delivery 2x por semana, guarda mais de R$ 400 por mês no bolso.` *(apresentar como conta ilustrativa: 8 deliveries × ~R$ 50)*
 
 ### SEÇÃO 5B — Nada vence esquecido (anti-desperdício)
+
 **Gatilhos: aversão à perda (dinheiro) + identidade sustentável como bônus.**
 
 - **Título:** `O CookMe avisa antes de virar lixo.`
@@ -93,6 +101,7 @@ Frase de transição: `A comida que resolve seu jantar de hoje já está na sua 
 - **Regra de tom:** o argumento principal é DINHEIRO salvo; sustentabilidade é a segunda voz, nunca a manchete. Para este público, "R$ no lixo" converte mais que apelo ecológico puro.
 
 ### SEÇÃO 6 — Prova social
+
 **Gatilho: consenso. REGRA DE HONESTIDADE: usar apenas depoimentos reais quando existirem.**
 
 - Se ainda não houver base de usuários: substituir por bloco "beta" — `Estamos abrindo o CookMe para os primeiros 500 usuários fundadores` (vira gatilho de escassez legítimo, ver Seção 8).
@@ -100,6 +109,7 @@ Frase de transição: `A comida que resolve seu jantar de hoje já está na sua 
 - Régua de números quando existirem: `X notas escaneadas · X receitas geradas · X kg de comida salvos do lixo`.
 
 ### SEÇÃO 7 — Objeções (FAQ enxuto, 5 perguntas)
+
 **Gatilho: remoção de risco. Respostas de 2-3 linhas, diretas.**
 
 1. **"Dá trabalho cadastrar tudo?"** → `Não. Você fotografa a nota e pronto — a IA faz o resto. Confirmar um ou outro item leva segundos.`
@@ -109,12 +119,14 @@ Frase de transição: `A comida que resolve seu jantar de hoje já está na sua 
 5. **"Quanto custa?"** → `Começa grátis. O plano completo custa menos que UM delivery por mês.` *(ancoragem — ver Seção 9)*
 
 ### SEÇÃO 8 — Oferta de lançamento
+
 **Gatilhos: escassez legítima + reciprocidade. Só usar escassez REAL (limite de vagas de fato aplicado).**
 
 - `🔓 Primeiros 500 usuários fundadores: plano completo grátis por 3 meses + preço de fundador para sempre.`
 - Contador de vagas restantes (real, ligado ao backend) ou remover contador — nunca fake.
 
 ### SEÇÃO 9 — Preço (se a página já vende o plano)
+
 **Gatilho: ancoragem.**
 
 - Duas colunas: **Grátis** (escaneia notas, despensa, X receitas/mês) vs **CookMe+** (receitas ilimitadas, modo fitness/vegano, alertas de validade, gastos do mês).
@@ -122,12 +134,14 @@ Frase de transição: `A comida que resolve seu jantar de hoje já está na sua 
 - CTA da coluna paga: `Testar grátis por 7 dias`.
 
 ### SEÇÃO 10 — CTA final (fechamento emocional)
+
 - **Headline:** `Hoje à noite, às 19h, a pergunta vai voltar.`
 - **Copy:** `"O que eu faço de janta?" — Dessa vez, você abre o CookMe e a resposta já está lá, feita com o que você já comprou.`
 - **CTA:** `Baixar o CookMe grátis`
 - Badges das lojas (App Store / Google Play) ou campo de e-mail para lista de espera.
 
 ### Rodapé
+
 Links: Política de Privacidade (destacar LGPD), Termos, contato. Selo: `Seus dados protegidos pela LGPD · Foto da nota nunca é armazenada`.
 
 ---
@@ -135,7 +149,7 @@ Links: Política de Privacidade (destacar LGPD), Termos, contato. Selo: `Seus da
 ## 4. Mapa de gatilhos mentais usados (para o gerador manter a intenção)
 
 | Gatilho | Onde | Regra de honestidade |
-|---|---|---|
+| --- | --- | --- |
 | Dor/agitação | Hero, Seção 2, CTA final | Dor real e universal — não exagerar números |
 | Aversão à perda | Seção 2, frase-síntese ("você já pagou por essa comida") | Estatística com fonte linkada |
 | Simplicidade / menor esforço | Seção 3 ("sem digitar nada") | Verdadeiro: OCR + confirmação mínima |
@@ -184,7 +198,7 @@ Links: Política de Privacidade (destacar LGPD), Termos, contato. Selo: `Seus da
 Status real das promessas da página, para decidir o que segurar ou marcar como "em breve":
 
 | Promessa na página | Status no produto |
-|---|---|
+| --- | --- |
 | Fotografar nota / OCR + IA classifica | ✅ Pronto |
 | QR code da nota (NFC-e) | ✅ Pronto (só SP — se o público for nacional, a página deve falar "foto da nota" como caminho principal e QR como bônus) |
 | Entende "CR LEITE ITALAC" → creme de leite | ✅ Pronto (melhorias em andamento) |

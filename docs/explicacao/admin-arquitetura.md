@@ -99,11 +99,13 @@
 ### Example 1: Load Users with Activity Level
 
 **Frontend Request:**
+
 ```javascript
 const response = await adminService.listUsers(1, 20, { role: 'user' });
 ```
 
 **Backend Processing:**
+
 ```
 1. Controller receives GET /admin/usuarios?page=1&limit=20&role=user
 2. Service queries Usuario table with role filter
@@ -118,6 +120,7 @@ const response = await adminService.listUsers(1, 20, { role: 'user' });
 ```
 
 **Frontend Display:**
+
 ```
 ┌─────────────────────────────────────────────┐
 │ User Name          │ user@email.com          │
@@ -129,11 +132,13 @@ const response = await adminService.listUsers(1, 20, { role: 'user' });
 ### Example 2: Load Products with Quality & Popularity
 
 **Frontend Request:**
+
 ```javascript
 const response = await adminService.listProducts(1, 20, { search: 'arroz' });
 ```
 
 **Backend Processing:**
+
 ```
 1. Controller receives GET /admin/produtos?page=1&limit=20&search=arroz
 2. Service:
@@ -148,6 +153,7 @@ const response = await adminService.listProducts(1, 20, { search: 'arroz' });
 ```
 
 **Database Queries:**
+
 ```sql
 -- Main query
 SELECT produto.*, categoria.*, marca.*
@@ -165,6 +171,7 @@ GROUP BY produto_id;
 ```
 
 **Frontend Display:**
+
 ```
 ┌─────────────────────────────────────────────┐
 │ ARROZ BRANCO 5KG                            │
@@ -178,6 +185,7 @@ GROUP BY produto_id;
 ### Example 3: Archive a Recipe (Moderation)
 
 **Frontend Request:**
+
 ```javascript
 await adminService.atualizarModeracaoReceita(
   'recipe-uuid-123',
@@ -186,6 +194,7 @@ await adminService.atualizarModeracaoReceita(
 ```
 
 **Backend Processing:**
+
 ```
 1. Controller receives PATCH /admin/receitas/recipe-uuid-123/moderacao
 2. Body: { status: "arquivado" }
@@ -197,6 +206,7 @@ await adminService.atualizarModeracaoReceita(
 ```
 
 **Database Change:**
+
 ```sql
 UPDATE receita
 SET status_moderacao = 'arquivado'
@@ -210,6 +220,7 @@ WHERE id = 'recipe-uuid-123';
 **Decision:** Calculate on read, don't store in database
 
 **Rationale:**
+
 - Reduces database schema complexity
 - Avoids synchronization issues
 - Fields update automatically as underlying data changes
@@ -222,6 +233,7 @@ WHERE id = 'recipe-uuid-123';
 **Decision:** Use LEFT JOIN receita_ingredientes instead of separate queries
 
 **Rationale:**
+
 - Single efficient query instead of N+1 problem
 - Database can optimize join execution
 - All usage data fetched in one round trip
@@ -231,6 +243,7 @@ WHERE id = 'recipe-uuid-123';
 **Decision:** Apply pagination at database query level, not in-memory
 
 **Rationale:**
+
 - Scales to large datasets (100K+ records)
 - Consistent with REST API best practices
 - Frontend doesn't need to fetch entire dataset
@@ -240,24 +253,29 @@ WHERE id = 'recipe-uuid-123';
 All admin endpoints require:
 
 1. **Bearer Token:** JWT in Authorization header
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 ```
 
 2. **Role Check:** Can be added in guards (currently not enforced at admin level)
+
 ```typescript
 @UseGuards(JwtAuthGuard)
 // Can add @Roles('admin') if needed
 ```
 
 3. **Database User Table** stores:
+
 - `id`, `email`, `nome`, `role` (user/moderador/admin)
 - `ultimo_acesso`, `email_verificado`, `alertas_habilitados`
 
 ## Performance Considerations
 
 ### Database Indexes
+
 Required for optimal performance:
+
 ```sql
 -- Usuario table
 CREATE INDEX idx_usuario_role ON usuario(role);
@@ -277,12 +295,14 @@ CREATE INDEX idx_ingrediente_receita ON receita_ingrediente(receita_id);
 ```
 
 ### Query Optimization
+
 - Product popularity calculation uses indexed LEFT JOIN
 - User filters by role (indexed) and search (ILIKE if necessary)
 - Recipe filters by dificuldade, categoria (indexed)
 - Pagination: LIMIT + OFFSET
 
 ### Caching
+
 - Dashboard stats endpoint: 3-minute TTL
 - Other endpoints: No caching (real-time data required)
 

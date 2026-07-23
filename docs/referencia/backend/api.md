@@ -5,7 +5,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 ## Auth `/auth`
 
 | Método | Rota | Descrição | Auth |
-|--------|------|-----------|------|
+| -------- | ------ | ----------- | ------ |
 | POST | `/auth/register` | Registrar novo usuário | público |
 | POST | `/auth/login` | Login email/senha | público |
 | POST | `/auth/google-login` | Login via Google (`idToken`) | público |
@@ -16,6 +16,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 | GET | `/auth/me` | Dados do usuário autenticado | ✓ |
 
 **Response auth:**
+
 ```json
 {
   "access_token": "...",
@@ -29,7 +30,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 ## Usuários `/usuarios`
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/usuarios/me` | Perfil do usuário |
 | PATCH | `/usuarios/me` | Atualizar perfil |
 | POST | `/usuarios/me/avatar` | Upload avatar (multipart, campo `file`, máx 5MB) |
@@ -39,6 +40,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 | PATCH | `/usuarios/push-token` | Salvar push token do dispositivo |
 
 **Preferências (`UpdatePreferenciaDto`):**
+
 ```json
 {
   "modo_alimentar": "normal | fitness | vegetariano | vegano",
@@ -54,7 +56,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 ### Banco e disponibilidade
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/receitas/disponiveis` | Lista receitas com cobertura baseada no inventário do usuário. Inclui parciais (40-69%). Aplica filtro por `modo_alimentar`. |
 | GET | `/receitas/quase-possiveis` | Receitas com cobertura 40-74% (quase possíveis). Ordenado por menos ingredientes faltando. |
 | GET | `/receitas/mais-feita-hoje` | Receita mais feita hoje (ou mais popular global), filtrada por modo alimentar |
@@ -62,6 +64,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 | GET | `/receitas/:id` | Receita por ID com cobertura do usuário |
 
 **Response `/receitas/disponiveis`:**
+
 ```json
 {
   "total": 42,
@@ -86,7 +89,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 ### Favoritos
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/receitas/favoritas` | Lista receitas favoritas |
 | POST | `/receitas/:id/favoritar` | Toggle favorito (add/remove) |
 | GET | `/receitas/:id/favoritado` | Verifica se está favoritada |
@@ -94,12 +97,13 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 ### Minhas receitas (enviadas pelo usuário)
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/receitas/minhas` | Lista receitas criadas pelo usuário |
 | POST | `/receitas/minhas` | Cria receita (entra em revisão `status_moderacao: em_revisao`) |
 | DELETE | `/receitas/minhas/:id` | Remove própria receita |
 
 **Body POST `/receitas/minhas`:**
+
 ```json
 {
   "titulo": "Frango Grelhado",
@@ -118,7 +122,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 ### Execução e aprendizado
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/receitas/executadas` | Histórico de receitas executadas (50 últimas) |
 | POST | `/receitas/:id/executar` | Registrar execução + incrementa contador global |
 | GET | `/receitas/perfil-aprendizado` | Perfil de aprendizado do CookMe sobre o usuário |
@@ -130,6 +134,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 | POST | `/receitas/:id/comprar-faltando` | Adiciona ingredientes faltantes da receita à lista de compras ativa |
 
 **Body:**
+
 ```json
 { "lista_id": "uuid-opcional" }
 ```
@@ -142,24 +147,27 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 | POST | `/receitas/gerar/test` | TEST: gera sem autenticação [público] |
 
 **Body POST `/receitas/gerar`:**
+
 ```json
 {
   "ingredientes": ["arroz", "frango"],
   "forcar_ia": false
 }
 ```
+
 `ingredientes` vazio → usa todos do inventário do usuário.
 
 ### OCR cupom fiscal
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | POST | `/receitas/ocr/extract-from-image` | OCR de imagem via Gemini Vision (`image` base64, `mimeType?`) |
 | POST | `/receitas/ocr/process` | Processa texto OCR de múltiplas fotos, deduplication |
 | POST | `/receitas/ocr/validate` | Valida/confirma itens após review |
 | POST | `/receitas/ocr/classify-items` | Classifica itens como alimento/não-alimento via IA |
 
 **Body POST `/receitas/ocr/process`:**
+
 ```json
 {
   "photos": [
@@ -177,7 +185,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 ## Inventário `/inventario`
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/inventario` | Lista inventário com detalhes de classificação. Query: `ingrediente_receita=true/false` |
 | POST | `/inventario` | Adicionar item (DTO completo) |
 | POST | `/inventario/adicionar-manual` | Adicionar por nome: `{ nome, quantidade, unidade, data_validade? }` |
@@ -201,7 +209,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 ### Listas
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | POST | `/listas` | Criar lista |
 | GET | `/listas` | Listar todas as listas do usuário |
 | GET | `/listas/:id` | Obter lista por ID |
@@ -214,7 +222,7 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 ### Itens da lista
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | POST | `/listas/:listaId/itens` | Adicionar item |
 | GET | `/listas/:listaId/itens` | Listar itens |
 | PUT | `/listas/:listaId/itens/:itemId` | Atualizar item |
@@ -228,10 +236,10 @@ Todos os endpoints têm prefixo `/api`. Autenticação via `Authorization: Beare
 Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/planejamento/semana/:semana` | Lista planejamento da semana (1-4) |
 | GET | `/planejamento/hoje` | Receita do dia (almoço de hoje) |
-| POST | `/planejamento/semana/:semana/dia/:dia/:tipo` | Definir receita. Body: `{ receita_id: "uuid" | null }` |
+| POST | `/planejamento/semana/:semana/dia/:dia/:tipo` | Definir receita. Body: `{ receita_id: "uuid" \| null }` |
 | POST | `/planejamento/semana/:semana/aleatorio` | Gera semana aleatória. Body: `{ apenas_regional?: false }` |
 | POST | `/planejamento/:id/feita` | Marcar como feita. Body: `{ avaliacao?: 1-5 }` |
 | DELETE | `/planejamento/semana/:semana/dia/:dia` | Limpar dia. Query: `tipo=almoco\|jantar` |
@@ -241,7 +249,7 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 ## Compras `/compras`
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | POST | `/compras` | Criar compra com itens |
 | GET | `/compras` | Listar compras. Query: `limit`, `mes`, `ano` |
 | GET | `/compras/stats` | Estatísticas de compras |
@@ -257,7 +265,7 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 ## Produtos `/produtos`
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | POST | `/produtos` | Criar produto |
 | GET | `/produtos` | Listar (cache 5min). Query: `search`, `categoriaId`, `page=1`, `limit=50` |
 | GET | `/produtos/search` | Autocomplete (cache 10min). Query: `q` |
@@ -274,7 +282,7 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 ## Notificações `/notificacoes`
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/notificacoes` | Listar notificações do usuário. Query: `naoLidas=true` |
 | GET | `/notificacoes/nao-lidas/count` | Contar não lidas |
 | PATCH | `/notificacoes/marcar-todas/lido` | Marcar todas como lidas |
@@ -285,8 +293,9 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 **WebSocket:** `ws://localhost:3000/notificacoes` (Socket.io)
 
 **Triggers disponíveis:**
+
 | Trigger | Quando usar |
-|---------|------------|
+| --------- | ------------ |
 | `receitaDenunciada(id, nome, contador)` | Ao registrar denúncia de receita |
 | `novoUsuario(id, nome, email)` | No cadastro de novo usuário |
 | `usuarioInativo(id, nome, diasInativo)` | Job diário — 30+ dias sem acesso |
@@ -308,7 +317,7 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 ## IA `/ia`
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | POST | `/ia/classificar-produto` | Classifica produto: `{ nome_produto }` |
 | POST | `/ia/gerar-receita` | Gera receita: `{ ingredientes[], preferencias? }` |
 | POST | `/ia/sugerir-compras` | Sugere compras: `{ inventario[], receitas_desejadas[] }` |
@@ -318,7 +327,7 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 ## Stripe `/stripe`
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/stripe/planos` | Lista planos disponíveis |
 | POST | `/stripe/checkout` | Cria sessão Stripe Checkout. Body: `{ plano: "premium_mensal\|premium_anual\|familia" }` |
 | POST | `/stripe/portal` | Abre portal de gerenciamento de assinatura |
@@ -333,7 +342,7 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 ### Produtos
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/admin/produtos` | Lista com filtros e paginação |
 | GET | `/admin/produtos/categorias` | Lista categorias |
 | GET | `/admin/produtos/stats` | Estatísticas de produtos |
@@ -342,7 +351,7 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 ### Usuários
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/admin/usuarios` | Lista. Query: `page`, `limit`, `search`, `role` |
 | GET | `/admin/usuarios/stats` | Estatísticas |
 | POST | `/admin/usuarios` | Criar usuário |
@@ -352,7 +361,7 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 ### Receitas
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/admin/receitas` | Lista receitas com filtros |
 | POST | `/admin/receitas/popular-banco` | Popula banco — body: `{ modos?: ["normal","fitness","vegetariano","vegano"] }` |
 | POST | `/admin/receitas/popular-banco/:modo` | Popula modo específico: `normal\|fitness\|vegetariano\|vegano` |
@@ -360,7 +369,7 @@ Semanas 1-4 do mês. Dias 0=domingo … 6=sábado. Tipos: `almoco` | `jantar`.
 ### Sistema
 
 | Método | Rota | Descrição |
-|--------|------|-----------|
+| -------- | ------ | ----------- |
 | GET | `/admin/stats` | Estatísticas gerais do sistema |
 | GET | `/admin/health` | Health check |
 | GET | `/health` | Health check público |

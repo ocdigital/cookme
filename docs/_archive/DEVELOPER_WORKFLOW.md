@@ -30,6 +30,7 @@ A forma mais eficiente de desenvolver é usar 3 terminais:
 ```
 
 Isso fará:
+
 - ✅ Inicia Docker (PostgreSQL + Redis)
 - ✅ Instala dependências automaticamente
 - ✅ Inicia Backend (NestJS)
@@ -37,6 +38,7 @@ Isso fará:
 - ✅ Inicia Mobile (Expo React Native)
 
 **Output esperado:**
+
 ```
 ✅ Docker pronto! (PostgreSQL: 5432, Redis: 6379)
 ✅ Backend rodando em http://localhost:3000
@@ -53,11 +55,13 @@ Isso fará:
 ```
 
 Isso mostrará:
+
 - 📊 Logs em tempo real de todos os serviços
 - 🎨 Cor-codificado por tipo (erro, sucesso, aviso)
 - 📱 Logs do Backend, Frontend e Mobile simultaneamente
 
 **Alternativas:**
+
 ```bash
 ./monitor-logs.sh errors     # Apenas erros
 ./monitor-logs.sh backend    # Apenas backend
@@ -79,6 +83,7 @@ vim src/
 ```
 
 Aqui você:
+
 - 💻 Edita código
 - 🔄 Os serviços recarregam automaticamente (HMR)
 - 📊 Vê os logs em tempo real no Terminal 2
@@ -110,10 +115,10 @@ Aqui você:
 Enquanto os terminais 1 e 2 estão rodando:
 
 | Serviço | URL | Atalho |
-|---------|-----|--------|
-| Backend | http://localhost:3000 | - |
-| Swagger | http://localhost:3000/api/docs | - |
-| Frontend | http://localhost:5173 | - |
+| --------- | ----- | -------- |
+| Backend | <http://localhost:3000> | - |
+| Swagger | <http://localhost:3000/api/docs> | - |
+| Frontend | <http://localhost:5173> | - |
 | Mobile | Escanear QR code | 'a' para Android |
 
 ---
@@ -274,16 +279,19 @@ cp .mobile.log logs/mobile-$(date +%s).log
 Cada serviço recarrega automaticamente quando você edita:
 
 ### Backend (NestJS)
+
 - ✅ Recarrega em ~2 segundos
 - ✅ Mantém estado do banco de dados
 - ✅ Socket connections são re-estabelecidas
 
 ### Frontend (Vite React)
+
 - ✅ Recarrega em ~1 segundo
 - ✅ Fast Refresh preserva estado do componente
 - ✅ Sem necessidade de refresh do navegador
 
 ### Mobile (Expo)
+
 - ✅ Fast Refresh (~1-2 segundos)
 - ✅ App atualiza no device em tempo real
 - ✅ Sem perder estado durante alterações
@@ -313,6 +321,7 @@ Cada serviço recarrega automaticamente quando você edita:
 ### Mesmo WiFi
 
 ⚠️ **IMPORTANTE:**
+
 - Device e computador DEVEM estar no mesmo WiFi
 - Se não funcionar, use IP em vez de localhost:
   - `exp://192.168.86.9:8081`
@@ -379,7 +388,7 @@ npx expo start --clear
 - [ ] `./startup.sh` em Terminal 1
 - [ ] Aguarde ~30 segundos
 - [ ] `./monitor-logs.sh` em Terminal 2
-- [ ] Acessar http://localhost:5173 em Terminal 3
+- [ ] Acessar <http://localhost:5173> em Terminal 3
 - [ ] Ver logs em tempo real no Terminal 2
 - [ ] Fazer alteração de teste
 - [ ] Ver alteração refletir em ~1-2 segundos
@@ -391,7 +400,7 @@ npx expo start --clear
 1. **Setup**: `./startup.sh`
 2. **Monitor**: `./monitor-logs.sh` (em outro terminal)
 3. **Develop**: Edite arquivos e veja mudanças em tempo real
-4. **Test**: Acesse http://localhost:5173
+4. **Test**: Acesse <http://localhost:5173>
 5. **Debug**: Use logs para ver o que está acontecendo
 
 ---
@@ -399,6 +408,7 @@ npx expo start --clear
 **Você está pronto para desenvolver! 🚀**
 
 Dúvidas? Veja:
+
 - [STARTUP_SCRIPT.md](STARTUP_SCRIPT.md) - Scripts de startup
 - [QUICK_START.md](QUICK_START.md) - Início rápido
 - [README.md](README.md) - Visão geral do projeto

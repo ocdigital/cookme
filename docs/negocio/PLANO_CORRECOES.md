@@ -34,10 +34,12 @@ biblioteca pessoal entre usuários. O padrão CORRETO já existe em `listarDispo
 (`receita-banco.service.ts:231-232` público estrito + `:244-246` importadas só do dono) — replicá-lo.
 
 ### 1.1 Matching de geração inclui importadas
+
 - **Onde**: `backend/src/modules/receitas/services/receita-banco.service.ts:166` — `buscarPorIngredientes` usa `.andWhere('(r.url_fonte IS NULL OR r.autor_id IS NOT NULL)')`.
 - **Fazer**: trocar por `.andWhere('r.url_fonte IS NULL').andWhere('r.autor_id IS NULL')`.
 
 ### 1.2 RAG busca em tudo e o flag de proteção é inócuo
+
 - **Onde**: `backend/src/modules/receitas/services/recipe-rag.service.ts`
   - `:104` — assinatura `buscarSimilares(..., apenasPublicas = false)`;
   - `:129-131` — quando `apenasPublicas=true`, o filtro aplicado é `AND (url_fonte IS NULL OR autor_id IS NOT NULL)` — mesmo erro do 1.1, não bloqueia importadas;
@@ -45,11 +47,14 @@ biblioteca pessoal entre usuários. O padrão CORRETO já existe em `listarDispo
 - **Fazer**: tornar o filtro **incondicional** no SQL de `buscarSimilares`: `AND url_fonte IS NULL AND autor_id IS NULL`. Remover o parâmetro `apenasPublicas` (e limpar a chave de cache que o inclui) — nenhum caminho legítimo precisa de receitas importadas no RAG.
 
 ### 1.3 `GET /receitas/:id` sem checagem de dono
+
 - **Onde**: `backend/src/modules/receitas/controllers/receitas-usuario.controller.ts:458-461` — `buscarPorId` retorna qualquer receita por ID a qualquer usuário autenticado.
 - **Fazer**: após carregar a receita, se `receita.autor_id !== null && receita.autor_id !== user.id` → `NotFoundException` (404, não 403 — não confirmar existência).
 
 ### 1.4 Teste de regressão (escrever ANTES dos fixes 1.1-1.3)
+
 Teste de integração (ou unit com repo mockado consistente):
+
 - Semear: receita pública (`autor_id=null, url_fonte=null`), receita importada do usuário A (`autor_id=A, url_fonte='https://...'`).
 - Afirmar: (a) `buscarPorIngredientes` nunca retorna a importada; (b) `buscarSimilares` nunca retorna a importada; (c) `GET /receitas/:id` da importada como usuário B → 404; como usuário A → 200 com badge `fonte.tipo='web'`.
 - **Critério de aceite da fase**: os 3 asserts passam; `listarDisponiveisParaUsuario` continua incluindo importadas do próprio dono (não regredir a listagem).
@@ -59,11 +64,13 @@ Teste de integração (ou unit com repo mockado consistente):
 ## FASE 2 — Fixes rápidos de corretude
 
 ### 2.1 Filtro de dieta desligado na geração (fix de 1 linha)
+
 - **Onde**: `backend/src/modules/receitas/services/recipe-generator.service.ts:83` — chama `this.ragService.gerarComRAG(ingredientes)` omitindo `modoAlimentar`, que a função aceita e usa para filtrar `tags_dieta`.
 - **Fazer**: propagar `modoAlimentar` (e `tipoRefeicao` se disponível no fluxo) do chamador até esta chamada. Verificar assinatura da cadeia acima (`gerarReceitas`/controller) e adicionar o parâmetro onde faltar.
 - **Teste**: mock do `ragService`; chamar geração com `modo_alimentar='vegano'`; afirmar que `gerarComRAG` recebeu `'vegano'`.
 
 ### 2.2 Endpoints duplicados de "executar receita" (dupla contagem)
+
 - **Onde**: dois caminhos vivos gravando `receitas_executadas` e incrementando `vezes_executada`:
   - `backend/src/modules/receitas/controllers/receitas-usuario.controller.ts:526` — `POST :id/executar` (registra + incrementa + responde "Algum ingrediente acabou?");
   - `backend/src/modules/receitas/controllers/recipe-execution.controller.ts:37,86` — `POST :id/executar` (iniciar) + `:id/executar/:execucao_id/finalizar` (incrementa de novo).
@@ -72,11 +79,13 @@ Teste de integração (ou unit com repo mockado consistente):
 - **Teste**: executar fluxo completo iniciar→finalizar → `vezes_executada` incrementa exatamente 1; `receitas_executadas` tem exatamente 1 linha.
 
 ### 2.3 JWT via argv do subprocess Python
+
 - **Onde**: `backend/src/modules/scraper/scraper.service.ts:253-267` — token JWT de 2h passado como `--token` em argumento de linha de comando (visível em `ps`/`/proc`).
 - **Fazer**: passar via variável de ambiente do processo filho (`spawn(..., { env: { ...process.env, COOKME_SESSION_TOKEN: userToken } })`) e ajustar `lib/captcha_manual.py` para ler `os.environ['COOKME_SESSION_TOKEN']` com fallback para `--token` (compatibilidade durante transição).
 - **Teste**: unit do service afirmando que `spawn` não recebe `--token` nos args.
 
 ### 2.4 Remover `mobile/.env.production` do versionamento
+
 - **Fazer**: `git rm --cached mobile/.env.production`, adicionar ao `.gitignore`, criar `mobile/.env.production.example` com as chaves sem valores. Conteúdo atual é público (EXPO_PUBLIC_*), sem necessidade de rotação.
 
 ---
@@ -88,18 +97,22 @@ produto (`compras.service.ts:473-487`) e descartado. EAN é a chave canônica de
 aprendido `EAN → ingrediente`, recompra resolve com zero ambiguidade.
 
 ### 3.1 Migration
+
 ```sql
 ALTER TABLE compra_itens ADD COLUMN codigo_barras VARCHAR(14);
 ALTER TABLE product_knowledge_base ADD COLUMN codigo_barras VARCHAR(14);
 CREATE INDEX idx_pkb_codigo_barras ON product_knowledge_base (codigo_barras) WHERE codigo_barras IS NOT NULL;
 ```
+
 Atualizar entities correspondentes (`compra-item.entity.ts`, `product-knowledge-base.entity.ts`).
 
 ### 3.2 Persistir na ingestão (ambos os caminhos)
+
 - Caminho OCR: em `salvarItensCupomNoInventario` (`compras.service.ts`), gravar `item.codigo_barras` no `CompraItem`.
 - Caminho QR/Python: verificar payload que `lib/captcha_manual.py` envia ao `POST /compras` (o item da SEFAZ tem código EAN); garantir que o DTO aceita e grava.
 
 ### 3.3 EAN como estágio 0 da canonização
+
 - **Onde**: `backend/src/modules/product-classification/services/ocr-alias.service.ts:276` — `resolverNomeCanônico` começa por abreviações.
 - **Fazer**: novo estágio ANTES de todos: se o chamador tiver EAN, lookup `product_knowledge_base.codigo_barras` → retorna canônico direto. Toda resolução bem-sucedida COM EAN presente grava o EAN na KB (aprende para sempre). Requer propagar EAN pela assinatura (`resolverNomeCanônico(nomeOcr, codigoBarras?)` e `resolverLote`).
 - **Teste**: resolver `("CR LEITE ITALAC 200GR", "7891234567890")` → grava EAN na KB; segunda chamada com MESMO EAN e nome totalmente diferente (`"CREME LEITE TRAD 200G"`) → resolve pelo EAN sem passar pelos outros estágios.
@@ -109,19 +122,23 @@ Atualizar entities correspondentes (`compra-item.entity.ts`, `product-knowledge-
 ## FASE 4 — Canonização: acurácia mensurável e fixes
 
 ### 4.1 Fix: marca na frente quebra o estágio de abreviações
+
 - **Onde**: `backend/src/modules/product-classification/services/abbreviation.service.ts:326-358` — `expand()` só testa prefixos de 1-3 tokens do INÍCIO. `"ITALAC CR LEITE 200GR"` não casa (marca primeiro é ordem comum em cupom).
 - **Fazer**: antes do matching em `resolverNomeCanônico`, pré-limpar o nome removendo `BRAND_WORDS` e `PACKAGING_PATTERNS` (ambos já existem em `ocr-alias.service.ts:11-66`) e SÓ ENTÃO chamar `expand()`. Alternativa complementar: janela deslizante de 1-3 tokens sobre a string toda em vez de só prefixo.
 - **Teste**: `"ITALAC CR LEITE 200GR"` → `creme de leite`; `"CR LEITE ITALAC 200GR"` → `creme de leite` (não regredir).
 
 ### 4.2 Golden test set + métrica de acurácia
+
 - **Fazer**: criar `backend/test/fixtures/cupom-golden.json` com ~100-200 pares reais `{nome_ocr, esperado}` (extrair exemplos de `compra_itens.nome_ocr` + `ingrediente_canonical` já validados no banco, completar manualmente). Teste Jest que roda `resolverLote` no set e falha se acurácia < limiar (começar com o valor medido atual, ratchet para cima).
 - **Critério de aceite**: teste no CI reportando acurácia numérica; baseline documentado no próprio arquivo de teste.
 
 ### 4.3 Contadores por estágio
+
 - **Fazer**: em `resolverNomeCanônico`, contar resoluções por estágio (`ean | abreviacao | kb_exato | fuzzy | regex | normalizer | fallback`). Persistência simples (incremento em tabela `canonizacao_stats` ou log estruturado agregável). Expor `GET /admin/canonizacao/stats`.
 - **Por quê**: % caindo em `fallback` = fila de curadoria; medir efeito de cada melhoria.
 
 ### 4.4 Correção do usuário fecha o loop
+
 - **Fazer**: localizar o fluxo de validação manual do mobile (`product-validation` / tela `validacao.tsx`). Garantir que correção do usuário: (a) atualiza `canonical_ingredient` na KB para aquele `normalized_name` (e EAN, se houver); (b) incrementa contador de confiança. Se já fizer parte, cobrir com teste; se não, implementar.
 - **Teste**: usuário corrige `"X"` de `errado` para `certo` → próxima resolução de `"X"` retorna `certo` sem IA.
 
@@ -130,7 +147,9 @@ Atualizar entities correspondentes (`compra-item.entity.ts`, `product-knowledge-
 ## FASE 5 — Instrumentação (ANTES do paywall)
 
 ### 5.1 Eventos de uso (retenção D7/D30)
+
 - **Migration**:
+
 ```sql
 CREATE TABLE eventos_uso (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -142,11 +161,13 @@ CREATE TABLE eventos_uso (
 CREATE INDEX idx_eventos_uso_usuario_data ON eventos_uso (usuario_id, criado_em);
 CREATE INDEX idx_eventos_uso_evento_data ON eventos_uso (evento, criado_em);
 ```
+
 - **Eventos mínimos** (service `EventosUsoService` + chamadas nos pontos): `app_open` (novo endpoint leve `POST /eventos/app-open` chamado pelo mobile ao abrir), `cupom_lido` (fim do OCR e do QR), `receita_gerada` (`POST /receitas/gerar`), `receita_feita` (finalizar execução), `paywall_visto`, `assinatura_criada` (webhook Stripe).
 - **Query D7/D30**: view ou endpoint admin `GET /admin/metricas/retencao` — cohort por semana de cadastro × % com `app_open` em D7/D30.
 - **LGPD**: adicionar `eventos_uso` à cascata de exclusão (o CASCADE da FK cobre) e mencionar na documentação de dados coletados.
 
 ### 5.2 Observabilidade da cadeia de LLM
+
 - **Molde já existe**: `ai_classification_logs` tem tokens, custo decimal(10,6) e latência (`ai-classification-log.entity.ts:41-47`). Replicar para geração.
 - **Migration**: tabela `llm_chamadas (id, contexto VARCHAR(30) /* geracao|rag_adaptacao|validacao */, provider VARCHAR(20), modelo VARCHAR(60), tokens_in INT, tokens_out INT, latencia_ms INT, sucesso BOOLEAN, erro TEXT, custo_estimado DECIMAL(10,6), criado_em TIMESTAMP DEFAULT now())`.
 - **Instrumentar**: os 3 ramos do fallback em `recipe-generator.service.ts` (Haiku `:193-209`, Gemini `:214-222`, Groq `:227+`), o RAG (`recipe-rag.service.ts` embedding + adaptação Haiku) e a validação (`recipe-validation.service.ts`). Registrar TAMBÉM as falhas (é o dado que faltou quando o crédito Anthropic zerou).
@@ -158,20 +179,23 @@ CREATE INDEX idx_eventos_uso_evento_data ON eventos_uso (evento, criado_em);
 ## FASE 6 — Caminho QR: robustez e rota nacional
 
 ### 6.1 Sessões persistentes
+
 - **Onde**: `backend/src/modules/scraper/scraper.service.ts:23-25` — `activeSessions` é `Map` em RAM; restart do pm2 perde sessões em andamento; `MAX_CONCURRENT_SESSIONS=5` global.
 - **Fazer**: persistir sessões em Redis (container `cookme_redis` já roda) ou tabela `scraper_sessoes`; na inicialização do módulo, marcar sessões órfãs (`status='em_andamento'` sem processo) como `erro` com mensagem amigável.
 
 ### 6.2 Mensagem clara fora de SP (paliativo até o 6.3 cobrir a UF)
+
 - Cobertura atual: NFC-e SP (`lib/captcha_manual.py:487`) e SAT-SP (`:527`) apenas. QR de outra UF hoje vira erro genérico.
 - **Fazer**: no parse inicial do QR (backend, antes de spawnar o Python), detectar UF pela chave de acesso (posições 1-2 da chave de 44 dígitos = código IBGE da UF; SP=35). Se a UF não for suportada → resposta imediata orientando usar a foto do cupom (OCR), sem gastar sessão.
 - **Teste**: QR com chave iniciando em `52...` (GO) → erro amigável com `sugestao: 'ocr'`, sem spawn.
 
 ### 6.3 Reescrever o caminho QR: consulta autenticada pela URL do QR (rota nacional, mata o captcha)
+
 **Contexto — o código atual faz do jeito difícil.** O QR v2 da NFC-e (padrão nacional ENCAT) contém a
 URL de consulta da UF + a chave + um hash de autenticação (`cHashQRCode`, assinado com o CSC do
 emissor). Esse hash prova que a consulta veio do cupom físico — por isso o endpoint de consulta VIA QR
 das SEFAZes retorna a nota **sem captcha** na maioria das UFs. O portal nacional
-(http://nfc-e.encat.org/) lista as URLs de consulta das 27 UFs. O `lib/captcha_manual.py` hoje descarta
+(<http://nfc-e.encat.org/>) lista as URLs de consulta das 27 UFs. O `lib/captcha_manual.py` hoje descarta
 a URL do QR, extrai só a chave e entra pela **consulta pública manual** — que é a rota COM captcha, daí
 o Selenium/Chrome headless e a fragilidade toda do achado A-1.
 
@@ -184,7 +208,7 @@ o Selenium/Chrome headless e a fragilidade toda do achado A-1.
   3. Manter o caminho Python/Selenium apenas como fallback do SAT-SP (CF-e, que é outro fluxo) até
      decidir aposentá-lo.
   4. **Alternativa comprada (avaliar ANTES de escrever parsers):** API unificada de consulta NFC-e da
-     InfoSimples (https://infosimples.com/consultas/sefaz-nfce/) — cobertura nacional imediata, custo
+     InfoSimples (<https://infosimples.com/consultas/sefaz-nfce/>) — cobertura nacional imediata, custo
      por consulta. Decisão: se o custo por consulta for baixo o suficiente para caber no limite do plano
      grátis, usar na fase de validação e trocar por parsers próprios quando o volume justificar.
      Registrar o custo por leitura em `llm_chamadas`/tabela análoga para o unit economics ficar visível.
@@ -209,6 +233,7 @@ e o boost é fraco e restrito ao `paraMim`. O comentário em `compra-item.entity
 "manual > escaneada > estimada" — a estimada nunca foi implementada.
 
 ### 7.1 Validade estimada por categoria (o fix que destrava tudo)
+
 - **Fazer**: migration `ALTER TABLE produtos ADD COLUMN validade_padrao_dias INT;` + seed de defaults
   por categoria (referência inicial: hortifrúti folhas 5, frutas 7, carne/frango/peixe resfriado 3,
   congelados 90, leite/iogurte fresco 7, queijos 15, ovos 30, pães 5, grãos/massas/enlatados 365,
@@ -221,6 +246,7 @@ e o boost é fraco e restrito ao `paraMim`. O comentário em `compra-item.entity
   `data_validade = compra + 3 dias`; item com validade manual preexistente NÃO é sobrescrito.
 
 ### 7.2 Push de vencimento (re-engajamento)
+
 - **Fazer**: novo cron diário (ex: 10h) no módulo de inventário/notificações: para cada usuário com
   itens `data_validade <= hoje+3` e `esgotado=false`, enviar UM push agregado
   (`"🥩 Frango e creme de leite vencem em breve — veja 3 receitas para usar hoje"`) com deep link para
@@ -232,6 +258,7 @@ e o boost é fraco e restrito ao `paraMim`. O comentário em `compra-item.entity
   mesmo dia → zero push.
 
 ### 7.3 Peso do "vencendo" no ranking
+
 - **Onde**: `recipe-suggestion.service.ts:304-308` — hoje `temVencendo` soma `+0.1` (menos que favorito
   `+0.3`), e só no `paraMim`.
 - **Fazer**: subir para `+0.25` (usar o que está vencendo importa mais que preferência num horizonte de
@@ -242,6 +269,7 @@ e o boost é fraco e restrito ao `paraMim`. O comentário em `compra-item.entity
   `usa_vencendo` preenchido.
 
 ### 7.4 Ligar `ocr-validade` no mobile (menor prioridade da fase)
+
 - Backend `POST /compras/ocr-validade` existe; mobile nunca chama. Adicionar na tela de item da
   despensa/validação a ação "📷 escanear validade do rótulo" preenchendo `validade_escaneada`.
   Fazer por último — escanear rótulo é fricção; a estimativa (7.1) já resolve 90% do valor.
@@ -251,7 +279,7 @@ e o boost é fraco e restrito ao `paraMim`. O comentário em `compra-item.entity
 ## Ordem de execução e PRs
 
 | PR | Fases | Branch sugerida |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Fase 1 (jurídico) | `fix/vazamento-receitas-importadas` |
 | 2 | Fase 2 (corretude) | `fix/dieta-execucao-token-env` |
 | 3 | Fase 3 (EAN) | `feat/ean-ponta-a-ponta` |

@@ -626,21 +626,25 @@ STRIPE_CANCEL_URL=https://cookme.app/cancel
 ### 8. Roadmap de Implementação (Técnico)
 
 **Semana 1-2:** Setup Stripe + BD
+
 - [ ] Criar tabelas no banco
 - [ ] Integrar Stripe SDK
 - [ ] Implementar webhook do Stripe
 
 **Semana 3-4:** APIs de Monetização
+
 - [ ] Endpoints de recomendações
 - [ ] Endpoints de afiliados
 - [ ] Endpoints de assinatura
 
 **Semana 5-6:** Frontend Premium
+
 - [ ] Modal de assinatura
 - [ ] Verificação de acesso
 - [ ] Bloqueio de features
 
 **Semana 7-8:** Testes + Launch
+
 - [ ] Testes E2E
 - [ ] Testes de conversão
 - [ ] Deploy em produção

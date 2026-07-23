@@ -11,6 +11,7 @@
 Hoje o app é **100% online**. Cada abertura de tela dispara requests à API. Sem conexão = tela em branco ou erro. Isso é inaceitável para um app de cozinha: o usuário está no meio do preparo e perde o WiFi, ou está no mercado sem 4G bom.
 
 **Referências estudadas:**
+
 - [TanStack Query offline docs](https://tanstack.com/query/latest/docs/framework/react/guides/optimistic-updates)
 - [React Native offline-first com TanStack Query + SQLite](https://github.com/kapobajza/React_Native_Offline_first_sample)
 - [MMKV + Zustand offline setup](https://medium.com/@nithinpatelmlm/expo-react-native-easy-offline-first-setup-in-expo-using-mmkv-and-zustand-react-native-mmkv-and-68f662c6bc3f)
@@ -31,7 +32,7 @@ Hoje o app é **100% online**. Cada abertura de tela dispara requests à API. Se
 ## Stack Escolhida
 
 | Biblioteca | Papel | Por quê |
-|---|---|---|
+| --- | --- | --- |
 | `@tanstack/react-query` | Cache + data fetching + offline sync | Padrão de mercado, suporte nativo a offline/persist |
 | `react-native-mmkv` | Persistência local (rápido, síncrono) | 30x mais rápido que AsyncStorage, funciona bem com TanStack |
 | `@tanstack/query-sync-storage-persister` | Ponte TanStack ↔ MMKV | Persiste cache entre sessões |
@@ -43,8 +44,9 @@ Hoje o app é **100% online**. Cada abertura de tela dispara requests à API. Se
 ## O que funciona offline (por tela)
 
 ### ✅ Totalmente offline (com cache)
+
 | Tela | O que cachear | TTL sugerido |
-|---|---|---|
+| --- | --- | --- |
 | **Home** | receitas disponíveis, inventário resumido, planejamento hoje | 10 min |
 | **Despensa** | lista completa do inventário | 15 min |
 | **Receitas** | lista de receitas disponíveis + parciais | 10 min |
@@ -57,8 +59,9 @@ Hoje o app é **100% online**. Cada abertura de tela dispara requests à API. Se
 | **Compras** | histórico de compras | 1h |
 
 ### ⚠️ Parcialmente offline (lê cache, fila para escrita)
+
 | Tela | Leitura | Escrita (fila) |
-|---|---|---|
+| --- | --- | --- |
 | **Despensa** | inventário do cache | adicionar/editar/remover → fila |
 | **Receitas** | lista do cache | favoritar → fila; gerar IA → bloqueado |
 | **Receita Detalhe** | dados do cache | favoritar, avaliar → fila; descontar ingredientes → fila |
@@ -66,8 +69,9 @@ Hoje o app é **100% online**. Cada abertura de tela dispara requests à API. Se
 | **Listas** | listas do cache | criar item, marcar comprado → fila |
 
 ### ❌ Requer internet (bloqueado offline com aviso)
+
 | Tela | Por quê |
-|---|---|
+| --- | --- |
 | **OCR / QR Scanner** | upload de imagem + IA no servidor |
 | **Gerar Receitas (IA)** | LLM no servidor |
 | **Validação de produtos** | treino do modelo no servidor |
@@ -135,25 +139,30 @@ Em caso de conflito → servidor ganha (estratégia server-wins)
 ## UX: Banner e indicadores offline
 
 ### Banner global (topo da tela)
+
 ```
 ┌─────────────────────────────────────────────────┐
 │  📡  Sem conexão · Mostrando dados salvos       │
 └─────────────────────────────────────────────────┘
 ```
+
 - Aparece quando `isConnected === false`
 - Some automaticamente ao reconectar (com animação suave)
 - Cor: `ink[700]` fundo + texto branco (discreto, não invasivo)
 
 ### Botões bloqueados offline
+
 - Ícone de nuvem com X ao lado
 - Tooltip: "Precisa de internet"
 - Visualmente desabilitado mas não removido (usuário sabe que a função existe)
 
 ### Dados expirados (cache velho)
+
 - Texto sutil abaixo do conteúdo: "Atualizado às 14:32 · Offline"
 - Sem bloquear a tela — só informativo
 
 ### Ao reconectar
+
 - Banner verde por 2s: "Conexão restaurada · Sincronizando..."
 - Fila de mutações processa silenciosamente em background
 
@@ -162,6 +171,7 @@ Em caso de conflito → servidor ganha (estratégia server-wins)
 ## Implementação — Sprints
 
 ### Sprint 1 — Fundação (3-4 dias)
+
 **Sem mudar nenhuma tela ainda**
 
 1. Instalar deps: `@tanstack/react-query`, `react-native-mmkv`, `@tanstack/query-sync-storage-persister`, `@react-native-community/netinfo`
@@ -176,9 +186,11 @@ Em caso de conflito → servidor ganha (estratégia server-wins)
 ---
 
 ### Sprint 2 — Telas de leitura (4-5 dias)
+
 **Migrar todas as telas read-heavy para TanStack Query**
 
 Ordem por impacto:
+
 1. `receitas.tsx` — `useQuery('receitas-disponiveis')`
 2. `despensa.tsx` — `useQuery('inventario')`
 3. `index.tsx` (Home) — múltiplos `useQuery` com `staleTime` diferente por dado
@@ -215,6 +227,7 @@ Ordem por impacto:
 ## Arquivos a criar/modificar
 
 ### Novos arquivos
+
 ```
 mobile/src/
 ├── providers/
@@ -232,6 +245,7 @@ mobile/src/
 ```
 
 ### Arquivos modificados
+
 ```
 mobile/app/_layout.tsx             # Adicionar QueryProvider + NetworkProvider
 mobile/app/(app)/(tabs)/receitas.tsx
@@ -249,7 +263,7 @@ mobile/app/(app)/vencendo/index.tsx
 ## TTLs de cache (staleTime / gcTime)
 
 | Dado | staleTime | gcTime (manter no disco) |
-|---|---|---|
+| --- | --- | --- |
 | Receita individual | 24h | 7 dias |
 | Lista de receitas disponíveis | 10 min | 1h |
 | Inventário | 5 min | 2h |
@@ -265,7 +279,7 @@ mobile/app/(app)/vencendo/index.tsx
 ## Conflitos e edge cases
 
 | Situação | Tratamento |
-|---|---|
+| --- | --- |
 | Usuário edita item offline, outro dispositivo edita online | Server-wins no sync |
 | Fila acumula 20+ mutações | Processar em batch, mostrar progresso |
 | Token expirado quando fila processa | Refresh token primeiro, retry mutação |
@@ -294,7 +308,7 @@ npx expo install @tanstack/react-query react-native-mmkv @tanstack/query-sync-st
 > Precisa usar **development build** (`eas build --profile development`) ou
 > substituir por `@react-native-async-storage/async-storage` para manter
 > compatibilidade com Expo Go durante desenvolvimento.
-> 
+>
 > **Recomendado:** AsyncStorage em dev (Expo Go), MMKV em produção (APK/AAB).
 > TanStack Query suporta trocar o persister sem mudar código das telas.
 

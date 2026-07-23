@@ -162,7 +162,7 @@ const { user, isAuthenticated, loading, login, logout, register } = useAuth();
 ```
 
 | Função | Descrição |
-|--------|-----------|
+| -------- | ----------- |
 | `login(email, senha)` | POST `/auth/login`, salva tokens |
 | `register(nome, email, senha)` | POST `/auth/register` |
 | `logout()` | POST `/auth/logout`, limpa SecureStore |

@@ -10,7 +10,7 @@
 ## Ponto de partida (hoje)
 
 | Item | Estado |
-|---|---|
+| --- | --- |
 | VPS | DigitalOcean 1 vCPU / **1GB RAM** / 24GB disco (~US$ 6-8/mês) |
 | Stack no mesmo box | NestJS (pm2, fork único) + PostgreSQL 16 + pgvector + Nginx + Redis |
 | Proteção | Cloudflare proxy + rate limit + fail2ban ✅ |
@@ -25,6 +25,7 @@ A carga do CookMe é **leve por natureza**: o trabalho pesado (geração IA, OCR
 ## Cronograma (projeção otimista)
 
 ### FASE 0 — AGORA, antes de crescer (custo: +US$ 0-5)
+
 *Independe de usuários — são riscos existentes.*
 
 1. **Backup off-site**: dump diário → R2/Spaces (`pg_dump | rclone`). Hoje, perder o droplet = perder TUDO. 1h de trabalho.
@@ -33,12 +34,14 @@ A carga do CookMe é **leve por natureza**: o trabalho pesado (geração IA, OCR
 4. Anotar baseline: RAM livre, p95 de latência (Nginx log), conexões PG.
 
 ### FASE 1 — Lançamento → ~2.000 MAU (M1-M4) · US$ 12-24/mês
+
 **Gatilho:** swap ativo constante OU RAM livre <15% OU p95 >500ms.
 **Ação:** resize do droplet para **2GB → 4GB RAM** (5 min de downtime, botão no painel).
 
 É só isso. 4GB aguenta confortavelmente 2-5k MAU dessa carga. Não mexer em mais nada — cada hora de infra aqui é hora roubada de produto/retenção.
 
 ### FASE 2 — 2.000 → 10.000 MAU (M4-M8) · US$ 60-90/mês
+
 **Gatilho:** PG disputando RAM com Node (OOM-killer, queries lentas >100ms no p95, conexões >60) OU deploy derrubando requests.
 
 1. **Separar o banco**: Managed PostgreSQL (DO, ~US$ 15-30) com pgvector — backups/failover automáticos, e o droplet vira só app. *Maior salto de confiabilidade por dólar de toda a lista.*
@@ -47,6 +50,7 @@ A carga do CookMe é **leve por natureza**: o trabalho pesado (geração IA, OCR
 4. Sessões do scraper já estão em tabela (feito) — nada quebra com múltiplos workers. ✅
 
 ### FASE 3 — 10.000 → 50.000 MAU (M8-M14) · US$ 150-300/mês
+
 **Gatilho:** 1 droplet de app não segura pico (CPU >70% sustentado) OU você perder uma noite de sono por queda.
 
 1. **2 droplets de app + Load Balancer** (DO LB ~US$ 12) — mata o SPOF de aplicação.
@@ -62,7 +66,7 @@ A carga do CookMe é **leve por natureza**: o trabalho pesado (geração IA, OCR
 **AWS não é "upgrade natural" — é troca de trade-off.** Para a mesma capacidade custa 2-3× mais e exige mais expertise. Migre quando UM destes for verdade:
 
 | Gatilho de migração | Por quê AWS resolve |
-|---|---|
+| --- | --- |
 | Picos imprevisíveis grandes (TV, viral) | Auto-scaling real (ECS Fargate) — DO escala na mão |
 | Time de eng ≥ 3 pessoas | IAM, ambientes, infra-as-code maduros |
 | Investidor/enterprise/B2B exigindo compliance (SOC2, etc.) | Certificações e ferramentas prontas |
@@ -72,6 +76,7 @@ A carga do CookMe é **leve por natureza**: o trabalho pesado (geração IA, OCR
 **Arquitetura alvo:** ECS Fargate (API) + RDS Postgres multi-AZ (pgvector) + SQS (filas OCR/geração/push) + ElastiCache + CloudFront/S3. Migração: ~1-2 semanas de trabalho, dual-run com o DO até validar.
 
 ### FASE 5 — 150.000+ MAU (ano 2) · US$ 1.500-3.000/mês
+
 Read-replicas PG, workers dedicados por fila, APM (Datadog/Grafana Cloud), possivelmente região secundária. Nesse ponto há receita (150k × 3% × R$15 ≈ **R$ 67k/mês**) e time — decisões deixam de ser deste documento.
 
 ---
@@ -79,7 +84,7 @@ Read-replicas PG, workers dedicados por fila, APM (Datadog/Grafana Cloud), possi
 ## Tabela-resumo
 
 | Fase | MAU | Quando (otimista) | Infra | US$/mês | Infra ÷ receita* |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 0 | 0 | agora | backup off-site + monitor | 8 | — |
 | 1 | 0-2k | M1-M4 | droplet 2-4GB | 12-24 | ~2% |
 | 2 | 2k-10k | M4-M8 | app 4GB + managed PG | 60-90 | ~1,5% |
@@ -92,6 +97,7 @@ Read-replicas PG, workers dedicados por fila, APM (Datadog/Grafana Cloud), possi
 ## O que monitorar (gatilhos, não achismo)
 
 Já existe: `/api/health`, `pm2 status`, `GET /admin/metricas/llm`. Adicionar ao hábito semanal:
+
 - `free -h` → swap em uso constante = Fase 1
 - `SELECT count(*) FROM pg_stat_activity` → >60 = Fase 2
 - p95 de latência no log do Nginx → >500ms sustentado = próxima fase
