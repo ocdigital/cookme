@@ -1,0 +1,15 @@
+{
+  "$comment": "MD051 (link fragments) desligado: a validação de âncora do markdownlint varia entre versões (não reconhece slugs acentuados). O build do VitePress já valida fragments de forma confiável — ele é a autoridade sobre links.",
+  "default": true,
+  "MD013": false,
+  "MD033": false,
+  "MD041": false,
+  "MD024": { "siblings_only": true },
+  "MD025": false,
+  "MD028": false,
+  "MD029": false,
+  "MD036": false,
+  "MD040": false,
+  "MD051": false,
+  "MD060": false
+}

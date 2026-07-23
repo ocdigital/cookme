@@ -563,6 +563,7 @@ LAYER 7: Monitoring & Logging
 Este é um mapa completo da arquitetura visual do CookMe! 🎉
 
 Você tem:
+
 - ✅ Diagramas de camadas
 - ✅ Fluxos de autenticação
 - ✅ Ciclo completo request/response

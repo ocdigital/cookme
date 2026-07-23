@@ -7,7 +7,7 @@ Criei uma **suite completa de testes** com exemplos comentados para você aprend
 ### ✅ Arquivos Criados (7 arquivos)
 
 | Arquivo | Tipo | Status | Ação |
-|---------|------|--------|------|
+| --------- | ------ | -------- | ------ |
 | `auth.service.spec.ts` | Testes Unitários | 60% pronto (5 testes + 6 TODOs) | Completar TODOs |
 | `auth.controller.spec.ts` | Testes Integração | 60% pronto (5 testes + 9 TODOs) | Completar TODOs |
 | `produtos.service.spec.ts.example` | Exemplo Avançado | 100% exemplo (20 TODOs) | Renomear e implementar |
@@ -44,16 +44,19 @@ cookme/
 ## 🚀 Quick Start (5 Minutos)
 
 ### 1. Abra o terminal
+
 ```bash
 cd backend
 ```
 
 ### 2. Rode os testes que já estão prontos
+
 ```bash
 npm test -- auth.service.spec.ts
 ```
 
 Você verá:
+
 ```
 ✓ register - success
 ✓ login - success
@@ -119,6 +122,7 @@ it('descrição do que testa', async () => {
 ## 📊 Estrutura dos Testes
 
 ### Auth Module (FASE 1 - Começar aqui)
+
 ```
 ✅ 5 testes prontos (funciona!)
 🔲 6 TODOs no service
@@ -130,6 +134,7 @@ Cobertura: 90%+
 ```
 
 ### Produtos Module (FASE 2 - Intermediário)
+
 ```
 🔲 20 TODOs no service
 (exemplo com padrões avançados)
@@ -139,6 +144,7 @@ Cobertura: 85%+
 ```
 
 ### Receitas Module (FASE 3 - Avançado)
+
 ```
 🔲 9 TODOs no service
 (inclui MOI algorithm)
@@ -148,6 +154,7 @@ Cobertura: 80%+
 ```
 
 ### CI/CD (FASE 4 - Setup)
+
 ```
 ✅ Pipeline pronto (só descomente)
 - ESLint check
@@ -163,6 +170,7 @@ Tempo: ~15 minutos
 ## 🎓 O Que Você Vai Aprender
 
 ### Jest + NestJS Testing
+
 - ✅ Como estruturar testes com AAA pattern
 - ✅ Mocks, stubs, spies
 - ✅ Testes unitários vs integração
@@ -172,6 +180,7 @@ Tempo: ~15 minutos
 - ✅ Cobertura de testes
 
 ### Best Practices
+
 - ✅ Um assert por teste (ou poucos)
 - ✅ Nomes descritivos
 - ✅ Dados reutilizáveis
@@ -179,6 +188,7 @@ Tempo: ~15 minutos
 - ✅ Test organization
 
 ### NestJS Específico
+
 - ✅ Mockar Repository TypeORM
 - ✅ Mockar JwtService
 - ✅ Mockar ConfigService
@@ -208,6 +218,7 @@ Quando terminar (43+ testes), você terá:
 ## 🔄 Próximos Passos
 
 ### HOJE
+
 ```
 1. Leia COMECE_AQUI_TESTES.md (5 min)
 2. Rode: npm test -- auth.service.spec.ts
@@ -215,6 +226,7 @@ Quando terminar (43+ testes), você terá:
 ```
 
 ### PRÓXIMAS 2 HORAS
+
 ```
 1. Abra auth.service.spec.ts
 2. Procure "TODO:" (Ctrl+F)
@@ -224,6 +236,7 @@ Quando terminar (43+ testes), você terá:
 ```
 
 ### DIA SEGUINTE
+
 ```
 1. Faça o mesmo em auth.controller.spec.ts
 2. 9 TODOs para implementar
@@ -231,6 +244,7 @@ Quando terminar (43+ testes), você terá:
 ```
 
 ### FIM DA SEMANA
+
 ```
 1. Crie auth.e2e-spec.ts
 2. Testes com servidor REAL
@@ -238,6 +252,7 @@ Quando terminar (43+ testes), você terá:
 ```
 
 ### PRÓXIMAS SEMANAS
+
 ```
 1. Produtos (20 TODOs)
 2. Receitas (9 TODOs)
@@ -268,9 +283,10 @@ Quando terminar (43+ testes), você terá:
 
 ---
 
-## 🎉 Você Está Pronto!
+## 🎉 Você Está Pronto
 
 Tem TUDO que precisa:
+
 - ✅ Exemplos prontos e funcionando
 - ✅ Documentação em português
 - ✅ Templates para copiar
@@ -284,7 +300,7 @@ Tem TUDO que precisa:
 ## 📞 Resumo Rápido
 
 | O que? | Onde? | Quando? |
-|--------|-------|---------|
+| -------- | ------- | --------- |
 | Começar | COMECE_AQUI_TESTES.md | Agora |
 | Referência | TESTING_GUIDE.md | Consultando |
 | Roadmap | TESTES_MAPA.txt | Planejando |

@@ -13,7 +13,7 @@ Suba o ambiente de desenvolvimento completo do CookMe. Este é o **guia canônic
 O CookMe roda como **cinco processos**. Em desenvolvimento você sobe cada um num terminal:
 
 | Serviço | Porta | O que é |
-|---------|-------|---------|
+| --------- | ------- | --------- |
 | PostgreSQL (pgvector) | 5432 | Banco do CookMe — **precisa da extensão `vector`** para o RAG |
 | Redis | 6379 | Cache |
 | Backend NestJS | 3000 | API REST |
@@ -155,11 +155,11 @@ Escaneie o QR com o Expo Go. A API usa IP fixo `192.168.86.9:3000` (ver `mobile/
 ## Acessar os serviços
 
 | Serviço | URL |
-|---------|-----|
-| Backend | http://localhost:3000 |
-| Swagger (API docs) | http://localhost:3000/api/docs |
-| Engine canonização | http://localhost:3111 |
-| Frontend admin | http://localhost:5173 |
+| --------- | ----- |
+| Backend | <http://localhost:3000> |
+| Swagger (API docs) | <http://localhost:3000/api/docs> |
+| Engine canonização | <http://localhost:3111> |
+| Frontend admin | <http://localhost:5173> |
 
 ## Smoke test da API
 
@@ -183,19 +183,23 @@ curl http://localhost:3000/api/auth/me -H 'Authorization: Bearer <TOKEN>'
 ## Troubleshooting
 
 **Porta em uso (3000 / 3111):**
+
 ```bash
 fuser -k 3000/tcp 3111/tcp 2>/dev/null
 ```
 
 **RAG não retorna nada / erro de `vector`:** o Postgres subiu sem pgvector. Confirme a extensão:
+
 ```bash
 docker exec cookme_postgres psql -U cookme -d cookme_db -c "SELECT extname FROM pg_extension WHERE extname='vector';"
 ```
+
 Se vier vazio, recrie o container com `pgvector/pgvector:pg16`.
 
 **CookMe recebe 401 da Engine:** `ENGINE_API_KEY` divergente entre os dois `.env`.
 
 **Limpar e recomeçar:**
+
 ```bash
 docker stop cookme_postgres cookme_redis && docker rm cookme_postgres cookme_redis
 # volte ao passo 1

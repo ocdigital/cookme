@@ -206,6 +206,7 @@ CREATE TABLE notificacoes (
 ## Integrações Existentes
 
 ### ✅ Frontend (Pronto)
+
 - [x] `useNotificacoes` hook
 - [x] `NotificationBell` component
 - [x] `NotificationsPage` component
@@ -213,6 +214,7 @@ CREATE TABLE notificacoes (
 - [x] Socket.io client
 
 ### ✅ Backend (Pronto)
+
 - [x] `NotificacaoGateway` WebSocket
 - [x] `NotificacaoService` CRUD
 - [x] `NotificacaoTriggersService` triggers
@@ -220,6 +222,7 @@ CREATE TABLE notificacoes (
 - [x] Endpoint teste: `POST /notificacoes/test/trigger`
 
 ### 🔄 Para Implementar
+
 - [ ] `UsuariosService` → chamar `novoUsuario()` on signup
 - [ ] `ReceitasService` → chamar `receitaDenunciada()` on report
 - [ ] `ProdutosService` → chamar `produtoIncompleto()` on create
@@ -231,6 +234,7 @@ CREATE TABLE notificacoes (
 ## Checklist de Deployment
 
 ### Desenvolvimento
+
 - [x] Compilação sem erros
 - [x] WebSocket funciona local
 - [x] Polling funciona como fallback
@@ -238,6 +242,7 @@ CREATE TABLE notificacoes (
 - [ ] Testes de desconexão/reconexão
 
 ### Produção
+
 - [ ] Configurar Socket.io com Redis (múltiplos servidores)
 - [ ] Remover endpoint `/notificacoes/test/trigger`
 - [ ] Implementar rate limiting em triggers
@@ -250,11 +255,13 @@ CREATE TABLE notificacoes (
 ## Variáveis de Ambiente
 
 ### Frontend (.env)
+
 ```env
 VITE_API_URL=http://localhost:3000
 ```
 
 ### Backend (.env)
+
 ```env
 DATABASE_URL=postgresql://user:pass@localhost:5432/cookme
 JWT_SECRET=your-secret-key
@@ -268,7 +275,7 @@ REDIS_URL=redis://localhost:6379
 ## Custos Estimados
 
 | Serviço | Opção Atual | Alternativa |
-|---------|------------|-------------|
+| --------- | ------------ | ------------- |
 | Real-time | Socket.io (grátis) | Ably ($50-200/mês) |
 | Persistência | PostgreSQL | Firebase |
 | Infraestrutura | VPS próprio | Vercel/Railway |
@@ -278,10 +285,9 @@ REDIS_URL=redis://localhost:6379
 ## Performance
 
 | Métrica | Esperado | Observado |
-|---------|----------|-----------|
+| --------- | ---------- | ----------- |
 | Latência WebSocket | < 100ms | ✓ ~50ms local |
 | Falha de Conexão | < 5s recover | ✓ 1-5s |
 | Fallback Polling | < 30s | ✓ 30s Bell, 15s Page |
 | DB Query | < 50ms | ✓ Com índices |
 | Memory por cliente | < 1MB | ✓ Mapa pequeno |
-

@@ -25,7 +25,7 @@ Infra: CI existe (contradiz o briefing) mas cobre só tsc+testes do backend; sem
 ## 2. Funcionalidades não documentadas (descobertas no código)
 
 | Funcionalidade | Arquivo | Estado | Propósito aparente |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **MOIEngineService** — motor de sugestão multifator (cobertura 40pt + preferências 25pt + histórico 20pt + popularidade + penalidades) | `backend/src/modules/receitas/services/moi-engine.service.ts` (411 linhas) | **Completo e vivo** — serve `/receitas/sugestoes`, `sugestoes-inventario`, `similares` (`receitas.service.ts:255-271`) | Recomendação personalizada. Redundante com `recipe-suggestion.service.ts` (13.7K) — dois motores de sugestão coexistem |
 | **AprendizadoService** — deriva preferências de avaliações | `receitas/services/aprendizado.service.ts` | Parcial — funciona, mas não alimenta geração (ver D-1) | Base da tese 4. Exposto em `GET /receitas/perfil-aprendizado` (`receitas-usuario.controller.ts:552`) |
 | **protagonistas.ts** — mapa prato→ingredientes | `receitas/services/protagonistas.ts` (14.4K) | Completo | Taxonomia culinária BR hardcoded, muito mais rica que o briefing descreve |
@@ -50,7 +50,7 @@ Infra: CI existe (contradiz o briefing) mas cobre só tsc+testes do backend; sem
 ## 3. Tabela de verificações (item G)
 
 | Afirmação do briefing | Veredito | Evidência |
-|---|---|---|
+| --- | --- | --- |
 | `DELETE /usuarios/me` cascateia 12 tabelas + anonimiza audit_logs | **CONFIRMADO** | Anonimização: `usuarios.service.ts:88-90` (`UPDATE audit_logs SET user_id=NULL, user_email='[removido]'...`) antes de `remove()` L93. Exatamente **12 entidades** com `onDelete: 'CASCADE'` referenciando usuário: affiliate-click, recipe-recommendation, subscription, transaction, compra, inventario, lista, product-validation, receita-executada, receita-favorita, preferencia-aprendida, preferencia |
 | Purge de logs 90 dias via `@Cron` 3am | **CONFIRMADO** | `audit-log.service.ts:121` `@Cron(CronExpression.EVERY_DAY_AT_3AM)`, corte 90 dias e delete L124-127 |
 | Score de validação ≥ 70 → ok | **CONFIRMADO** | `recipe-validation.service.ts:169-171`: `>=70` ok, `>=50` em_revisao, `<50` descartar. Nota: erro/indisponibilidade do Haiku → `em_revisao` (L155,158), **não** auto-aprova |
@@ -96,6 +96,7 @@ Consequência: sem quantidade evoluindo no tempo, não há sinal para taxa de co
 **B-2 · POSITIVO · Schema já tem ~80% do necessário**
 `inventario.entity.ts`: `quantidade_disponivel` decimal(10,3) (L31), `unidade` enum (L34), `compra_item_id` (L45), `metodo_atualizacao` (L49), timestamps. `compra_itens` tem `validade_final` e `ingrediente_canonical`. Falta: quantidade inicial, evento de decremento, EAN (A-2).
 *Migration proposta (tese 2):*
+
 ```sql
 ALTER TABLE compra_itens ADD COLUMN codigo_barras VARCHAR(14);      -- A-2
 ALTER TABLE inventario  ADD COLUMN quantidade_inicial DECIMAL(10,3);
@@ -109,6 +110,7 @@ CREATE TABLE inventario_eventos (
   criado_em TIMESTAMP DEFAULT now()
 );
 ```
+
 Reconciliação: intervalo entre recompras do mesmo EAN → taxa; decremento ao finalizar receita; baixa manual como correção.
 
 **B-3 · MÉDIO · Dois endpoints paralelos de "executar receita"**
@@ -120,12 +122,14 @@ Reconciliação: intervalo entre recompras do mesmo EAN → taxa; decremento ao 
 ### C. Matching e RAG
 
 **C-1 · CRÍTICO · Receitas importadas vazam por 3 caminhos (viola tese 5)**
+
 1. **Matching de geração** — `receita-banco.service.ts:166`: `buscarPorIngredientes` filtra `(r.url_fonte IS NULL OR r.autor_id IS NOT NULL)`. A segunda metade **inclui** importadas de qualquer usuário. Usada por `recipe-generator.service.ts:69`.
 2. **RAG** — `recipe-rag.service.ts:104`: `buscarSimilares(..., apenasPublicas = false)` por default; `gerarComRAG` chama sem o parâmetro (`:157`) → sem filtro nenhum. **Pior:** mesmo quando `apenasPublicas=true`, o filtro aplicado é o mesmo errado — `AND (url_fonte IS NULL OR autor_id IS NOT NULL)` (`:129-131`). Ou seja, o flag não protege nada contra importadas.
 3. **Acesso direto** — `GET /receitas/:id` (`receitas-usuario.controller.ts:458-461`) busca qualquer receita por ID sem checar `autor_id` vs usuário logado. IDs vazados pelos caminhos 1-2 ficam legíveis na íntegra por terceiros.
 
 Contraste: a listagem `listarDisponiveisParaUsuario` está **correta** — público estrito `autor_id IS NULL AND url_fonte IS NULL` (`receita-banco.service.ts:231-232`) + importadas só do próprio usuário (`:244-246`). O padrão certo já existe no arquivo; os outros caminhos divergiram dele.
 *Recomendação (baixo esforço, prioridade máxima):*
+
 - `receita-banco.service.ts:166` → `AND r.url_fonte IS NULL AND r.autor_id IS NULL`;
 - `recipe-rag.service.ts:129-131` → filtro incondicional `AND url_fonte IS NULL AND autor_id IS NULL` (e remover o parâmetro enganoso, ou corrigi-lo);
 - `buscarPorId`/`GET :id` → permitir se `autor_id IS NULL` ou `autor_id = user.id`, senão 404;
@@ -161,6 +165,7 @@ Nenhum SDK/tabela de analytics (grep amplitude/mixpanel/posthog/segment = 0 no s
 **E-1 · MÉDIO · `product_knowledge_base` é cache por NOME, não por EAN**
 Schema (`product-knowledge-base.entity.ts`): chave única é `varchar(255)` de nome do produto (L25), com categoria, confiança, contadores de uso/validação e `classification_metadata` jsonb. 309 linhas no banco local. Não há coluna EAN — dois produtos com nomes de cupom diferentes e mesmo EAN são entradas distintas. `abbreviation_expansions` ajuda na normalização de nomes, mas a âncora estável (EAN) não participa.
 *Recomendação (tese 3):* adicionar `codigo_barras` à KB (nullable, index único parcial), e evoluir `produtos` com propriedades culinárias estruturadas:
+
 ```sql
 ALTER TABLE product_knowledge_base ADD COLUMN codigo_barras VARCHAR(14);
 ALTER TABLE produtos ADD COLUMN funcao_culinaria VARCHAR(20)[];  -- {gordura,acido,liga,umami,amido}
@@ -171,6 +176,7 @@ CREATE TABLE ingrediente_substituto (
   PRIMARY KEY (ingrediente_id, substituto_id)
 );
 ```
+
 Base já existente a favor: `alternativas_ids` em produtos, `ingrediente_canonical` em compra_itens, `abbreviation_expansions`.
 
 ---
@@ -200,6 +206,7 @@ Base já existente a favor: `alternativas_ids` em produtos, `ingrediente_canonic
 Objetivo imediato: **Play Store → paywall → medir D7/D30**. Ordenado para desbloquear isso.
 
 **Fase 0 — Pré-Play Store (bloqueadores) · ~2-3 dias**
+
 1. **C-1 (tese 5)** — corrigir os 3 caminhos + teste de regressão. ~0,5-1 dia. **Bloqueador legal, fazer primeiro.**
 2. **D-1 fix rápido** — passar `modoAlimentar` em `recipe-generator.service.ts:83`. ~1 linha, fazer junto.
 3. **B-3** — unificar endpoints de execução (contagem dupla corrompe dados que a tese 4 vai consumir). ~0,5 dia.
@@ -220,7 +227,7 @@ Objetivo imediato: **Play Store → paywall → medir D7/D30**. Ordenado para de
 ### Resumo por tese
 
 | Tese | Estado real | Esforço restante | Arquivos-chave | Risco |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 1 — QR/SEFAZ + preço | Funciona (SP: NFC-e+SAT), preço persiste, EAN não, sessões em RAM | ~2-3d (EAN + robustez + UX não-SP) | `scraper.service.ts`, `compra-item.entity.ts`, `lib/captcha_manual.py` | Cobertura só SP; subprocess Selenium frágil |
 | 2 — Depleção | Manual guiada funciona (binária); endpoints duplicados; sem base numérica | ~5-7d | `inventario.service.ts:404`, `recipe-execution.service.ts`, migration B-2 | Precisão da estimativa; UX de correção |
 | 3 — Taxonomia | KB por nome (309 itens), colunas culinárias existem, EAN ausente | ~1-2sem incremental | `product-knowledge-base.entity.ts`, `produto.entity.ts` | Curadoria de dados |
@@ -243,6 +250,7 @@ Objetivo imediato: **Play Store → paywall → medir D7/D30**. Ordenado para de
 ## Correções sobre a rodada anterior desta auditoria
 
 Esta versão re-verificou todos os achados da rodada anterior. Diferenças relevantes:
+
 1. **MOIEngineService NÃO está quebrado** — a rodada anterior o marcou como "truncado/morto"; leitura completa mostra serviço íntegro de 411 linhas, vivo em 3 endpoints. Achado removido; redundância com `recipe-suggestion` mantida como observação.
 2. **"12 tabelas" agora CONFIRMADO** (antes não verificado): exatamente 12 entidades com CASCADE.
 3. **C-1 é pior do que reportado**: o filtro `apenasPublicas` do RAG é ele próprio incorreto, e `GET /receitas/:id` não checa dono (3º caminho, antes não listado).

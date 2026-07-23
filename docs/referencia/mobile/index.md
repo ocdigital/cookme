@@ -9,7 +9,7 @@ Expo / React Native com expo-router (file-based routing). Versão Expo ~54.
 ## Stack
 
 | Item | Versão / Lib |
-|------|-------------|
+| ------ | ------------- |
 | Framework | Expo ~54.0.33 |
 | Navigation | expo-router ~6.0.23 (file-based) |
 | HTTP | axios ^1.13.6 |
@@ -99,7 +99,7 @@ mobile/
 ## Bottom Tabs
 
 | Tab | Ícone | Arquivo | Descrição |
-|-----|-------|---------|-----------|
+| ----- | ------- | --------- | ----------- |
 | Início | `home-outline` | `(tabs)/index.tsx` | Hero carousel, receitas disponíveis, receita do dia |
 | Despensa | `fridge-outline` | `(tabs)/despensa.tsx` | Inventário — itens, vencimentos, stats |
 | Listas | `cart-outline` | `(tabs)/listas.tsx` | Lista de compras ativa |
@@ -114,7 +114,7 @@ A cor das tabs muda dinamicamente via `ModoAlimentarContext.corModo`.
 ## Telas Extras (fora das tabs)
 
 | Tela | Rota | Descrição |
-|------|------|-----------|
+| ------ | ------ | ----------- |
 | Detalhe receita | `/(app)/receita/[id]` | Ingredientes, modo preparo, cobertura do inventário, botão executar |
 | OCR nota fiscal | `/(app)/receita-ocr` | Câmera + OCR via Gemini, processa múltiplas fotos |
 | Validação OCR | `/(app)/validacao` | Confirma/corrige itens extraídos, classifica alimento/não-alimento |
@@ -170,7 +170,7 @@ Tab Início / Tab Receitas
 ## Design System (`constants/theme.ts`)
 
 | Token | Valor | Uso |
-|-------|-------|-----|
+| ------- | ------- | ----- |
 | `colors.green[500]` | `#3D9E52` | Cor primária (modo normal) |
 | `colors.green[600]` | `#2E7D3F` | Verde escuro, botões |
 | `colors.ink[50]` | `#FAFAF8` | Background principal off-white |
@@ -181,7 +181,7 @@ Tab Início / Tab Receitas
 **Typography:**
 
 | Token | fontSize | weight |
-|-------|----------|--------|
+| ------- | ---------- | -------- |
 | `typography.display` | 32 | 700 |
 | `typography.h1` | 26 | 700 |
 | `typography.h2` | 20 | 700 |
@@ -212,7 +212,7 @@ const { modoAlimentar, setModoAlimentar, corModo } = useModoAlimentar();
 ```
 
 | Modo | Cor (`corModo`) |
-|------|-----------------|
+| ------ | ----------------- |
 | `normal` | `colors.green[500]` |
 | `fitness` | `colors.amber[500]` |
 | `vegetariano` | `colors.green[400]` |

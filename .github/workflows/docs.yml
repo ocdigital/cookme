@@ -1,0 +1,54 @@
+name: Docs
+
+# Roda apenas quando a documentação muda — não bloqueia PRs de código,
+# e PRs de docs não disparam o CI de backend à toa.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/docs.yml'
+      - '.markdownlint.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/docs.yml'
+      - '.markdownlint.json'
+
+jobs:
+  build:
+    name: Build + link check (VitePress)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # O build do VitePress falha se houver dead link (ignoreDeadLinks no
+      # config só libera localhost). É o nosso link-checker oficial.
+      - name: Build docs (falha em dead link)
+        run: npm run docs:build
+
+  lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: 'docs/**/*.md'

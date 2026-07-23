@@ -5,7 +5,7 @@ Painel admin em React 19 + Vite + React Router. Porta **4000**.
 ## Stack
 
 | Item | Versão |
-|------|--------|
+| ------ | -------- |
 | Framework | React 19 |
 | Build | Vite ^7.2 |
 | Router | react-router-dom ^7.9 |
@@ -27,7 +27,7 @@ API: `http://localhost:3000` (backend local).
 ## Rotas
 
 | Rota | Componente | Descrição |
-|------|-----------|-----------|
+| ------ | ----------- | ----------- |
 | `/login` | `LoginPage` | Login admin (JWT) |
 | `/trocar-senha` | `TrocarSenhaPage` | Troca de senha obrigatória |
 | `/dashboard` | `DashboardPage` | Visão geral: stats, gráficos, atividade recente |
@@ -54,7 +54,7 @@ Redirecionamento: `/` → `/dashboard` (autenticado) ou `/login`.
 ## Componentes Principais (`src/components/`)
 
 | Componente | Descrição |
-|-----------|-----------|
+| ----------- | ----------- |
 | `Layout` | Sidebar + Header, wrapper de todas as páginas |
 | `Sidebar` | Navegação lateral com todos os links |
 | `Header` | Barra superior: notificações, settings, usuário |
@@ -105,7 +105,7 @@ const { theme, toggleTheme } = useTheme();
 ## Services (`src/services/`)
 
 | Arquivo | Endpoints cobertos |
-|---------|-------------------|
+| --------- | ------------------- |
 | `api.ts` | Axios instance, `Authorization: Bearer` |
 | `adminService.ts` | `/admin/produtos`, `/admin/usuarios`, stats |
 | `adminUsersService.ts` | CRUD usuários admin |

@@ -1,9 +1,11 @@
 # GUIA DE APRENDIZADO - COOKME
+
 ## Do Básico ao Avançado
 
 ---
 
 ## 📚 ÍNDICE
+
 - [Backend NestJS](#backend-nestjs)
 - [Frontend React](#frontend-react)
 - [Mobile React Native](#mobile-react-native)
@@ -17,24 +19,28 @@
 ### NÍVEL 1 - FUNDAMENTOS
 
 #### Node.js & TypeScript Basics
+
 - Variáveis, tipos primitivos, interfaces
 - Arrow functions, async/await
 - Modules (imports/exports)
 - Decorators (@Controller, @Module, @Injectable)
 
 #### NestJS Essentials
+
 - Arquitetura de módulos (Module, Controller, Service, Provider)
 - Ciclo de vida da aplicação
 - Injeção de dependência (Dependency Injection)
 - Exemplo: `usuarios.module.ts` → `usuarios.controller.ts` → `usuarios.service.ts`
 
 #### HTTP Basics
+
 - Métodos HTTP (GET, POST, PUT, DELETE)
 - Status codes (200, 201, 400, 401, 404, 500)
 - Request/Response cycle
 - Path parameters vs Query parameters
 
 #### Banco de Dados - PostgreSQL
+
 - Conceitos SQL básicos (SELECT, INSERT, UPDATE, DELETE)
 - Tabelas e colunas
 - Primary keys e Foreign keys
@@ -45,6 +51,7 @@
 ### NÍVEL 2 - INTERMEDIÁRIO
 
 #### TypeORM - ORM do projeto
+
 - Entities (classes que representam tabelas)
 - Decorators: `@Entity`, `@Column`, `@PrimaryGeneratedColumn`
 - Relacionamentos: `@OneToMany`, `@ManyToOne`, `@OneToOne`
@@ -52,6 +59,7 @@
 - Exemplo: `Usuario`, `Produto`, `Receita` entities
 
 #### Controllers & Routes
+
 - Route decorators: `@Get`, `@Post`, `@Put`, `@Delete`
 - Path variables: `@Param('id')`
 - Body parameters: `@Body()`
@@ -59,17 +67,20 @@
 - Response status: `@HttpCode()`
 
 #### DTOs (Data Transfer Objects)
+
 - Validação com class-validator (`@IsString`, `@IsEmail`, `@IsNumber`)
 - Transformação com class-transformer
 - Exemplo: `CreateProdutoDTO`, `UpdateUsuarioDTO`
 
 #### Services - Lógica de Negócio
+
 - Separação entre Controller (rotas) e Service (lógica)
 - Injeção de repositories
 - Métodos para CRUD operations
 - Exemplo: `ProdutosService.findAll()`, `UsuariosService.create()`
 
 #### Pipes & Validation
+
 - Global validation pipes
 - Validação automática de DTOs
 - Transformação de tipos (type: 'uuid')
@@ -79,6 +90,7 @@
 ### NÍVEL 3 - AVANÇADO
 
 #### Autenticação & Autorização (JWT)
+
 - JWT tokens (Header.Payload.Signature)
 - `@nestjs/jwt` module para geração e verificação
 - Passport.js strategies (passport-jwt)
@@ -86,18 +98,21 @@
 - Exemplo: `AuthController.login()` e `JwtAuthGuard`
 
 #### Guards & Decorators Customizados
+
 - `JwtAuthGuard` - Valida se token é válido
 - `RolesGuard` - Valida permissões por role
 - Decorators: `@Public()`, `@Roles(UserRole.ADMIN)`, `@CurrentUser()`
 - Enums: `UserRole` (ADMIN, USER, PREMIUM, MARCA)
 
 #### Bcrypt - Hashing de Senhas
+
 - Hash one-way (não reversível)
 - Salt rounds para segurança
 - Comparação de hashes
 - Usado em: `auth.service.ts` para armazenar senhas
 
 #### Redis - Cache
+
 - In-memory data store
 - Reduz queries ao banco de dados
 - Configuração: `cache.config.ts`
@@ -105,6 +120,7 @@
 - Exemplo: Cachear lista de produtos
 
 #### Relacionamentos Complexos
+
 - OneToMany (Um usuario tem muitos pedidos)
 - ManyToOne (Muitos pedidos pertencem a um usuario)
 - OneToOne (Usuario tem uma Preferencia)
@@ -112,36 +128,42 @@
 - Query optimization com joins
 
 #### Migrations - Versionamento do Banco
+
 - Histórico de mudanças no schema
 - Comandos: `typeorm migration:generate`, `migration:run`
 - Rollback de alterações
 - Mantém sincronização entre ambientes
 
 #### Seeding - Dados Iniciais
+
 - População automática do banco
 - Scripts em `database/seeds/`
 - Exemplo: `seed-categorias-alimentos.ts`, `seed-receitas.ts`
 - Usado para ambiente de desenvolvimento e testes
 
 #### Modules Avançados
+
 - Feature modules (cada módulo é auto-contido)
 - Imports e Exports de providers
 - Module organization: `usuarios.module.ts` importa providers
 - 14 módulos no projeto: Auth, Usuarios, Produtos, Receitas, etc
 
 #### Swagger/OpenAPI - Documentação
+
 - `@nestjs/swagger` para auto-documentação
 - Decorators: `@ApiOperation`, `@ApiResponse`, `@ApiParam`
 - Gera documentação interativa em `/api/docs`
 - Teste de endpoints direto na UI
 
 #### Enums & Constants
+
 - `UserRole`: ADMIN, USER, PREMIUM, MARCA
 - `UnidadeMedida`: ml, g, kg, l, unidade
 - `DificuldadeReceita`: fácil, médio, difícil
 - `ProductType`: alimento, bebida, utensílio
 
 #### Testing
+
 - Jest framework
 - Testes unitários (services isolados)
 - Testes de integração (controllers + services)
@@ -149,11 +171,13 @@
 - Exemplo: `auth.service.spec.ts`, `produtos.service.spec.ts`
 
 #### Tratamento de Erros
+
 - Custom exceptions: `BadRequestException`, `UnauthorizedException`, `NotFoundException`
 - Exception filters para resposta customizada
 - Logging de erros
 
 #### Performance & Best Practices
+
 - N+1 query prevention (usar eager loading)
 - Paginação em listas grandes
 - Rate limiting para proteção
@@ -161,6 +185,7 @@
 - Timeouts em requisições externas
 
 #### Integração Google Generative AI
+
 - `@google/generative-ai` para IA
 - Classificação de produtos
 - Geração de descrições
@@ -173,6 +198,7 @@
 ### NÍVEL 1 - FUNDAMENTOS
 
 #### JavaScript/TypeScript Basics
+
 - Variáveis (const, let), tipos primitivos
 - Arrays e Objects
 - Arrow functions, destructuring
@@ -180,6 +206,7 @@
 - Spread operator (...)
 
 #### React Fundamentals
+
 - Components (Functional components)
 - JSX - HTML em JavaScript
 - Props - Passagem de dados
@@ -188,6 +215,7 @@
 - Listas (map, key)
 
 #### Component Structure
+
 - Componentes reutilizáveis
 - Props vs State
 - Component composition (componentes dentro de componentes)
@@ -195,6 +223,7 @@
 - Exemplo: `Card.tsx`, `Header.tsx`
 
 #### Hooks Básicos
+
 - `useState` - Gerenciar estado local
 - `useEffect` - Side effects (fetch, subscriptions)
 - Dependency array ([])
@@ -205,6 +234,7 @@
 ### NÍVEL 2 - INTERMEDIÁRIO
 
 #### Routing com React Router
+
 - `BrowserRouter`, `Routes`, `Route`
 - Links de navegação
 - Path parameters: `/products/:id`
@@ -213,12 +243,14 @@
 - Exemplo: `ProductsPage.tsx` navega para detalhes
 
 #### Context API - State Management
+
 - Criar context: `createContext`
 - Provider: Envolver aplicação
 - useContext: Consumir dados
 - Exemplo: `AuthContext` (user, token), `ThemeContext` (dark mode)
 
 #### HTTP com Axios
+
 - GET, POST, PUT, DELETE requests
 - Base URL configuration
 - Request/Response interceptors
@@ -226,6 +258,7 @@
 - Exemplo: `authService.ts`, `productsService.ts`
 
 #### Autenticação Frontend
+
 - Storage de tokens (localStorage)
 - JWT tokens (access + refresh)
 - Interceptor automático de headers
@@ -233,6 +266,7 @@
 - Protected routes com PrivateRoute component
 
 #### Forms & Validation
+
 - Controlled components (input value = state)
 - onChange handlers
 - Form submission
@@ -240,12 +274,14 @@
 - Modal forms: `UserFormModal.tsx`, `DeleteConfirmationModal.tsx`
 
 #### TypeScript em React
+
 - Tipagem de props: `interface ComponentProps {}`
 - Tipagem de state: `useState<Type>()`
 - Event types: `React.ChangeEvent<HTMLInputElement>`
 - Tipos genéricos: `interface ApiResponse<T> {}`
 
 #### API Services
+
 - Arquivos separados para cada recurso
 - Métodos para cada endpoint
 - Exemplo: `authService.login()`, `productsService.getAll()`
@@ -256,6 +292,7 @@
 ### NÍVEL 3 - AVANÇADO
 
 #### Tailwind CSS
+
 - Utility-first CSS (classes pré-definidas)
 - Responsive design: `sm:`, `md:`, `lg:`, `xl:`
 - Dark mode: `dark:` prefix
@@ -265,59 +302,69 @@
 - Exemplo: `Header.tsx`, `Card.tsx` usam classes Tailwind
 
 #### Advanced Hooks
+
 - `useEffect` com dependencies para fetch
 - Cleanup (return function em useEffect)
 - Custom hooks: `useAuth()`, `useTheme()`
 - Hook composition
 
 #### Gerenciamento de Estado Avançado
+
 - Context nesting (múltiplos contexts)
 - Reducer pattern (useReducer) para estado complexo
 - Performance: `useMemo`, `useCallback`
 - Evitar renders desnecessários
 
 #### Protected Routes & Auth Flow
+
 - Verificar autenticação antes de renderizar página
 - Redirect automático para login
 - Refresh token automático quando expira
 - Logout e limpeza de estado
 
 #### Code Splitting & Lazy Loading
+
 - `React.lazy()` para componentes
 - `Suspense` para loading state
 - Importação dinâmica de módulos
 - Melhora performance inicial
 
 #### Vite Build Tool
+
 - Hot Module Replacement (HMR) para desenvolvimento rápido
 - Otimização de bundle (minificação, tree-shaking)
 - Configuração em `vite.config.ts`
 - Environment variables: `.env`, `.env.local`
 
 #### Performance Optimization
+
 - Evitar renders desnecessários com React.memo
 - Memoização de callbacks (useCallback)
 - Memoização de valores (useMemo)
 - Lazy loading de imagens
 
 #### Icon Library - Lucide React
+
 - `<Mail />`, `<Heart />`, `<Settings />` componentes
 - Customizar cor e tamanho
 - Usado em toda interface
 
 #### Responsive Design
+
 - Mobile-first approach
 - Breakpoints: xs, sm, md, lg, xl
 - Media queries via Tailwind
 - Teste em diferentes resoluções
 
 #### Pages & Layouts
+
 - Layout wrapper para estrutura consistente
 - Pages: LoginPage, DashboardPage, ProductsPage, RecipesPage, UsersPage, PurchasesPage, ProfilePage
 - Sidebar para navegação
 - Header com user info
 
 #### Components Reutilizáveis
+
 - `Card.tsx` - Container genérico
 - `Header.tsx` - Cabeçalho da página
 - `Sidebar.tsx` - Menu lateral
@@ -326,12 +373,14 @@
 - Popovers: NotificationsPopover, SettingsPopover
 
 #### Dark Mode
+
 - Tema configurado em Context
 - Persistência em localStorage
 - Toggle em SettingsPopover
 - Classes Tailwind `dark:` aplicadas
 
 #### Type Safety
+
 - Interfaces para todas as respostas API
 - Tipos genéricos para responses paginadas
 - Event types corretos
@@ -344,29 +393,34 @@
 ### NÍVEL 1 - FUNDAMENTOS
 
 #### React Native Basics
+
 - Componentes: `<View>`, `<Text>`, `<ScrollView>`, `<TouchableOpacity>`
 - StyleSheet para performance
 - Layouts com Flexbox
 - Diferenças vs React web (no div, no CSS direto)
 
 #### JavaScript Fundamentals (para Mobile)
+
 - Async/await para operações
 - Array methods (map, filter)
 - Object destructuring
 - Módulos (import/export)
 
 #### Expo Fundamentals
+
 - Expo Go app para testar rapidamente
 - Desenvolvimento sem emular iOS/Android
 - EAS Build para builds nativas
 - `app.json` configuração
 
 #### SafeAreaContext
+
 - `useSafeAreaInsets()` para evitar notch/status bar
 - `SafeAreaView` wrapper
 - Padding seguro em telas
 
 #### Platform-Specific Code
+
 - `Platform.select()` para iOS vs Android
 - Diferentes estilos/comportamentos
 - Teste em ambos os dispositivos
@@ -376,6 +430,7 @@
 ### NÍVEL 2 - INTERMEDIÁRIO
 
 #### React Navigation - Navegação
+
 - Stack Navigator (pilha de telas)
 - Bottom Tab Navigator (5 abas principais)
 - Navigation params: `navigation.navigate('Detail', {id: 1})`
@@ -383,6 +438,7 @@
 - Tab switching e state preservation
 
 #### Screens & Navigation Structure
+
 - Auth Stack: LoginScreen, RegisterScreen
 - Main Tabs: HomeScreenRecipes, RecipesListScreen, InventoryScreen, FavoritesScreen
 - Detail Stack: RecipeDetailsScreen, PurchaseDetailsScreen
@@ -390,6 +446,7 @@
 - Navegação entre screens
 
 #### HTTP Requests com Axios
+
 - Base URL configuration por environment
 - Interceptors para auth tokens
 - Error handling
@@ -397,6 +454,7 @@
 - Exemplo: `authService.login()`, `receitasService.getRecipes()`
 
 #### Autenticação Mobile
+
 - Login com email/password
 - Tokens armazenados em SecureStore
 - Auto-login ao abrir app
@@ -404,6 +462,7 @@
 - Token refresh automático
 
 #### Camera & QR Scanner
+
 - `expo-camera` module
 - Permissions (iOS e Android)
 - QR code scanning
@@ -411,18 +470,21 @@
 - Exemplo: `QRScannerScreen.js` lê código do recibo
 
 #### Secure Storage
+
 - `expo-secure-store` para tokens
 - Mais seguro que localStorage
 - Criptografia nativa
 - Armazenar: `access_token`, `refresh_token`
 
 #### Context API em Mobile
+
 - `AuthContext` para estado do usuário
 - Provider no root da aplicação
 - `useAuth()` hook customizado
 - Compartilhar dados entre screens
 
 #### Forms & Input
+
 - TextInput component
 - Form validation
 - Keyboard handling
@@ -430,6 +492,7 @@
 - Error messages
 
 #### Loading & Error States
+
 - Loading spinners durante requisições
 - Error messages para usuário
 - Retry mechanisms
@@ -440,6 +503,7 @@
 ### NÍVEL 3 - AVANÇADO
 
 #### Advanced Navigation Patterns
+
 - Nested navigation (tabs dentro de stack)
 - Deep linking (URLs para abrir screens)
 - Navigation params typing
@@ -447,66 +511,77 @@
 - Gestures (swipe back)
 
 #### Camera Advanced
+
 - Permissões diferentes por OS
 - Camera vs CameraRoll
 - Photo library access
 - Privacy considerations
 
 #### State Management em Mobile
+
 - Context vs Redux (projeto usa Context)
 - Async operations com Context
 - Performance otimization
 - Avoid prop drilling com useContext
 
 #### Platform-Specific Optimizations
+
 - iOS Safe Area (notch, home indicator)
 - Android back button behavior
 - Different screen sizes
 - Orientation handling (portrait/landscape)
 
 #### Assets & Resources
+
 - `expo-asset` para imagens/vídeos
 - `expo-font` para custom fonts
 - Lazy loading de assets
 - Resource optimization
 
 #### Styling Mobile
+
 - StyleSheet.create() para performance
 - Responsive design (Dimensions API)
 - Absolutas vs relatives positioning
 - Safe spacing com margins/padding
 
 #### Status Bar
+
 - `expo-status-bar` configuração
 - Light vs Dark style
 - Appearance em diferentes screens
 - Platform differences
 
 #### Navigation Lifecycle
+
 - Screen focusing/blurring
 - Cleanup em unmount
 - State reset entre navigações
 - useFocusEffect hook
 
 #### List Performance
+
 - FlatList vs ScrollView
 - Renderização virtualized
 - Key em lists
 - Pagination para grandes listas
 
 #### Date/Time Handling
+
 - Data expiração (inventário)
 - Formatação de datas
 - Timestamps
 - Timezones
 
 #### Debugging
+
 - React DevTools
 - Network tab (ver requisições)
 - Console logs
 - Expo debugging tools
 
 #### Best Practices
+
 - Evitar renders desnecessários
 - Memoização de componentes
 - Gerenciar dependencies em useEffect
@@ -518,6 +593,7 @@
 ## CONCEITOS TRANSVERSAIS
 
 ### Autenticação & Autorização (em todos os 3)
+
 - JWT tokens (access + refresh)
 - Role-based access control (ADMIN, USER, PREMIUM, MARCA)
 - Token storage seguro
@@ -525,6 +601,7 @@
 - Logout e sessão
 
 ### API Design
+
 - RESTful endpoints (`/usuarios`, `/produtos/:id`)
 - Status codes apropriados
 - Request/response standardization
@@ -532,6 +609,7 @@
 - Pagination para grandes datasets
 
 ### Banco de Dados
+
 - Relacionamentos (OneToMany, ManyToOne, OneToOne)
 - Constraints e validações
 - Migrations para versionamento
@@ -539,18 +617,21 @@
 - Índices para performance
 
 ### Caching
+
 - Redis em backend
 - localStorage em frontend
 - SecureStore em mobile
 - Invalidação de cache quando necessário
 
 ### Tratamento de Erros
+
 - Try/catch em async operations
 - Mensagens amigáveis para usuário
 - Logging de erros
 - Fallbacks graceful
 
 ### Performance
+
 - Lazy loading (dados e componentes)
 - Paginação
 - Caching
@@ -558,6 +639,7 @@
 - Otimização de imagens
 
 ### TypeScript em Todos
+
 - Tipagem de variáveis
 - Interfaces para contratos
 - Enums para constantes
@@ -565,6 +647,7 @@
 - Type safety prevents bugs
 
 ### Testing
+
 - Unit tests (services, utilities)
 - Integration tests (endpoints)
 - Mock de dados
@@ -572,6 +655,7 @@
 - Jest como framework padrão
 
 ### Deployment
+
 - Backend: Deploy em servidor Node
 - Frontend: Build estático, servir via HTTP
 - Mobile: Build APK (Android) ou IPA (iOS)
@@ -582,18 +666,21 @@
 ## 📊 ORDEM SUGERIDA DE APRENDIZADO
 
 ### Semana 1-2: Fundamentos Globais
+
 1. TypeScript basics
 2. Autenticação & JWT
 3. REST API concepts
 4. HTTP requests
 
 ### Semana 3-4: Backend (NestJS)
+
 1. Node.js & NestJS intro
 2. Modules, Controllers, Services
 3. DTOs & Validation
 4. TypeORM & Database
 
 ### Semana 5-6: Frontend (React)
+
 1. React basics (components, hooks)
 2. Routing & Navigation
 3. Context API
@@ -601,18 +688,21 @@
 5. Tailwind CSS
 
 ### Semana 7-8: Mobile (React Native)
+
 1. React Native basics
 2. Navigation (React Navigation)
 3. Screens & Components
 4. APIs & HTTP
 
 ### Semana 9-10: Advanced Topics
+
 1. Guards & Decorators (backend)
 2. Performance optimization (frontend)
 3. Camera & QR Scanner (mobile)
 4. Caching & Redis
 
 ### Semana 11-12: Integration & Testing
+
 1. Testing frameworks
 2. Integration patterns
 3. Deployment
@@ -623,12 +713,14 @@
 ## 🔗 ENTENDER FLUXOS PRINCIPAIS
 
 ### Fluxo 1: Cadastro de Usuário
+
 1. **Mobile**: RegisterScreen → submitForm
 2. **Frontend**: RegisterPage → authService.register()
 3. **Backend**: AuthController.register() → AuthService.register() → Salva em DB
 4. **Retorno**: Token gerado, armazenado em SecureStore/localStorage
 
 ### Fluxo 2: Login de Usuário
+
 1. **Mobile/Frontend**: Submit credenciais
 2. **Backend**: Valida email/password, gera JWT token
 3. **Retorno**: access_token, refresh_token
@@ -636,6 +728,7 @@
 5. **Uso**: Header `Authorization: Bearer <token>` em todas requisições
 
 ### Fluxo 3: Scan QR Code & Processo de Compra
+
 1. **Mobile**: QRScannerScreen capture QR
 2. **Backend**: ProcessarQRCode → Scrape data do recibo
 3. **Google AI**: Classifica produtos
@@ -643,6 +736,7 @@
 5. **Frontend/Mobile**: Exibe resultado com sugestões
 
 ### Fluxo 4: Geração de Receitas
+
 1. **Mobile/Frontend**: Request receitas
 2. **Backend**: ReceitasService.getRecipeSuggestions()
 3. **Google AI**: Gera receita baseado em inventário
@@ -650,6 +744,7 @@
 5. **UI**: Exibe receita com ingredientes do inventário destacados
 
 ### Fluxo 5: Admin Gerencia Produtos
+
 1. **Frontend**: AdminProductsPage
 2. **Backend**: AdminController → Lista produtos com filtros
 3. **Database**: Query com paginação
@@ -661,7 +756,7 @@
 ## 📝 RESUMO TECH STACK
 
 | Camada | Tecnologias |
-|--------|------------|
+| -------- | ------------ |
 | **Backend** | NestJS, TypeScript, PostgreSQL, TypeORM, JWT, Redis, Google AI |
 | **Frontend** | React, TypeScript, Vite, React Router, Context API, Tailwind CSS, Axios |
 | **Mobile** | React Native, Expo, React Navigation, Axios, Secure Storage |
@@ -1021,6 +1116,7 @@ const styles = StyleSheet.create({
 ```
 
 **Princípio**:
+
 - Comece simples
 - Só adicione complexidade se REALMENTE precisar
 - Leia seu código: se não entender em 10 segundos, é muito complexo
@@ -1091,6 +1187,7 @@ async sugerirReceitas(usuarioId: string): Promise<Receita[]> {
 ```
 
 **Regra**:
+
 - ✅ Implemente features que REALMENTE precisam agora
 - ❌ Não crie especulativamente para "pode ser útil depois"
 - ❌ Não deixe código comentado "para depois"
@@ -1104,7 +1201,7 @@ Se precisar: delete e re-implementa quando chegar na hora.
 ### Tabela: Estado do CookMe
 
 | Princípio | Status | Exemplos Bons | Melhorar |
-|-----------|--------|---------------|----------|
+| ----------- | -------- | --------------- | ---------- |
 | **SRP** | 🟢 Bom | AuthService, Controllers, useApi | ProductsPage complexo |
 | **OCP** | 🟢 Bom | Button variants, DTOs | Receita.update hardcoded |
 | **LSP** | 🟢 Bom | Guards, Context | Mobile fallbacks |
@@ -1138,10 +1235,10 @@ Se precisar: delete e re-implementa quando chegar na hora.
 
 ### Recursos para Aprender Mais
 
-- **SOLID Principles**: https://en.wikipedia.org/wiki/SOLID
+- **SOLID Principles**: <https://en.wikipedia.org/wiki/SOLID>
 - **Clean Code by Robert Martin**: Livro essencial
 - **Refactoring by Martin Fowler**: Técnicas práticas
-- **Design Patterns**: https://refactoring.guru/design-patterns
+- **Design Patterns**: <https://refactoring.guru/design-patterns>
 
 ---
 

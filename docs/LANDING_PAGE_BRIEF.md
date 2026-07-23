@@ -1,4 +1,5 @@
 # CookMe — Briefing Landing Page
+>
 > Para: Claude Design  
 > Versão: MVP · Plataforma: Android (iOS em breve) · Mercado: Brasil
 
@@ -24,7 +25,7 @@ A tentação é destacar a tecnologia (IA, scanner de nota fiscal). **Não faça
 O herói da landing não é o app. É a transformação:
 
 | O que o usuário sente hoje | O que o CookMe entrega |
-|---------------------------|------------------------|
+| --------------------------- | ------------------------ |
 | "Não sei o que cozinhar" | Ideia na hora, com o que tem em casa |
 | "Vou pedir delivery de novo" | Prato pronto, gasto 4x menor |
 | "Esse tomate vai estragar" | Virou jantar de hoje |
@@ -40,7 +41,7 @@ A tecnologia aparece como **consequência**, não como feature principal.
 ### Paleta de cores
 
 | Token | Hex | Uso |
-|-------|-----|-----|
+| ------- | ----- | ----- |
 | **Verde Primary** | `#3D9E52` | Botões, destaques, CTAs |
 | **Verde Dark** | `#2E7D3F` | Hover, bordas |
 | **Verde Light** | `#DFF2E3` | Backgrounds de cards, badges |
@@ -109,6 +110,7 @@ FOOTER
 > O CookMe olha para o que você já comprou, entende como você come, e te diz o que cozinhar — do seu jeito, com o que você já tem em casa.
 
 **Visual do hero:**
+
 - Mockup de celular mostrando a tela Home do app (carrossel de sugestões "faça agora" / "use antes que vença")
 - Ao fundo: cozinha de apartamento, bancada com ingredientes reais, luz natural quente
 - NÃO usar foto de chef, restaurante ou comida de estúdio
@@ -248,7 +250,7 @@ Escaneia a nota do mercado ou adiciona manualmente. O app sabe o que você tem, 
 **4 cards visuais — cor distinta para cada um:**
 
 | Modo | Cor do card | Ícone | Tagline |
-|------|-------------|-------|---------|
+| ------ | ------------- | ------- | --------- |
 | **Normal** | Verde `#3D9E52` | 🍽️ | "Sem restrições. Sem limites." |
 | **Fitness** | Âmbar `#F5A623` | 💪 | "Proteína, energia, resultado." |
 | **Vegetariano** | Verde claro `#5CB870` | 🥦 | "Sem carne. Com muito sabor." |
@@ -264,7 +266,7 @@ Escaneia a nota do mercado ou adiciona manualmente. O app sabe o que você tem, 
 
 **Texto:**
 
-> ### Cozinhar em casa é um ato político.
+> ### Cozinhar em casa é um ato político
 >
 > É dizer não para o desperdício de 30% da comida que o Brasil joga fora todo ano.
 > É dizer não para o delivery que custa 4 vezes mais e chega frio.
@@ -304,6 +306,7 @@ Escaneia a nota do mercado ou adiciona manualmente. O app sabe o que você tem, 
 > "Comece hoje. Sua primeira semana planejada em menos de 2 minutos."
 
 **Botões:**
+
 ```
 [  ▶  Baixar grátis no Android  ]   (badge Google Play real)
 [  🔔  Avise-me quando chegar no iPhone  ]  → campo de e-mail
@@ -343,7 +346,7 @@ Instagram: @cookme.app
 ## 4. Referências de mood (para inspiração)
 
 | Referência | O que absorver |
-|-----------|----------------|
+| ----------- | ---------------- |
 | **Mealime** | Limpo, foco em receitas, weekly planning visual |
 | **Mercado Livre** | Clareza de CTA, confiança, conversão direta |
 | **Oatly (marca)** | Manifesto com personalidade, tom humano, não corporativo |
@@ -351,6 +354,7 @@ Instagram: @cookme.app
 | **Hortifruti (marca BR)** | Comida real, colorida, calor humano brasileiro |
 
 **O que NÃO fazer:**
+
 - Visual frio tipo app de fintech
 - Paleta toda branca sem textura
 - Foto de chef profissional com prato de restaurante
@@ -361,6 +365,7 @@ Instagram: @cookme.app
 ## 5. Checklist para o designer
 
 ### Conteúdo
+
 - [ ] Hero com headline emocional (não técnica) + mockup Home do app
 - [ ] Seção de tensão com 3 cenas do cotidiano
 - [ ] 3 stats grandes (delivery, desperdício, custo)
@@ -373,6 +378,7 @@ Instagram: @cookme.app
 - [ ] Footer completo
 
 ### Técnico
+
 - [ ] Mobile-first (maioria do tráfego vem de celular)
 - [ ] Responsivo para desktop também
 - [ ] Versão dark opcional (app suporta dark mode)
@@ -380,6 +386,7 @@ Instagram: @cookme.app
 - [ ] Animações sutis ao scroll (não exageradas — app é sobre praticidade, não show)
 
 ### Tom
+
 - [ ] Nenhuma headline técnica acima do fold
 - [ ] Linguagem "você" (não "o usuário")
 - [ ] Pelo menos 1 frase de empatia antes de qualquer feature

@@ -5,6 +5,7 @@
 App mobile brasileiro de **gestão de despensa + geração de receitas por IA**.
 
 Fluxo core:
+
 1. Usuário fotografa nota fiscal do supermercado
 2. OCR + IA detecta e classifica os produtos automaticamente
 3. Usuário confirma apenas itens com baixa confiança da IA
@@ -32,21 +33,25 @@ Brasileiros, 25–45 anos, cozinham em casa, querem reduzir desperdício e econo
 ## Telas existentes (precisam de design)
 
 ### 1. Inventário
+
 **O que faz:** Lista todos os ingredientes que o usuário tem em casa.
 
 **Dados exibidos por item:**
+
 - Nome do produto
 - Quantidade disponível + unidade (ex: "2 un", "500g")
 - Categoria: alimento / não-alimento
 - Confiança da classificação IA (0–100%)
 
 **Interações:**
+
 - Filtro: "Alimentos" / "Tudo"
 - Editar quantidade (modal)
 - Remover item
 - Pull-to-refresh
 
 **Estados especiais:**
+
 - Badge verde + checkmark = IA confirmou com alta confiança (≥75%)
 - Badge amarelo = baixa confiança, usuário confirmou manualmente
 - Inventário vazio → CTA para escanear nota
@@ -54,15 +59,18 @@ Brasileiros, 25–45 anos, cozinham em casa, querem reduzir desperdício e econo
 ---
 
 ### 2. Validação de Produtos (pós-OCR)
+
 **O que faz:** Usuário revisa produtos detectados pela câmera antes de salvar.
 
 **Lógica de UX (importante):**
+
 - Itens com confiança ≥75% → aparecem com badge verde + checkmark, SEM botões (IA já decidiu)
 - Itens com confiança <75% → aparecem com botão "Não é alimento" para o usuário corrigir
 - Barra de progresso mostrando % validado
 - Botão "Confirmar tudo" ao final
 
 **Dados por item:**
+
 - Nome do produto (como veio na nota)
 - Categoria detectada pela IA
 - Nível de confiança
@@ -70,14 +78,17 @@ Brasileiros, 25–45 anos, cozinham em casa, querem reduzir desperdício e econo
 ---
 
 ### 3. Receitas Sugeridas
+
 **O que faz:** IA gera receitas baseadas nos ingredientes do inventário.
 
 **Estados:**
+
 - Loading: IA processando (pode levar 5–10s)
 - Lista de cards de receita
 - Erro / sem receitas
 
 **Dados por card:**
+
 - Imagem (foto real, ~740px)
 - Nome da receita
 - Tempo de preparo
@@ -87,7 +98,9 @@ Brasileiros, 25–45 anos, cozinham em casa, querem reduzir desperdício e econo
 ---
 
 ### 4. Detalhe da Receita
+
 **Seções:**
+
 - Imagem hero (topo)
 - Nome + meta (tempo, porções, dificuldade)
 - Lista de ingredientes com status: ✅ tenho / ❌ não tenho
@@ -97,7 +110,9 @@ Brasileiros, 25–45 anos, cozinham em casa, querem reduzir desperdício e econo
 ---
 
 ### 5. OCR da Nota (câmera)
+
 **Steps:**
+
 1. Escolher: câmera ou galeria
 2. Capturar foto(s) — até 10 fotos
 3. Processando (loading)
@@ -106,6 +121,7 @@ Brasileiros, 25–45 anos, cozinham em casa, querem reduzir desperdício e econo
 ---
 
 ### 6. Lista de Compras
+
 - Múltiplas listas
 - Itens com quantidade, preço, categoria
 - Marcar como comprado
@@ -114,6 +130,7 @@ Brasileiros, 25–45 anos, cozinham em casa, querem reduzir desperdício e econo
 ---
 
 ### 7. Notificações
+
 - Bell icon no header com badge de contagem
 - Página de notificações com lista
 
@@ -122,11 +139,13 @@ Brasileiros, 25–45 anos, cozinham em casa, querem reduzir desperdício e econo
 ## Design System necessário
 
 ### Cores
+
 Precisa transmitir: fresco, apetitoso, confiável, moderno.
 Sugestão de direção: Verde (natureza/ingredientes) + Laranja/Âmbar (culinária/calor) + fundo claro.
 Evitar: tons muito frios, muito escuros, muito infantis.
 
 ### Componentes a definir
+
 - Botões (primary, secondary, destructive, ghost)
 - Cards (receita, produto, lista)
 - Badges (confiança IA: alta/baixa/confirmado)
@@ -138,6 +157,7 @@ Evitar: tons muito frios, muito escuros, muito infantis.
 - Header + Tab bar
 
 ### Tipografia
+
 App brasileiro, legibilidade em telas pequenas é prioridade.
 
 ---
@@ -145,6 +165,7 @@ App brasileiro, legibilidade em telas pequenas é prioridade.
 ## Referências de mercado
 
 Apps similares para referência visual:
+
 - **Yummly** — cards de receita com foto grande
 - **Mealime** — clean, ingredientes organizados
 - **Tasty** — vibrante, muito visual

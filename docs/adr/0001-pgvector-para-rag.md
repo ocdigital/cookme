@@ -9,6 +9,7 @@
 O CookMe gera receitas a partir dos ingredientes do usuário. Para reaproveitar receitas semelhantes já existentes no banco (em vez de gerar tudo do zero via LLM, o que é lento e caro), é preciso **busca semântica**: dado um conjunto de ingredientes, encontrar as receitas mais próximas no espaço vetorial de embeddings.
 
 Restrições da época:
+
 - O banco principal já era **PostgreSQL** (TypeORM).
 - Volume pequeno (~150–330 receitas) — não é escala de milhões de vetores.
 - Custo de infra precisa ser mínimo (projeto pré-tração).

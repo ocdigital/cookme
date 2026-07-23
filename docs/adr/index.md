@@ -22,7 +22,7 @@ Decisões técnicas se perdem. Seis meses depois, ninguém lembra *por que* esco
 ## Índice
 
 | # | Decisão | Status |
-|---|---------|--------|
+| --- | --------- | -------- |
 | [0001](/adr/0001-pgvector-para-rag) | pgvector para busca semântica (RAG) | Aceito |
 | [0002](/adr/0002-engine-canonizacao-servico-separado) | Engine de canonização como serviço separado | Aceito |
 | [0003](/adr/0003-proibir-scraping-autonomo) | Proibir scraping autônomo de receitas | Aceito |

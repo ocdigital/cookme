@@ -11,6 +11,7 @@ O banco de dados está vazio! Não há usuários de demonstração. Você precis
 **Passo 1:** Abra Postman ou Insomnia
 
 **Passo 2:** Crie uma nova requisição
+
 ```
 Método: POST
 URL: http://localhost:3000/api/auth/register
@@ -18,6 +19,7 @@ Content-Type: application/json
 ```
 
 **Passo 3:** Cole este JSON no Body:
+
 ```json
 {
   "email": "teste@email.com",
@@ -29,6 +31,7 @@ Content-Type: application/json
 **Passo 4:** Clique em "Send"
 
 **Resultado esperado (200 OK):**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -56,10 +59,10 @@ curl -X POST http://localhost:3000/api/auth/register \
 
 ### Método 3: Via Frontend (Se estiver rodando)
 
-1. Acesse http://localhost:5173
+1. Acesse <http://localhost:5173>
 2. Procure pela página de registro/signup
 3. Preencha o formulário com:
-   - Email: teste@email.com
+   - Email: <teste@email.com>
    - Senha: senha123
    - Nome: Usuário Teste
 4. Clique em "Registrar"
@@ -70,7 +73,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 
 Após registrar, você pode fazer login:
 
-### Via Postman/Insomnia:
+### Via Postman/Insomnia
 
 ```
 Método: POST
@@ -85,6 +88,7 @@ Body:
 ```
 
 **Resposta esperada:**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -100,18 +104,21 @@ Body:
 
 Após fazer login, copie o `access_token` e use em requisições protegidas:
 
-### Header de Autorização:
+### Header de Autorização
+
 ```
 Authorization: Bearer {seu_access_token_aqui}
 ```
 
-### Exemplo com cURL:
+### Exemplo com cURL
+
 ```bash
 curl -X GET http://localhost:3000/api/usuarios/me \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
-### Exemplo no Postman:
+### Exemplo no Postman
+
 1. Vá para a aba "Headers"
 2. Adicione uma nova header:
    - Key: `Authorization`
@@ -149,7 +156,7 @@ Copie e cole estas credenciais ao registrar:
 
 | Campo | Valor |
 |-------|-------|
-| Email | teste@email.com |
+| Email | <teste@email.com> |
 | Senha | senha123 |
 | Nome | Usuário Teste |
 
@@ -158,17 +165,21 @@ Copie e cole estas credenciais ao registrar:
 ## 🆘 Troubleshooting
 
 ### Erro: "email already exists"
+
 Significa que o usuário já foi registrado. Use as credenciais para fazer login.
 
 ### Erro: 500 Internal Server Error
+
 - Verifique se o backend está rodando (`npm run start:dev`)
 - Verifique se o PostgreSQL está rodando (`docker-compose ps`)
 - Veja os logs do backend
 
 ### Erro: "Invalid email format"
+
 Use um email com formato válido: `usuario@dominio.com`
 
 ### Erro: "Password too short"
+
 A senha deve ter pelo menos 6 caracteres
 
 ---

@@ -42,6 +42,7 @@ de conhecimento acumulada — **determinístico, ~0ms e sem custo de token** —
 cauda longa, com score de confiança honesto em cada item.
 
 **Diferenciais:**
+
 - 🇧🇷 **Nativo do Brasil**: NFC-e, SAT, abreviações de PDV, marcas e categorias brasileiras — o que Veryfi/Taggun/Mindee não fazem
 - 📊 **Acurácia medida, não prometida**: benchmark público com casos reais, rodando em CI
 - 🎯 **Confidence score por item**: a API diz quando não tem certeza — você decide o que revisar
@@ -54,7 +55,7 @@ próprio problema e processa cupons reais todos os dias.
 **Oferta design partner (3 primeiras empresas):** acesso gratuito por 3 meses + integração
 assistida por nós, em troca de feedback e volume real. Depois, planos a partir de R$ 99/mês.
 
-**Fale com a gente:** Eduardo Ferreira · eduardoferreira85@gmail.com
+**Fale com a gente:** Eduardo Ferreira · <eduardoferreira85@gmail.com>
 
 ---
 
@@ -66,7 +67,7 @@ Legenda de temperatura: 🔥 dor viva (já processam cupom hoje) · 🟠 feature
 ### 🔥 Cashback por nota fiscal (processam cupom TODO DIA — dor viva)
 
 | # | Alvo | Por que precisam | Pitch de 1 linha | Como abordar |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 1 | **[Dinerama](https://dinerama.com.br/)** | Cashback por PRODUTO em qualquer supermercado via QR da nota — matching produto↔oferta é o core deles; erro = pagar cashback errado | "Quanto do time de vocês mantém o parser de cupom? Nós vendemos essa camada pronta e melhorando sozinha" | LinkedIn: CTO/head de eng. Empresa nova, acessível |
 | 2 | **Dinheiro na Nota** (Sofist) | Mesmo modelo: nota → cashback por item | idem | LinkedIn/e-mail Sofist (empresa de tech por trás) |
 | 3 | **Gelt Brasil** | Cashback por produto via nota; operação enxuta | idem | LinkedIn founders |
@@ -80,7 +81,7 @@ risco aceitável pela informação que a conversa traz.*
 ### 🟠 Finanças pessoais (feature muito pedida: quebrar "Mercado R$ 487" em itens)
 
 | # | Alvo | Por que precisam | Pitch | Abordagem |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 4 | **[Mobills](https://www.mobills.com.br/)** | Maior app de finanças BR; categorização hoje para no total da fatura | "Seus usuários pedem para saber PARA ONDE foi o gasto do mercado. Nós entregamos isso por API" | Grande — ciclo mais lento; LinkedIn head de produto |
 | 5 | **[Organizze](https://www.organizze.com.br/)** | Idem; equipe menor, decisão mais rápida | idem | E-mail/LinkedIn founders |
 | 6 | **[Monely](https://monely.app/)** | App novo, AI-first — perfil early adopter | "Feature de scanner de nota completa em 1 sprint" | Founders acessíveis; melhor 1ª conversa do segmento |
@@ -89,7 +90,7 @@ risco aceitável pela informação que a conversa traz.*
 ### 🟠 Nutrição (compra → diário alimentar automático)
 
 | # | Alvo | Por que precisam | Pitch | Abordagem |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 8 | **Dietbox** | Software líder p/ nutricionistas BR — paciente registra o que come na mão | "O paciente fotografa a compra do mês e o nutri vê a despensa real dele" | LinkedIn; têm time de produto ativo |
 | 9 | **Webdiet** | Concorrente direto do Dietbox | idem | idem |
 | 10 | **Tecnonutri** | App de dieta B2C grande | "Scanner de mercado que preenche o diário" | LinkedIn |
@@ -97,7 +98,7 @@ risco aceitável pela informação que a conversa traz.*
 ### 🔵 CRM/fidelidade de varejo alimentar (MAPEAR: cliente, parceiro ou concorrente)
 
 | # | Alvo | O que descobrir na conversa | Abordagem |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 11 | **[Mercafacil](https://www.mercafacil.com/)** (32% dos supermercados de SP) | Como normalizam catálogo ENTRE redes? Fazem à mão? Comprariam a camada? | LinkedIn eng/produto — conversa exploratória, não pitch |
 | 12 | **[IZIO&Co](https://www.izio.com.br/)** | Cashback da indústria por produto = matching item-level; onde dói? | idem |
 | 13 | **Propz** | Menor dos três; mais acessível para conversa franca | idem |
@@ -105,7 +106,7 @@ risco aceitável pela informação que a conversa traz.*
 ### 🔵 E-commerce/infra de supermercado (catálogo sujo é rotina)
 
 | # | Alvo | Por que precisam | Abordagem |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 14 | **VipCommerce** | Digitalizam supermercados; importar catálogo do PDV do cliente = descrições sujas em massa | LinkedIn eng |
 | 15 | **Instabuy / Mercadapp** | Mesmo problema, empresas menores e acessíveis | E-mail direto |
 
@@ -114,7 +115,7 @@ risco aceitável pela informação que a conversa traz.*
 ## As 5 primeiras conversas (ordem recomendada)
 
 | Ordem | Alvo | Por quê primeiro |
-|---|---|---|
+| --- | --- | --- |
 | 1ª | **Monely** (#6) | Menor fricção, founder acessível, AI-first — ensaio geral do pitch com risco zero |
 | 2ª | **Dinerama** (#1) | O alvo mais quente do mapa: dor diária, produto depende de parsing |
 | 3ª | **Dietbox** (#8) | Valida o segmento nutrição com o líder |
@@ -125,6 +126,7 @@ risco aceitável pela informação que a conversa traz.*
 5 nãos → engine segue como diferencial interno do CookMe, e as conversas viram aprendizado grátis.
 
 ### Roteiro de 20 minutos por conversa
+
 1. (5min) Como vocês tratam item de cupom hoje? Quanto custou construir? Quem mantém?
 2. (5min) Demo: mando 3 linhas sujas de cupom, devolvo o JSON na hora (usar o playground/curl)
 3. (5min) Se isso existisse pronto com X% de acurácia medida e confidence por item, usariam? Pagariam quanto?

@@ -1,8 +1,9 @@
 # ⚡ Setup com Docker Compose (SUPER RÁPIDO!)
 
-## 🚀 Comece em 1 minuto!
+## 🚀 Comece em 1 minuto
 
 ### Pré-requisitos
+
 - Docker e Docker Compose instalados
 
 ---
@@ -14,10 +15,12 @@ docker-compose up -d
 ```
 
 ✅ Isso inicia:
+
 - PostgreSQL (porta 5432)
 - Redis (porta 6379)
 
 **Aguarde ~5 segundos para PostgreSQL ficar pronto:**
+
 ```bash
 docker-compose ps
 # Ambos devem estar com status "healthy"
@@ -28,21 +31,27 @@ docker-compose ps
 ## 2️⃣ Abra 3 novos terminais e inicie as aplicações
 
 **Terminal 1 - Backend:**
+
 ```bash
 cd backend && npm run start:dev
 ```
+
 ✅ Esperado: Log `🚀 Aplicação rodando em: http://localhost:3000`
 
 **Terminal 2 - Frontend:**
+
 ```bash
 cd frontend && npm run dev
 ```
+
 ✅ Esperado: Log `Local: http://localhost:5173`
 
 **Terminal 3 - Mobile:**
+
 ```bash
 cd mobile && npx expo start
 ```
+
 ✅ Esperado: QR code para escanear
 
 ---
@@ -50,10 +59,10 @@ cd mobile && npx expo start
 ## 📍 Acessar Serviços
 
 | Serviço | URL |
-|---------|-----|
-| **Backend** | http://localhost:3000 |
-| **Swagger** | http://localhost:3000/api/docs |
-| **Frontend** | http://localhost:5173 |
+| --------- | ----- |
+| **Backend** | <http://localhost:3000> |
+| **Swagger** | <http://localhost:3000/api/docs> |
+| **Frontend** | <http://localhost:5173> |
 | **Mobile** | Scan QR code |
 
 ---
@@ -61,6 +70,7 @@ cd mobile && npx expo start
 ## 🧪 Testar API (Postman/Insomnia)
 
 ### 1. Registrar usuário
+
 ```
 POST http://localhost:3000/api/auth/register
 Content-Type: application/json
@@ -73,6 +83,7 @@ Content-Type: application/json
 ```
 
 ### 2. Login
+
 ```
 POST http://localhost:3000/api/auth/login
 Content-Type: application/json
@@ -86,6 +97,7 @@ Content-Type: application/json
 **Copie o `access_token` retornado**
 
 ### 3. Testar endpoint protegido
+
 ```
 GET http://localhost:3000/api/auth/me
 Authorization: Bearer {seu_token}
@@ -96,12 +108,14 @@ Authorization: Bearer {seu_token}
 ## 🆘 Troubleshooting
 
 ### Ver logs dos containers
+
 ```bash
 docker-compose logs -f postgres      # PostgreSQL logs
 docker-compose logs -f redis         # Redis logs
 ```
 
 ### PostgreSQL não conecta?
+
 ```bash
 docker-compose ps
 # Deve mostrar status "healthy"
@@ -111,12 +125,14 @@ docker-compose restart postgres
 ```
 
 ### Redis não responde?
+
 ```bash
 docker-compose exec redis redis-cli ping
 # Esperado: PONG
 ```
 
 ### Limpar tudo e recomeçar
+
 ```bash
 # Parar containers
 docker-compose down
@@ -129,6 +145,7 @@ docker-compose up -d
 ```
 
 ### Ver status
+
 ```bash
 docker-compose ps
 ```
@@ -167,7 +184,7 @@ cd mobile && npx expo start
 - [ ] Frontend aberto em localhost:5173
 - [ ] Mobile iniciando no terminal
 - [ ] Conseguiu fazer login no Postman
-- [ ] Acessou http://localhost:3000/api/docs
+- [ ] Acessou <http://localhost:3000/api/docs>
 
 **Pronto! 🎉**
 
@@ -185,6 +202,7 @@ cd mobile && npx expo start
 ## 💡 Pro Tips
 
 ### Iniciar tudo de uma vez (em uma linha)
+
 ```bash
 docker-compose up -d && \
 cd backend && npm run start:dev &
@@ -193,12 +211,14 @@ cd ../mobile && npx expo start &
 ```
 
 ### Ver estado em tempo real
+
 ```bash
 # Terminal separado
 watch -n 1 'docker-compose ps'
 ```
 
 ### Parar tudo sem perder dados
+
 ```bash
 docker-compose stop
 # Para reiniciar depois

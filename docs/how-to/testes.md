@@ -1,18 +1,21 @@
-  # 🚀 COMECE AQUI - Guia Rápido de Testes
+# 🚀 COMECE AQUI - Guia Rápido de Testes
 
 ## ⏱️ 5 Minutos Para Começar
 
 ### 1. Abra o Terminal
+
 ```bash
 cd backend
 ```
 
 ### 2. Rode os testes que já estão prontos
+
 ```bash
 npm test -- auth.service.spec.ts
 ```
 
 **Você deve ver algo assim:**
+
 ```
 PASS  src/modules/auth/auth.service.spec.ts
   AuthService
@@ -38,14 +41,17 @@ Se apareceu ✓ (verde), PERFEITO! Os testes estão funcionando.
 ## 🎯 Próximo Passo: Completar os TODOs
 
 ### 1. Abra o arquivo em seu editor
+
 ```bash
 code src/modules/auth/auth.service.spec.ts
 ```
 
 ### 2. Procure por "TODO:"
+
 Procure no arquivo (Ctrl+F) por `TODO:`
 
 Você verá algo assim:
+
 ```typescript
 /**
  * CONTINUE: Adicione este teste você mesmo!
@@ -70,9 +76,11 @@ Você verá algo assim:
 ```
 
 ### 3. Copie o TEMPLATE e remova os comentários
+
 Cole o template dentro do bloco `describe('register')` e procure por um bom lugar para colocar.
 
 **Antes:**
+
 ```typescript
 describe('register', () => {
   it('deve registrar um novo usuário com sucesso', async () => {
@@ -86,6 +94,7 @@ describe('register', () => {
 ```
 
 **Depois:**
+
 ```typescript
 describe('register', () => {
   it('deve registrar um novo usuário com sucesso', async () => {
@@ -104,6 +113,7 @@ describe('register', () => {
 ### 4. Remova o bloco de comentário TODO
 
 **Você está pronto! Rode o teste:**
+
 ```bash
 npm test -- auth.service.spec.ts --watch
 ```
@@ -140,6 +150,7 @@ npm test -- auth.service.spec.ts --watch
 ### ✅ Complete ESTES testes (Em ordem)
 
 **Arquivo 1: auth.service.spec.ts** (30 min)
+
 ```
 Localização: backend/src/modules/auth/auth.service.spec.ts
 TODOs: 6 testes
@@ -150,6 +161,7 @@ TODOs: 6 testes
 ```
 
 **Arquivo 2: auth.controller.spec.ts** (30 min)
+
 ```
 Localização: backend/src/modules/auth/auth.controller.spec.ts
 TODOs: 8 testes
@@ -163,6 +175,7 @@ TODOs: 8 testes
 ### 📚 DEPOIS (Próximas semanas)
 
 **Arquivo 3: produtos.service.spec.ts** (2-3 horas)
+
 ```
 Primeiro: Renomeie
 - De: produtos.service.spec.ts.example
@@ -198,12 +211,14 @@ it('descrição do que testa', async () => {
 ## ❌ Problemas Comuns
 
 ### "Cannot find module 'jest'"
+
 ```bash
 # Solução: Instale dependências
 npm install
 ```
 
 ### "Tests are not running"
+
 ```bash
 # Verifique se está na pasta backend
 pwd  # deve terminar em /cookme/backend
@@ -216,6 +231,7 @@ npm test -- auth
 ```
 
 ### "FAIL - Test failed"
+
 ```
 Leia a mensagem de erro:
 - Se disser "expect(...).toHaveBeenCalledWith(...)"
@@ -229,6 +245,7 @@ Leia a mensagem de erro:
 ```
 
 ### "Test times out"
+
 ```typescript
 // Aumentar timeout para 1 teste
 it('teste lento', async () => {
@@ -244,6 +261,7 @@ jest.setTimeout(10000);
 ## ✨ Como Confirmar que Está Certo
 
 ### Rodando testes
+
 ```bash
 # Verde = passou ✓
 # Vermelho = falhou ✗
@@ -251,6 +269,7 @@ npm test -- auth --watch
 ```
 
 ### Ver cobertura
+
 ```bash
 npm test -- auth --coverage
 
@@ -277,9 +296,10 @@ npm test -- auth --coverage
 
 ---
 
-## 🎉 SUCESSO!
+## 🎉 SUCESSO
 
 Se você conseguiu fazer tudo isso, você:
+
 - ✅ Entendeu a estrutura de testes Jest
 - ✅ Conseguiu seguir um template e adaptar
 - ✅ Rodou testes com sucesso
@@ -292,6 +312,7 @@ Se você conseguiu fazer tudo isso, você:
 ## 💡 Dica de Ouro
 
 Quando colar o template:
+
 1. NÃO toque no AAA (Arrange, Act, Assert)
 2. MUDE apenas os nomes e dados específicos
 3. COPIE o padrão dos outros testes
@@ -300,6 +321,7 @@ Quando colar o template:
 **Exemplo:**
 
 Template:
+
 ```typescript
 it('deve retornar X quando Y', async () => {
   // ARRANGE
@@ -314,6 +336,7 @@ it('deve retornar X quando Y', async () => {
 ```
 
 Seu teste (copiado e adaptado):
+
 ```typescript
 it('deve lançar erro quando email existe', async () => {
   // ARRANGE (adaptado para seu caso)
@@ -331,9 +354,10 @@ it('deve lançar erro quando email existe', async () => {
 
 ---
 
-## 🚀 Você está pronto!
+## 🚀 Você está pronto
 
 Abra o editor e comece. Os testes têm tudo comentado, você só precisa:
+
 1. Procurar TODO
 2. Copiar template
 3. Adaptar nomes

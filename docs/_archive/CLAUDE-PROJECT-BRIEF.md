@@ -35,6 +35,7 @@
 ## ✅ O que FUNCIONA
 
 ### Backend (NestJS)
+
 - ✅ **8 módulos REST:** Auth, Usuarios, Produtos, Compras, Inventario, Receitas, Barcode, Scraper
 - ✅ **42 endpoints documentados** (Swagger + Postman)
 - ✅ **Motor MOI** - Sugestões inteligentes de receitas (`GET /api/receitas/sugestoes`)
@@ -43,6 +44,7 @@
 - ✅ **Docker Compose** (PostgreSQL, Redis, pgAdmin)
 
 ### Scraper Python
+
 - ✅ Leitura de QR Code SAT-SP
 - ✅ Automação Selenium
 - ✅ Extração de dados do cupom
@@ -53,6 +55,7 @@
 ## ❌ O que FALTA (Crítico)
 
 ### 🔴 Prioridade ALTA
+
 1. **Scraper Python - Modo API** (85% → 100%)
    - Modificar `lib/captcha_manual.py` para aceitar argumentos CLI
    - Comunicação via JSON (stdout) com backend NestJS
@@ -80,6 +83,7 @@
 **ORM:** TypeORM (NÃO Prisma! Alguns docs antigos mencionam Prisma incorretamente)
 
 **11 Tabelas:**
+
 - `usuarios`, `preferencias`
 - `produtos`, `marcas`, `categorias`
 - `compras`, `compras_itens`
@@ -93,6 +97,7 @@
 ## 🔌 Principais Endpoints
 
 ### Motor MOI (Destaque)
+
 ```http
 GET /api/receitas/sugestoes
 Authorization: Bearer {token}
@@ -104,6 +109,7 @@ Authorization: Bearer {token}
 ```
 
 ### Scraper (Integração Mobile)
+
 ```http
 POST /api/scraper/consultas
 { "qrcodeTexto": "35251..." }
@@ -181,6 +187,7 @@ MVP TOTAL:   ████████░░░░░░░░░░░░  40%
 ## 📚 Documentação
 
 **Documentos principais:**
+
 - **[PROJECT-KNOWLEDGE.md](PROJECT-KNOWLEDGE.md)** ← **Leia este para contexto completo**
 - [QUICK-START.md](QUICK-START.md) - Rodar em 5 minutos
 - [backend/PROJETO-CONTEXT.md](backend/PROJETO-CONTEXT.md) - Detalhes do backend
@@ -189,25 +196,29 @@ MVP TOTAL:   ████████░░░░░░░░░░░░  40%
 - [lib/MIGRATION_API_MODE.md](lib/MIGRATION_API_MODE.md) - Modificações Python pendentes
 
 **APIs e ferramentas:**
-- Swagger: http://localhost:3000/api/docs
+
+- Swagger: <http://localhost:3000/api/docs>
 - Postman: `backend/CookMe-API.postman_collection.json`
 
 ---
 
 ## 💡 Dicas para Claude
 
-### Ao trabalhar no backend:
+### Ao trabalhar no backend
+
 - ORM é **TypeORM**, não Prisma
 - Entities: `src/modules/*/entities/*.entity.ts`
 - Guards JWT globais ativos, use `@Public()` para rotas públicas
 - Validação com class-validator em DTOs
 
-### Ao trabalhar no scraper:
+### Ao trabalhar no scraper
+
 - Script principal: `lib/captcha_manual.py`
 - Modificações necessárias: ver `lib/MIGRATION_API_MODE.md`
 - Comunicação backend ↔ Python: JSON via stdout/stdin
 
-### Comandos úteis:
+### Comandos úteis
+
 ```bash
 # Backend
 npm run start:dev          # Dev server
@@ -226,6 +237,7 @@ docker-compose logs -f     # Ver logs
 ## 🔗 Conexão PostgreSQL
 
 **Via pgAdmin (dentro do Docker):**
+
 - Host: `postgres`
 - Port: 5432
 - Database: `cookme_db`
@@ -233,6 +245,7 @@ docker-compose logs -f     # Ver logs
 - Password: `cookme123`
 
 **De fora do Docker (DBeaver, etc):**
+
 - Host: `localhost`
 - (demais iguais)
 

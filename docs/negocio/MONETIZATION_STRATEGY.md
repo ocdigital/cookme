@@ -1,6 +1,7 @@
 # CookMe - Estratégia de Monetização 💰
 
 ## Visão Geral
+
 CookMe é um aplicativo de receitas focado em **maximizar o uso de ingredientes que o usuário já possui**, com a oportunidade de recomendar novas receitas que incentivam compras estratégicas. A monetização se baseia em:
 
 1. **Parcerias com Supermercados/Ecommerces**
@@ -14,11 +15,13 @@ CookMe é um aplicativo de receitas focado em **maximizar o uso de ingredientes 
 ## 1. Receitas com Alimentos do Inventário (FOCO PRINCIPAL)
 
 ### Funcionalidade Atual ✅
+
 - Alerta de produtos vencendo (navbar fixa)
 - Recomendações de receitas com esses alimentos
 - Busca de receitas que utilizam ingredientes existentes
 
-### Implementação Recomendada:
+### Implementação Recomendada
+
 ```
 HomeScreen Flow:
 ├─ Seção 1: "Receitas com seus ingredientes" (GRATUITO)
@@ -70,12 +73,14 @@ Fluxo:
 ```
 
 **Parceiros Recomendados:**
+
 - Supermercados: Carrefour, Extra, Pão de Açúcar
 - Ecommerces: Amazon Fresh, Lojas Americanas
 - Delivery: iFood, 99Food, Rappi
 - Marketplace: Shopee, Mercado Livre
 
 **Receita Estimada:**
+
 - 10k usuários ativos
 - 30% clicam em recomendações = 3k cliques/mês
 - R$ 0,20 por clique = **R$ 600/mês**
@@ -113,6 +118,7 @@ PREMIUM+ (R$ 19,90/mês):
 ```
 
 **Projeção:**
+
 - 10k usuários
 - 5% conversão para Premium = 500 usuários
 - 500 × R$ 9,90 = **R$ 4.950/mês**
@@ -146,6 +152,7 @@ Banner Estratégico:
 ```
 
 **Receita Estimada:**
+
 - CPM (custo por 1k visualizações): R$ 2-5
 - 100k visualizações/mês = **R$ 200-500/mês**
 
@@ -172,6 +179,7 @@ MODELO EXCLUSIVO:
 ```
 
 **Receita Estimada:**
+
 - 500 pedidos/mês via CookMe
 - Comissão média: R$ 2-5 por pedido
 - **R$ 1.000-2.500/mês**
@@ -210,6 +218,7 @@ RECEITA: R$ 500-5.000 por relatório
 ## 3. Roadmap de Implementação
 
 ### Fase 1 (Mês 1-3): MVP Monetização
+
 ```
 ✅ Implementado:
 - Alerta de produtos vencendo
@@ -222,6 +231,7 @@ TO-DO:
 ```
 
 ### Fase 2 (Mês 4-6): Premium & Afiliados
+
 ```
 - [ ] Sistema de assinatura (Stripe/PagSeguro)
 - [ ] Conteúdo premium (vídeos)
@@ -230,6 +240,7 @@ TO-DO:
 ```
 
 ### Fase 3 (Mês 7-12): Expansão
+
 ```
 - [ ] Integração com Ifood/Rappi
 - [ ] Programa B2B de dados
@@ -241,7 +252,7 @@ TO-DO:
 
 ## 4. Foco Principal: Usar o que Você Já Tem
 
-### Implementação na App:
+### Implementação na App
 
 **HomeScreen - Duas Seções:**
 
@@ -267,6 +278,7 @@ SEÇÃO 2: "Receitas Que Você Pode Fazer"
 ## 5. Exemplos de Fluxo
 
 ### Fluxo 1: Usar Ingredientes Existentes (GRATUITO)
+
 ```
 Usuário abre app
     ↓
@@ -282,6 +294,7 @@ APP LUCRA: Nada (mas retém usuário)
 ```
 
 ### Fluxo 2: Compra de Ingredientes (MONETIZADO)
+
 ```
 Usuário abre app
     ↓
@@ -302,6 +315,7 @@ APP LUCRA: R$ 0,20 + R$ 1-3 = R$ 1,20-3,20
 ```
 
 ### Fluxo 3: Premium Feature
+
 ```
 Usuário tenta desbloquear "Vídeo Passo a Passo"
     ↓
@@ -323,7 +337,7 @@ APP LUCRA: R$ 9,90/mês por usuário
 ## 6. Métricas de Sucesso
 
 | Métrica | Meta | Receita |
-|---------|------|---------|
+| --------- | ------ | --------- |
 | Usuários Ativos | 10.000 | - |
 | Taxa de Assinatura Premium | 5% (500 usuários) | R$ 4.950/mês |
 | Taxa de Conversão Afiliados | 10% (1.000 cliques/mês) | R$ 900-1.350/mês |
@@ -360,12 +374,14 @@ APP LUCRA: R$ 9,90/mês por usuário
 ## Resumo Final
 
 **O diferencial do CookMe:**
+
 - ✅ Reduz desperdício (apelo ambiental)
 - ✅ Economiza dinheiro (apelo financeiro)
 - ✅ Incentiva compras inteligentes (monetização)
 - ✅ Recomendações sem presão (ética)
 
 **Monetização Ética:**
+
 - Não força compras
 - Oferece opções genuinamente úteis
 - Beneficia usuário (economia) e parceiros (vendas)

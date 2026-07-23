@@ -3,6 +3,7 @@
 ## Visão Geral
 
 Um painel admin completo para visualizar e gerenciar todos os produtos cadastrados no CookMe com suporte a:
+
 - ✅ Listagem com paginação
 - ✅ Filtros avançados (nome, categoria, marca)
 - ✅ Visualização de categorias e ícones
@@ -33,17 +34,20 @@ admin/
 #### 2. **Endpoints Criados**
 
 **GET `/api/admin/produtos`**
+
 - Lista produtos com filtros, busca e paginação
 - Retorna produtos com relacionamentos (categoria e marca)
 - Suporta ordenação e direção
 
 **Exemplo de Request:**
+
 ```bash
 curl -H "Authorization: Bearer TOKEN" \
   "http://localhost:3000/api/admin/produtos?page=1&limit=20&search=maçã&categoriaId=xxx&sort=nome&order=ASC"
 ```
 
 **Exemplo de Response:**
+
 ```json
 {
   "data": [
@@ -79,12 +83,14 @@ curl -H "Authorization: Bearer TOKEN" \
 ```
 
 **GET `/api/admin/produtos/stats`**
+
 - Retorna estatísticas de produtos
 - Total de produtos
 - Produtos por categoria
 - Produtos por marca (top 10)
 
 **Exemplo de Response:**
+
 ```json
 {
   "totalProdutos": 150,
@@ -103,7 +109,7 @@ curl -H "Authorization: Bearer TOKEN" \
 #### 3. **Query Parameters**
 
 | Parâmetro | Tipo | Padrão | Descrição |
-|-----------|------|--------|-----------|
+| ----------- | ------ | -------- | ----------- |
 | `page` | number | 1 | Número da página |
 | `limit` | number | 20 | Itens por página (máx: 100) |
 | `search` | string | - | Busca por nome ou código |
@@ -134,6 +140,7 @@ const stats = await adminService.getProductStats();
 #### 2. **Página Admin** (`frontend/src/pages/AdminProductsPage.tsx`)
 
 Componente completo com:
+
 - **Estatísticas**: Total, categorias, marcas
 - **Barra de Filtros**: Busca e filtro por categoria
 - **Tabela de Produtos**: Com todas as informações
@@ -150,6 +157,7 @@ GET /admin/products → AdminProductsPage
 #### 4. **Menu Lateral** (`frontend/src/components/Sidebar.tsx`)
 
 Novo item adicionado:
+
 - Label: "Gestão de Produtos"
 - Icon: Package
 - Path: `/admin/products`
@@ -159,6 +167,7 @@ Novo item adicionado:
 ## 🎨 Interface do Painel
 
 ### Seção de Estatísticas
+
 ```
 ┌─────────────────────────────────────────┐
 │  📦 Total: 150    🏷️ Categorias: 10    │
@@ -167,6 +176,7 @@ Novo item adicionado:
 ```
 
 ### Filtros
+
 ```
 ┌──────────────────────────────────────────────┐
 │ 🔍 Buscar por nome...  │ Todas as Categorias │
@@ -174,6 +184,7 @@ Novo item adicionado:
 ```
 
 ### Tabela de Produtos
+
 ```
 ┌─────────────┬──────────────┬────────┬────────┐
 │ Produto     │ Categoria    │ Marca  │ Status │
@@ -185,6 +196,7 @@ Novo item adicionado:
 ```
 
 ### Paginação
+
 ```
 Página 1 de 8 (150 total)
 [← Anterior] [Próximo →]
@@ -227,6 +239,7 @@ Anterior → volta para página 1
 ### 5. **Ver Detalhes**
 
 Cada linha da tabela mostra:
+
 - Nome e descrição truncada
 - **Categoria** com ícone emoji
 - **Marca** (se houver)
@@ -240,6 +253,7 @@ Cada linha da tabela mostra:
 ## 📊 Exemplos de Dados
 
 ### Produto Verificado
+
 ```json
 {
   "nome": "Maçã Gala",
@@ -254,6 +268,7 @@ Cada linha da tabela mostra:
 ```
 
 ### Produto Não Verificado
+
 ```json
 {
   "nome": "Frango Orgânico",
@@ -268,6 +283,7 @@ Cada linha da tabela mostra:
 ```
 
 ### Produto Sem Categoria
+
 ```json
 {
   "nome": "Produto X",
@@ -354,6 +370,7 @@ ORDER BY total DESC;
 ### Problema: "Erro ao carregar produtos"
 
 **Solução:**
+
 1. Verifique se está autenticado
 2. Verifique o token JWT
 3. Verifique se o backend está rodando
@@ -362,11 +379,13 @@ ORDER BY total DESC;
 ### Problema: "Nenhum produto encontrado"
 
 **Possíveis causas:**
+
 1. Banco de dados vazio (execute seed)
 2. Filtros muito restritivos
 3. Categoria não existe
 
 **Solução:**
+
 ```bash
 # No backend
 npm run seed
@@ -376,6 +395,7 @@ npm run seed
 
 **Causa:** Cache do navegador
 **Solução:**
+
 ```bash
 # Limpe o cache
 Ctrl+Shift+Delete (ou Cmd+Shift+Delete no Mac)
@@ -386,18 +406,21 @@ Ctrl+Shift+Delete (ou Cmd+Shift+Delete no Mac)
 ## 📝 Próximos Passos Sugeridos
 
 ### Curto Prazo
+
 - [ ] Adicionar edição de produtos
 - [ ] Adicionar exclusão de produtos
 - [ ] Adicionar criação de produtos
 - [ ] Exportar lista como CSV
 
 ### Médio Prazo
+
 - [ ] Dashboard visual com gráficos
 - [ ] Filtros avançados por origem
 - [ ] Filtros por status de verificação
 - [ ] Busca por código de barras
 
 ### Longo Prazo
+
 - [ ] Importação em massa (CSV)
 - [ ] Atualização em massa
 - [ ] Histórico de alterações
@@ -443,17 +466,20 @@ http://localhost:5173/admin/products
 ## 📚 Referências
 
 ### Arquivos Relacionados
+
 - Backend: `backend/src/modules/admin/`
 - Frontend: `frontend/src/pages/AdminProductsPage.tsx`
 - Serviço: `frontend/src/services/adminService.ts`
 - Rotas: `frontend/src/App.tsx`
 
 ### Modelos Relacionados
+
 - Produto: `backend/src/modules/produtos/entities/produto.entity.ts`
 - Categoria: `backend/src/modules/produtos/entities/categoria.entity.ts`
 - Marca: `backend/src/modules/produtos/entities/marca.entity.ts`
 
 ### DTOs
+
 - `ListProductsQueryDto`: Query parameters
 - `ProductListDto`: Resposta individual
 - `ListProductsResponseDto`: Resposta paginada
@@ -488,6 +514,7 @@ http://localhost:5173/admin/products
 Tudo está pronto para usar. A próxima etapa seria adicionar funcionalidades de CRUD (Create, Update, Delete) completas.
 
 **Compile e teste agora:**
+
 ```bash
 # Backend
 cd backend && npx tsc --noEmit

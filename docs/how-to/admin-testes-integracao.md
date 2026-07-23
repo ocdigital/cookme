@@ -10,6 +10,7 @@ cd /home/eduardo/projetos/cookme
 ```
 
 Expected output:
+
 ```
 [NestFactory] Starting NestApplication ...
 [Bootstrap] 🚀 Aplicação rodando em: http://localhost:3000
@@ -23,6 +24,7 @@ Expected output:
 ```
 
 Expected output:
+
 ```
   VITE v7.2.2  ready in 1234 ms
 
@@ -31,7 +33,7 @@ Expected output:
 
 ### 3. Login to Frontend
 
-1. Open http://localhost:5173 in browser
+1. Open <http://localhost:5173> in browser
 2. Login with any registered account (or create one)
 3. Navigate to "Admin" section (usually in sidebar/menu)
 
@@ -42,6 +44,7 @@ Expected output:
 **Location:** Admin → Users
 
 **Expected Data:**
+
 - [ ] Page loads without errors
 - [ ] Users list displays 5+ users
 - [ ] Each user shows:
@@ -56,6 +59,7 @@ Expected output:
   - [ ] **Receitas Criadas** (NOVO): Shows number (0 if not implemented)
 
 **Test Functionality:**
+
 - [ ] Search by name or email works
 - [ ] Filter by role works
 - [ ] Pagination works (navigate pages)
@@ -68,6 +72,7 @@ Expected output:
 **Location:** Admin → Products
 
 **Expected Data:**
+
 - [ ] Page loads without errors
 - [ ] Products list displays 5+ products
 - [ ] Each product shows:
@@ -82,6 +87,7 @@ Expected output:
   - [ ] **Popularidade** (NOVO): Percentage (0-100%) based on usage
 
 **Test Functionality:**
+
 - [ ] Search by product name or barcode
 - [ ] Pagination works
 - [ ] Click product to view details
@@ -93,6 +99,7 @@ Expected output:
 **Location:** Admin → Recipes
 
 **Expected Data:**
+
 - [ ] Page loads without errors
 - [ ] Recipes list displays 5+ recipes
 - [ ] Each recipe shows:
@@ -108,6 +115,7 @@ Expected output:
     - [ ] "Arquivado" (gray) - archived
 
 **Test Functionality:**
+
 - [ ] Search by recipe name
 - [ ] Filter by difficulty (fácil/média/difícil)
 - [ ] Filter by category
@@ -122,8 +130,9 @@ Expected output:
 ## API Endpoint Testing (Advanced)
 
 ### Prerequisites
+
 - Get a valid JWT token from login response
-- Backend running on http://localhost:3000
+- Backend running on <http://localhost:3000>
 
 ### Test Users Endpoint
 
@@ -134,6 +143,7 @@ curl -X GET "http://localhost:3000/api/admin/usuarios?page=1&limit=10" \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "data": [
@@ -166,6 +176,7 @@ curl -X GET "http://localhost:3000/api/admin/produtos?page=1&limit=10" \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "data": [
@@ -197,6 +208,7 @@ curl -X GET "http://localhost:3000/api/admin/receitas?page=1&limit=10" \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "data": [
@@ -230,6 +242,7 @@ curl -X PATCH "http://localhost:3000/api/admin/receitas/{recipe-id}/moderacao" \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "id": "recipe-id",
@@ -242,18 +255,22 @@ curl -X PATCH "http://localhost:3000/api/admin/receitas/{recipe-id}/moderacao" \
 ## Troubleshooting
 
 ### "Cannot GET /api/admin/usuarios"
+
 - **Cause:** Backend not running or API prefix issue
 - **Fix:** Ensure backend is running on port 3000
 
 ### "401 Unauthorized"
+
 - **Cause:** Missing or invalid JWT token
 - **Fix:** Login to frontend first, token will be added automatically
 
 ### "Products showing 0 for all calculated fields"
+
 - **Cause:** No data in receita_ingredientes junction table
 - **Fix:** This is expected if no recipes have been created with product ingredients
 
 ### "Level Activity always shows 'inativa'"
+
 - **Cause:** User's `ultimo_acesso` is null
 - **Fix:** User needs to have logged in at least once
 

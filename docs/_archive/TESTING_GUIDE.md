@@ -1,17 +1,20 @@
 # 📋 Guia de Testes - CookMe
 
 ## Overview
+
 Este projeto usa Jest para testes unitários e de integração. Os testes validam funcionalidades automaticamente.
 
 ## Testes Implementados
 
 ### ✅ Testes Unitários (compras.service.spec.ts)
+
 - Salvar itens do cupom no inventário
 - Buscar produtos existentes por código de barras
 - Criar novo produto se não existir
 - Continuar salvando mesmo se um item falhar
 
 ### ✅ Testes de Integração (compras.integration.spec.ts)
+
 - Salvar itens via endpoint
 - Criar produtos automaticamente
 - Validar requisições (sem itens, sem auth)
@@ -20,7 +23,7 @@ Este projeto usa Jest para testes unitários e de integração. Os testes valida
 ## Comparação: Manual vs Automático
 
 | Teste Manual | Teste Automático |
-|---|---|
+| --- | --- |
 | 5-10 minutos | 4 segundos |
 | Abrir Expo Go | `npm run test:compras` |
 | Fazer login | ✓ Automático |
@@ -42,6 +45,7 @@ npm run test:cov          # Com coverage
 ```
 
 ## Resultado
+
 ```
 ✓ Salvar itens do cupom no inventário (17 ms)
 ✓ Buscar produtos por código de barras (4 ms)
@@ -52,4 +56,3 @@ Test Suites: 1 passed
 Tests: 4 passed
 Time: 4.041 s ⚡
 ```
-

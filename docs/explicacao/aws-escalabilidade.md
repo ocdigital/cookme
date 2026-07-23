@@ -1,9 +1,11 @@
 # GUIA COMPLETO: COOKME NA AWS COM ESCALABILIDADE
+
 ## Do Deploy Básico ao Altamente Escalável
 
 ---
 
 ## 📑 ÍNDICE
+
 1. [Conceitos Fundamentais](#conceitos-fundamentais)
 2. [Arquitetura Current vs AWS](#arquitetura-current-vs-aws)
 3. [Arquitetura Multi-Tier Escalável](#arquitetura-multi-tier-escalável)
@@ -26,11 +28,13 @@
 ### O que é Escalabilidade?
 
 **Escalabilidade Vertical**: Aumentar poder do servidor (CPU, RAM)
+
 - Limitado: Existe um máximo
 - Simples de implementar
 - Sem downtime (geralmente)
 
 **Escalabilidade Horizontal**: Adicionar mais servidores
+
 - Ilimitado: Adiciona quantos precisar
 - Requer load balancer
 - Melhor prática para aplicações cloud
@@ -312,6 +316,7 @@ Black Friday:     1000+ req/s
 **O que faz**: Gerencia domínios e roteia tráfego
 
 **Configuração**:
+
 ```
 cookme.com
 ├─ Alias Record A → CloudFront (*.cloudfront.net)
@@ -320,6 +325,7 @@ cookme.com
 ```
 
 **Recursos**:
+
 - Resolução DNS: 53ms (global)
 - Health checks: Detecta falhas em segundos
 - Geolocation routing: Usuário em BR? → Rota para us-east-1
@@ -330,6 +336,7 @@ cookme.com
 **O que faz**: Cache global + compressão + DDoS
 
 **Distribuição**:
+
 ```
 Edge Location 1: São Paulo (cache copy)
 Edge Location 2: New York (cache copy)
@@ -340,6 +347,7 @@ Edge Location N: (200+ locais mundo)
 ```
 
 **Benefícios**:
+
 - CDN de 200+ locais
 - Cache por extensão (.js, .css, .woff = 1 ano)
 - .html = 1 dia (sempre fresco)
@@ -348,6 +356,7 @@ Edge Location N: (200+ locais mundo)
 - DDoS proteção inclusa
 
 **Configuração para CookMe**:
+
 ```
 Behaviors:
 1. /api/* → ALB (TTL 0, sem cache)
@@ -362,6 +371,7 @@ Behaviors:
 **O que faz**: Distribui tráfego entre N servidores
 
 **Configuração**:
+
 ```
 ALB Port 443 (HTTPS)
 ├─ Target Group 1 (Backend)
@@ -377,6 +387,7 @@ ALB Port 443 (HTTPS)
 ```
 
 **Recursos**:
+
 - Path-based routing: /api/* → Backend
 - Hostname routing: api.cookme.com → Backend
 - Port mapping: 443 → 3000
@@ -385,6 +396,7 @@ ALB Port 443 (HTTPS)
 - Logs: Salva em S3
 
 **Vantagens**:
+
 - Layer 7 (Application): Entende HTTP
 - Sticky sessions (opcional): Mesmo usuario → mesma instância
 - WebSocket support: Para real-time
@@ -395,6 +407,7 @@ ALB Port 443 (HTTPS)
 **O que faz**: Cria/deleta instâncias automaticamente
 
 **Configuração**:
+
 ```
 Launch Template
 ├─ AMI: Amazon Linux 2 + Docker
@@ -414,6 +427,7 @@ Auto Scaling Group
 ```
 
 **Políticas de Scaling**:
+
 ```
 Policy 1 - Scale UP (quando ocupado):
 ├─ Métrica: CPUUtilization > 70%
@@ -433,6 +447,7 @@ Policy 3 - Target Tracking (simplificado):
 ```
 
 **Processo de Scale Up**:
+
 ```
 T0: 5 instâncias, CPU 75%
     ↓
@@ -457,6 +472,7 @@ T5: 7 instâncias ativas
 ### 5. RDS POSTGRESQL (Banco Escalado)
 
 **Multi-AZ Setup**:
+
 ```
 AZ-A (Availability Zone 1) - us-east-1a
 ├─ RDS Primary Instance
@@ -474,6 +490,7 @@ AZ-A (Availability Zone 1) - us-east-1a
 ```
 
 **Read Replicas** (para distribuir leitura):
+
 ```
 AZ-C (us-east-1c)
 ├─ Read Replica #1
@@ -486,6 +503,7 @@ AZ-C (us-east-1c)
 ```
 
 **Failover Automático**:
+
 ```
 Cenário: Primary em AZ-A falha
 T0: Primary cai
@@ -500,6 +518,7 @@ T4: Downtime: ~30 segundos
 ```
 
 **Optimization**:
+
 - Índices em colunas frequentes
 - Connection pooling (RDS Proxy)
 - Read replicas para consultas pesadas
@@ -508,6 +527,7 @@ T4: Downtime: ~30 segundos
 ### 6. ELASTICACHE REDIS (Cache)
 
 **Cluster Setup**:
+
 ```
 Redis Cluster Mode Disabled (Simpler)
 ├─ Primary Node (cache.r6g.xlarge)
@@ -524,6 +544,7 @@ Redis Cluster Mode Disabled (Simpler)
 ```
 
 **Padrões de Cache em CookMe**:
+
 ```
 # 1. Session Cache
 redis.set('session:user:123', JSON.stringify(user), 'EX', 86400)
@@ -547,6 +568,7 @@ redis.set('api:response:xyz123', JSON.stringify(response), 'EX', 300)
 ### 7. S3 + CLOUDFRONT
 
 **Estrutura S3**:
+
 ```
 cookme-assets-bucket (private)
 ├─ /frontend/
@@ -570,6 +592,7 @@ cookme-assets-bucket (private)
 ```
 
 **CloudFront Origin Access Control**:
+
 ```
 ┌─────────────┐
 │ CloudFront  │ (pode ler S3)
@@ -585,6 +608,7 @@ cookme-assets-bucket (private)
 ```
 
 **Cache Invalidation**:
+
 ```
 Deploy novo bundle.js:
 1. Upload versão nova: bundle.a1b2c3.js
@@ -598,6 +622,7 @@ Deploy novo bundle.js:
 ### 8. ECR (Elastic Container Registry)
 
 **Repositório Docker**:
+
 ```
 123456789.dkr.ecr.us-east-1.amazonaws.com/cookme-backend:latest
 ├─ Image: NestJS + Node
@@ -608,6 +633,7 @@ Deploy novo bundle.js:
 ```
 
 **Pipeline Build**:
+
 ```
 GitHub Push
   ↓
@@ -631,6 +657,7 @@ CodeDeploy
 ### 9. ECS (Elastic Container Service)
 
 **EC2 Launch Type** (mais controle, menos custo):
+
 ```
 EC2 Instance (t3.large)
 ├─ ECS Agent rodando
@@ -648,6 +675,7 @@ EC2 Instance (t3.large)
 ```
 
 **vs Fargate** (serverless, sem gerenciar EC2):
+
 ```
 Fargate Launch Type
 ├─ Serverless container
@@ -666,12 +694,14 @@ Fargate Launch Type
 #### 1.1 Conta AWS & Configuração
 
 **Criar Conta AWS**:
+
 - Acesse: aws.amazon.com
 - Registre-se (necessário cartão de crédito)
 - Ative MFA (autenticação 2 fatores)
 - Crie IAM user (nunca use root)
 
 **IAM Policy** (permissions mínimas para deploy):
+
 ```json
 {
   "Version": "2012-10-17",
@@ -696,6 +726,7 @@ Fargate Launch Type
 ```
 
 **AWS CLI Setup**:
+
 ```bash
 # Instalar
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -718,6 +749,7 @@ aws ec2 describe-instances
 **Criar Dockerfiles** (se não existir):
 
 Backend Dockerfile:
+
 ```dockerfile
 FROM node:20-alpine
 
@@ -735,6 +767,7 @@ CMD ["npm", "run", "start:prod"]
 ```
 
 Frontend Dockerfile:
+
 ```dockerfile
 FROM node:20-alpine as build
 WORKDIR /app
@@ -751,6 +784,7 @@ CMD ["nginx", "-g", "daemon off;"]
 ```
 
 **Remover secrets do .env**:
+
 ```bash
 # Arquivo .env.example (commitar no Git)
 DB_HOST=
@@ -765,6 +799,7 @@ GEMINI_API_KEY=
 ```
 
 **Criar arquivo production.env**:
+
 ```bash
 # Não commitar! (add .gitignore)
 DB_HOST=cookme-db.xxxxx.rds.amazonaws.com
@@ -778,6 +813,7 @@ GEMINI_API_KEY=<do Secrets Manager>
 ```
 
 **VPC & Security Groups**:
+
 ```bash
 # Criar VPC
 aws ec2 create-vpc --cidr-block 10.0.0.0/16
@@ -835,6 +871,7 @@ aws ec2 authorize-security-group-ingress \
 #### 2.1 RDS PostgreSQL Multi-AZ
 
 **Criar Instância RDS**:
+
 ```bash
 aws rds create-db-instance \
   --db-instance-identifier cookme-db \
@@ -859,6 +896,7 @@ aws rds create-db-instance \
 ```
 
 **Criar RDS Proxy** (connection pooling):
+
 ```bash
 aws rds create-db-proxy \
   --db-proxy-name cookme-proxy \
@@ -870,6 +908,7 @@ aws rds create-db-proxy \
 ```
 
 **Teste de Conexão**:
+
 ```bash
 # Obter endpoint
 aws rds describe-db-instances \
@@ -892,6 +931,7 @@ npm run seed
 #### 2.2 ElastiCache Redis
 
 **Criar Cluster Redis Multi-AZ**:
+
 ```bash
 aws elasticache create-replication-group \
   --replication-group-description "CookMe Redis Cluster" \
@@ -911,6 +951,7 @@ aws elasticache create-replication-group \
 ```
 
 **Teste de Conexão**:
+
 ```bash
 # Obter endpoint
 aws elasticache describe-replication-groups \
@@ -926,6 +967,7 @@ redis-cli -h cookme-redis.xxxxx.cache.amazonaws.com \
 #### 2.3 ECR (Container Registry)
 
 **Criar repositório ECR**:
+
 ```bash
 # Backend
 aws ecr create-repository \
@@ -939,6 +981,7 @@ aws ecr create-repository \
 ```
 
 **Build & Push da Imagem**:
+
 ```bash
 # Login no ECR
 aws ecr get-login-password --region us-east-1 | \
@@ -961,6 +1004,7 @@ docker push \
 #### 2.4 S3 para Assets
 
 **Criar Buckets**:
+
 ```bash
 # Assets bucket (público via CloudFront)
 aws s3 mb s3://cookme-assets-prod
@@ -972,6 +1016,7 @@ aws s3api put-bucket-policy \
 ```
 
 **Configurar Lifecycle**:
+
 ```bash
 # Logs para Glacier após 90 dias
 aws s3api put-bucket-lifecycle-configuration \
@@ -984,6 +1029,7 @@ aws s3api put-bucket-lifecycle-configuration \
 #### 3.1 Application Load Balancer
 
 **Criar ALB**:
+
 ```bash
 aws elbv2 create-load-balancer \
   --name cookme-alb \
@@ -995,6 +1041,7 @@ aws elbv2 create-load-balancer \
 ```
 
 **Criar Target Group**:
+
 ```bash
 aws elbv2 create-target-group \
   --name cookme-backend \
@@ -1011,6 +1058,7 @@ aws elbv2 create-target-group \
 ```
 
 **Criar HTTPS Listener** (com ACM certificate):
+
 ```bash
 # Criar certificate no ACM
 aws acm request-certificate \
@@ -1031,6 +1079,7 @@ aws elbv2 create-listener \
 #### 3.2 Auto Scaling Group
 
 **Criar Launch Template**:
+
 ```bash
 aws ec2 create-launch-template \
   --launch-template-name cookme-backend-template \
@@ -1052,6 +1101,7 @@ aws ec2 create-launch-template \
 ```
 
 **Criar Auto Scaling Group**:
+
 ```bash
 aws autoscaling create-auto-scaling-group \
   --auto-scaling-group-name cookme-asg \
@@ -1067,6 +1117,7 @@ aws autoscaling create-auto-scaling-group \
 ```
 
 **Criar Scaling Policies**:
+
 ```bash
 # Scale Up
 aws autoscaling put-scaling-policy \
@@ -1102,12 +1153,14 @@ aws autoscaling put-scaling-policy \
 #### 4.1 CloudFront Distribution
 
 **Criar Distribuição**:
+
 ```bash
 aws cloudfront create-distribution \
   --distribution-config file://cloudfront-config.json
 ```
 
 **cloudfront-config.json**:
+
 ```json
 {
   "CallerReference": "cookme-2026-01-28",
@@ -1159,6 +1212,7 @@ aws cloudfront create-distribution \
 #### 4.2 Route 53 DNS
 
 **Criar Hosted Zone**:
+
 ```bash
 aws route53 create-hosted-zone \
   --name cookme.com \
@@ -1166,6 +1220,7 @@ aws route53 create-hosted-zone \
 ```
 
 **Criar Alias Record**:
+
 ```bash
 aws route53 change-resource-record-sets \
   --hosted-zone-id Z123456 \
@@ -1221,6 +1276,7 @@ T7:00: 7 instâncias ativas
 ```
 
 **Timing Importante**:
+
 - Health check interval: 30s
 - Needed checks: 2 consecutivos
 - Cooldown: 300s (5 min)
@@ -1231,6 +1287,7 @@ T7:00: 7 instâncias ativas
 #### 1. Stateless Design (Essencial)
 
 **❌ ERRADO** (com estado):
+
 ```javascript
 let cache = {};
 app.post('/compras', (req, res) => {
@@ -1241,6 +1298,7 @@ app.post('/compras', (req, res) => {
 ```
 
 **✅ CORRETO** (sem estado):
+
 ```javascript
 app.post('/compras', async (req, res) => {
   await db.compras.create(req.body); // Persistido
@@ -1287,6 +1345,7 @@ PostgreSQL padrão: max 100 conexões
 #### 3. Cache Strategy
 
 **Sem Cache** (10k requisições):
+
 ```
 10,000 req/s → 10,000 queries
 Latência: 100ms cada
@@ -1294,6 +1353,7 @@ Total: 1000s = 16+ minutos! ❌
 ```
 
 **Com Cache** (80% hit rate):
+
 ```
 10,000 req/s
 ├─ 8,000 cache hits (< 1ms)
@@ -1305,6 +1365,7 @@ Latência média: (8000 × 0.001) + (2000 × 0.1) = 208ms ✅
 #### 4. Read Replicas para Analytics
 
 **Sem Replicas** (mistura read + write):
+
 ```
 Primary DB:
 ├─ 70% write (compras, receitas)
@@ -1313,6 +1374,7 @@ Primary DB:
 ```
 
 **Com Read Replicas**:
+
 ```
 Primary DB:
 ├─ 100% write (compras, receitas)
@@ -1328,6 +1390,7 @@ Read Replica-2:
 ```
 
 **Routing em NestJS**:
+
 ```typescript
 // Escrita (Primary)
 async createCompra(data) {
@@ -1352,6 +1415,7 @@ async getMonthlyStats() {
 #### 5. API Rate Limiting
 
 **Proteger contra abuso**:
+
 ```bash
 # Instalar em NestJS
 npm install @nestjs/throttler
@@ -1429,6 +1493,7 @@ db.r6i.4xlarge (128 GB RAM) → 5000 req/s
 ```
 
 **Processo** (com downtime mínimo):
+
 ```
 T0: Primary = db.r6i.2xlarge (32 GB)
 T1: AWS cria snapshot
@@ -1462,6 +1527,7 @@ Arquitetura:
 ```
 
 **Configurar em NestJS**:
+
 ```typescript
 // database.config.ts
 export const createDataSourceOptions = (): DataSourceOptions => {
@@ -1514,6 +1580,7 @@ Benefício:
 ```
 
 **Implementar em PostgreSQL**:
+
 ```sql
 -- Range partitioning
 CREATE TABLE compras (
@@ -1544,6 +1611,7 @@ RDS Backup Strategy:
 ```
 
 **Restore Procedure**:
+
 ```bash
 # Listar backups
 aws rds describe-db-snapshots \
@@ -1573,6 +1641,7 @@ Recuperação:
 ```
 
 **Implementar**:
+
 ```bash
 # Restore a specific timestamp
 aws rds restore-db-instance-to-point-in-time \
@@ -1590,6 +1659,7 @@ aws rds restore-db-instance-to-point-in-time \
 #### 1. TTL (Time-To-Live)
 
 **Simples, mas pode ficar stale**:
+
 ```typescript
 async getProducts(page: number) {
   const cacheKey = `products:page:${page}`;
@@ -1611,6 +1681,7 @@ async getProducts(page: number) {
 #### 2. Event-Based Invalidation
 
 **Invalida quando dado muda**:
+
 ```typescript
 async createProduct(data: CreateProductDTO) {
   // Salvar no DB
@@ -1695,6 +1766,7 @@ Cluster Mode Enabled (Distribuído):
 ```
 
 **Dados distribuídos por hash**:
+
 ```
 redis.set('user:123:cart', data)
   hash = crc16(key) % 16384
@@ -1708,6 +1780,7 @@ redis.set('user:123:cart', data)
 ### CloudFront Caching Strategy
 
 **Cache Headers**:
+
 ```
 Response Headers
 ├─ Cache-Control: max-age=3600
@@ -1723,6 +1796,7 @@ Response Headers
 ```
 
 **Configurar por tipo**:
+
 ```
 /api/*
 ├─ Cache-Control: no-cache, no-store
@@ -1988,6 +2062,7 @@ const dbPassword = await getDbPassword();
 ```
 
 **Rotation Policy**:
+
 ```
 Rotar senha a cada 30 dias:
 ├─ Criar nova senha
@@ -2541,23 +2616,27 @@ T8: Tráfego distribuído, CPU cai
 ## RECURSOS ADICIONAIS
 
 ### AWS Official
-- AWS Well-Architected Framework: https://aws.amazon.com/architecture/well-architected/
-- AWS Scalability: https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html
-- RDS Best Practices: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/
+
+- AWS Well-Architected Framework: <https://aws.amazon.com/architecture/well-architected/>
+- AWS Scalability: <https://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html>
+- RDS Best Practices: <https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/>
 
 ### Tools
+
 - AWS CloudFormation (Infrastructure as Code)
 - Terraform (Multi-cloud IaC)
 - AWS SAM (Serverless Application Model)
 - Docker + ECS (Container Orchestration)
 
 ### Monitoring
+
 - Prometheus (custom metrics)
 - Grafana (visualization)
 - Datadog (enterprise monitoring)
 - New Relic (APM)
 
 ### Performance
+
 - Apache JMeter (load testing)
 - Locust (Python load testing)
 - Gremlin (chaos engineering)

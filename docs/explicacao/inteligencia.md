@@ -29,7 +29,7 @@ Matching ingênuo: **6/7 = 85% — "disponível"**. Mas sem frango, a receita é
 Cada ingrediente recebe um peso baseado na sua importância para a receita:
 
 | Peso | Tipo | Exemplos |
-|------|------|---------|
+| ------ | ------ | --------- |
 | **3** | Protagonista | `frango`, `carne`, `macarrão`, `feijão`, `salmão`, `berinjela`, `batata` |
 | **1** | Base | Aromáticos e vegetais que definem o prato mas não são o nome dele |
 | **0.3** | Auxiliar | `sal`, `pimenta`, `alho`, `cebola`, `azeite`, `orégano` — todo mundo tem |
@@ -51,6 +51,7 @@ Frango Assado sem frango:
 ### Threshold Adaptativo
 
 Uma receita entra na lista se:
+
 - **Tem protagonista presente** → threshold mínimo: 15% (receita relevante mesmo incompleta)
 - **Sem protagonista** → threshold mínimo: 40% (evita lixo)
 
@@ -115,7 +116,7 @@ Converte qualquer forma de ingrediente para um nome canônico que permite matchi
 O sistema conhece variações regionais do Brasil:
 
 | Nordeste | Sul/Sudeste | Canônico |
-|----------|------------|---------|
+| ---------- | ------------ | --------- |
 | macaxeira | aipim | `mandioca` |
 | jerimum | moranga | `abobora` |
 | cará | taro | `inhame` |
@@ -162,6 +163,7 @@ temProdutoAnimal → true (ovo, queijo estão em NAO_VEGANO)
 ### Detecção Fitness
 
 Ativado por qualquer um dos três:
+
 1. Tag `fitness` no scraping original
 2. Título contém: `fitness`, `fit`, `proteico`, `low-carb`, `integral`, `sem glúten`
 3. Ingredientes contêm: `aveia`, `quinoa`, `chia`, `linhaça`, `whey`
@@ -199,6 +201,7 @@ O cache é **compartilhado entre todos os usuários**. Cada classificação nova
 ### Aprendizado por Validação
 
 Quando o usuário clica "Sim" ou "Não":
+
 ```
 POST /receitas/ocr/classify-items → retorna itens com confiança
   → usuário confirma na tela de validação
@@ -238,11 +241,13 @@ WHERE e.usuario_id = $1 AND e.avaliacao IS NOT NULL
 ```
 
 **Nota ≥ 4:**
+
 - Cada ingrediente da receita: `score += 0.3` em `INGREDIENTE_FAVORITO`
 - Se executou mais de 1 vez: `score += 0.2` (reforço)
 - Cada tag de dieta: `score += 0.2` em `CATEGORIA_FAVORITA`
 
 **Nota ≤ 2:**
+
 - Cada ingrediente: `score += 0.5` em `INGREDIENTE_AVERSAO`
 - Cada tag: `score += 0.3` em `CATEGORIA_AVERSAO`
 
@@ -311,6 +316,7 @@ usuário B com [frango, brócolis, cenoura, alho]
 Quanto mais usuários, melhor o banco → melhor o RAG → melhor as receitas. Flywheel.
 
 ### Regras de conteúdo (imutáveis)
+
 - Banco público: **somente** `url_fonte IS NULL` (geradas pelo CookMe)
 - Importadas pelo usuário (`url_fonte + autor_id`): visíveis só pro autor, badge "fonte"
 - Scraping autônomo de sites terceiros: **PROIBIDO** no fluxo principal (viola Lei 9.610/98)
@@ -401,7 +407,7 @@ Usuário dá nota 5 → AprendizadoService.derivarPreferencias
 ## Resumo dos Serviços Inteligentes
 
 | Serviço | Arquivo | O que faz |
-|---------|---------|----------|
+| --------- | --------- | ---------- |
 | `ReceitaBancoService` | `receitas/services/receita-banco.service.ts` | Matching ponderado inventário↔receitas (filtra url_fonte IS NULL) |
 | `IngredientNormalizerService` | `receitas/services/ingredient-normalizer.service.ts` | Normalização + sinonímia regional + expande "X e Y" |
 | `IngredientCleanerService` | `receitas/services/ingredient-cleaner.service.ts` | Limpeza batch de ingredientes_chave sujos (job admin) |
@@ -416,7 +422,7 @@ Usuário dá nota 5 → AprendizadoService.derivarPreferencias
 ## Infraestrutura de IA
 
 | Componente | Tecnologia | Uso |
-|-----------|-----------|-----|
+| ----------- | ----------- | ----- |
 | Geração de receitas | Claude Haiku `claude-haiku-4-5-20251001` | Receitas originais, adaptação RAG |
 | Embeddings | Gemini `gemini-embedding-001` (768 dims) | Vetores para busca semântica |
 | Banco vetorial | pgvector + PostgreSQL (HNSW index) | Coseno similarity entre ingredientes e receitas |
@@ -428,6 +434,7 @@ Usuário dá nota 5 → AprendizadoService.derivarPreferencias
 Todos os dados coletados pelos sistemas acima têm base legal definida. Ver seção LGPD no `CLAUDE.md`.
 
 Pontos críticos:
+
 - **Foto do cupom**: processada em memória, nunca persistida no servidor
 - **Modo alimentar e restrições**: dado de saúde, consentimento explícito coletado no onboarding
 - **Histórico de receitas**: usado só para `AprendizadoService`, não compartilhado
