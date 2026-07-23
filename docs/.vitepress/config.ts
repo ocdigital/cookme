@@ -14,6 +14,9 @@ export default defineConfig({
     /^https?:\/\/localhost/,
     /^\/negocio\//,
   ],
+
+  // Documentos obsoletos ficam em _archive: fora do build e da busca.
+  srcExclude: ['**/_archive/**'],
   
   // Head tags
   head: [
