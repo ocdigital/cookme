@@ -1,18 +1,25 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:15-alpine
+    # pgvector/pgvector:pg16 — NÃO usar postgres:latest/alpine puro.
+    # O RAG de receitas depende da extensão `vector` (ver ADR-0001).
+    image: pgvector/pgvector:pg16
     container_name: cookme_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: cookme
-      POSTGRES_PASSWORD: cookme_new_pass
+      POSTGRES_PASSWORD: cookme123
       POSTGRES_DB: cookme_db
     ports:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Cria a extensão `vector` no primeiro boot do volume.
+      - ./docker/init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cookme -d cookme_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - cookme_network
 
