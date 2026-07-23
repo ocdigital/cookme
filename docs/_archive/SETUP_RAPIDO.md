@@ -39,7 +39,27 @@ npm run start:dev
 
 ---
 
-## 3️⃣ Iniciar Frontend (Novo Terminal)
+## 3️⃣ Stripe Webhook (Novo Terminal — só p/ testar pagamentos)
+
+Encaminha eventos da Stripe para o backend local. **Necessário apenas para testar checkout/assinaturas em dev.** Pule se não for mexer com pagamentos.
+
+```bash
+# Pré-requisito único: Stripe CLI logado
+stripe login
+
+cd /home/eduardo/projetos/cookme/backend
+npm run stripe:listen
+```
+
+✅ Esperado: `Ready! Your webhook signing secret is whsec_...`
+
+⚠️ O `whsec_...` exibido deve bater com `STRIPE_WEBHOOK_SECRET` no `backend/.env`. Se a CLI gerar um novo, atualize o `.env` e reinicie o backend.
+
+> Rota que recebe: `POST /api/stripe/webhook`. Em produção a Stripe aponta direto para `api.cookme.com.br` — este passo é só dev local.
+
+---
+
+## 4️⃣ Iniciar Frontend (Novo Terminal)
 
 ```bash
 cd /home/eduardo/projetos/cookme/frontend
@@ -50,7 +70,7 @@ npm run dev
 
 ---
 
-## 4️⃣ Iniciar Mobile (Novo Terminal)
+## 5️⃣ Iniciar Mobile (Novo Terminal)
 
 ```bash
 cd /home/eduardo/projetos/cookme/mobile
@@ -152,6 +172,7 @@ Leia [LEIA_PRIMEIRO.md](LEIA_PRIMEIRO.md) para mais detalhes.
 
 - [ ] Docker rodando (Redis + PostgreSQL)
 - [ ] Backend respondendo em localhost:3000
+- [ ] (opcional) `npm run stripe:listen` rodando p/ testar pagamentos
 - [ ] Frontend aberto em localhost:5173
 - [ ] Mobile iniciando no terminal
 - [ ] Conseguiu fazer login no Postman
