@@ -12,7 +12,6 @@ export default defineConfig({
   // dev, não navegação. /adr/ e /negocio/ chegam nas fases 3 e 5 da reorganização.
   ignoreDeadLinks: [
     /^https?:\/\/localhost/,
-    /^\/negocio\//,
   ],
 
   // Documentos obsoletos ficam em _archive: fora do build e da busca.
@@ -69,6 +68,8 @@ export default defineConfig({
             { text: 'Criar Usuário de Teste', link: '/how-to/criar-usuario' },
             { text: 'Rodar Testes', link: '/how-to/testes' },
             { text: 'Deploy no VPS', link: '/how-to/deploy-vps' },
+            { text: 'Admin — Painel de Produtos', link: '/how-to/admin-painel-produtos' },
+            { text: 'Admin — Testes de Integração', link: '/how-to/admin-testes-integracao' },
           ]
         }
       ],
@@ -110,7 +111,10 @@ export default defineConfig({
             { text: 'Inteligência (IA / RAG)', link: '/explicacao/inteligencia' },
             { text: 'AWS e Escalabilidade', link: '/explicacao/aws-escalabilidade' },
             { text: 'Plano Offline First', link: '/explicacao/offline-plan' },
+            { text: 'Admin — Arquitetura', link: '/explicacao/admin-arquitetura' },
+            { text: 'Notificações — Arquitetura', link: '/explicacao/notificacoes-arquitetura' },
             { text: 'Roadmap Dev IA', link: '/explicacao/roadmap-ia' },
+            { text: 'Roadmap IA — Laboratório', link: '/explicacao/roadmap-ia-laboratorio' },
           ]
         }
       ],
@@ -124,6 +128,27 @@ export default defineConfig({
             { text: '0002 — Engine de canonização separada', link: '/adr/0002-engine-canonizacao-servico-separado' },
             { text: '0003 — Proibir scraping autônomo', link: '/adr/0003-proibir-scraping-autonomo' },
             { text: '0004 — Haiku para geração', link: '/adr/0004-haiku-para-geracao-receitas' },
+          ]
+        }
+      ],
+      '/negocio/': [
+        {
+          text: '💼 Negócio & Estratégia',
+          items: [
+            { text: 'Visão Geral', link: '/negocio/' },
+            { text: 'Análise de Mercado', link: '/negocio/ANALISE_MERCADO' },
+            { text: 'Análise API Canonização', link: '/negocio/ANALISE_API_CANONIZACAO' },
+            { text: 'One-Pager da API', link: '/negocio/ONE_PAGER_API' },
+            { text: 'Resumo Executivo', link: '/negocio/EXECUTIVE_SUMMARY' },
+            { text: 'Estratégia de Monetização', link: '/negocio/MONETIZATION_STRATEGY' },
+            { text: 'Plano Técnico de Monetização', link: '/negocio/MONETIZATION_TECHNICAL_PLAN' },
+            { text: 'Guia do Investidor', link: '/negocio/GUIA_INVESTIDOR' },
+            { text: 'Estudo de Custo de IA', link: '/negocio/ESTUDO_CUSTO_IA' },
+            { text: 'Auditoria', link: '/negocio/AUDITORIA' },
+            { text: 'Plano de Correções', link: '/negocio/PLANO_CORRECOES' },
+            { text: 'Cronograma de Infraestrutura', link: '/negocio/CRONOGRAMA_INFRA' },
+            { text: 'Briefing Landing Page', link: '/negocio/LANDING_PAGE_BRIEFING' },
+            { text: 'Briefing de Design', link: '/negocio/DESIGN_BRIEFING' },
           ]
         }
       ],

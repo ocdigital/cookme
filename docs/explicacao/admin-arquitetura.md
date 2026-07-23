@@ -332,4 +332,4 @@ CREATE INDEX idx_ingrediente_receita ON receita_ingrediente(receita_id);
 
 ## Testing Endpoints
 
-See [ADMIN_INTEGRATION_TESTING.md](./ADMIN_INTEGRATION_TESTING.md) for complete testing guide with curl examples.
+See [Admin — Testes de Integração](/how-to/admin-testes-integracao) for complete testing guide with curl examples.
