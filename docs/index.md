@@ -11,7 +11,7 @@ hero:
   actions:
     - theme: brand
       text: Começar
-      link: /aprendizado/guia-aprendizado
+      link: /tutoriais/guia-aprendizado
     - theme: alt
       text: Ver no GitHub
       link: https://github.com/seu-usuario/cookme
@@ -57,9 +57,9 @@ Este é o centro de conhecimento do projeto **CookMe**, uma plataforma completa 
 
 Escolha por onde começar:
 
-1. [Guia de Aprendizado](/aprendizado/guia-aprendizado) - Entenda os conceitos fundamentais
-2. [Setup Rápido](/setup/setup-rapido) - Configure seu ambiente em minutos
-3. [Arquitetura](/arquitetura/visao-geral) - Veja como o sistema é estruturado
+1. [Guia de Aprendizado](/tutoriais/guia-aprendizado) - Entenda os conceitos fundamentais
+2. [Setup Rápido](/how-to/setup-rapido) - Configure seu ambiente em minutos
+3. [Arquitetura](/explicacao/arquitetura/visao-geral) - Veja como o sistema é estruturado
 
 ### Tecnologias Utilizadas
 

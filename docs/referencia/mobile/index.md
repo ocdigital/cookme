@@ -4,7 +4,7 @@ Expo / React Native com expo-router (file-based routing). Versão Expo ~54.
 
 ## Conteúdo
 
-- [Hooks & Services](/mobile/servicos) — como consumir a API no mobile
+- [Hooks & Services](/referencia/mobile/servicos) — como consumir a API no mobile
 
 ## Stack
 
