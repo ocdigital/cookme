@@ -12,7 +12,6 @@ export default defineConfig({
   // dev, não navegação. /adr/ e /negocio/ chegam nas fases 3 e 5 da reorganização.
   ignoreDeadLinks: [
     /^https?:\/\/localhost/,
-    /^\/adr\//,
     /^\/negocio\//,
   ],
   
@@ -109,6 +108,19 @@ export default defineConfig({
             { text: 'AWS e Escalabilidade', link: '/explicacao/aws-escalabilidade' },
             { text: 'Plano Offline First', link: '/explicacao/offline-plan' },
             { text: 'Roadmap Dev IA', link: '/explicacao/roadmap-ia' },
+          ]
+        }
+      ],
+      '/adr/': [
+        {
+          text: '🏛️ Decisões (ADR)',
+          items: [
+            { text: 'O que são ADRs', link: '/adr/' },
+            { text: 'Template', link: '/adr/template' },
+            { text: '0001 — pgvector para RAG', link: '/adr/0001-pgvector-para-rag' },
+            { text: '0002 — Engine de canonização separada', link: '/adr/0002-engine-canonizacao-servico-separado' },
+            { text: '0003 — Proibir scraping autônomo', link: '/adr/0003-proibir-scraping-autonomo' },
+            { text: '0004 — Haiku para geração', link: '/adr/0004-haiku-para-geracao-receitas' },
           ]
         }
       ],
