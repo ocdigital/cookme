@@ -7,6 +7,14 @@ export default defineConfig({
   
   // Theme configuration
   appearance: 'dark',
+
+  // Validação de links no build (nosso link-checker). localhost são exemplos de
+  // dev, não navegação. /adr/ e /negocio/ chegam nas fases 3 e 5 da reorganização.
+  ignoreDeadLinks: [
+    /^https?:\/\/localhost/,
+    /^\/adr\//,
+    /^\/negocio\//,
+  ],
   
   // Head tags
   head: [
@@ -23,89 +31,87 @@ export default defineConfig({
       alt: 'CookMe Logo',
     },
 
+    // Navegação organizada por tipo Diátaxis (tutoriais/how-to/referência/explicação)
     nav: [
       { text: 'Home', link: '/' },
-      { text: '🧠 Inteligência', link: '/inteligencia' },
-      { text: 'Backend', link: '/backend/' },
-      { text: 'Mobile', link: '/mobile/' },
-      { text: 'Admin Frontend', link: '/frontend/' },
+      { text: '📖 Tutoriais', link: '/tutoriais/' },
+      { text: '🔧 How-to', link: '/how-to/' },
+      { text: '📚 Referência', link: '/referencia/' },
+      { text: '💡 Explicação', link: '/explicacao/' },
       {
         text: 'Mais',
         items: [
-          { text: 'Arquitetura', link: '/arquitetura/' },
-          { text: 'Setup', link: '/setup/' },
-          { text: 'Guias', link: '/guides/' },
-          { text: 'Aprendizado', link: '/aprendizado/' },
+          { text: '🧠 Inteligência', link: '/explicacao/inteligencia' },
+          { text: '🏛️ Decisões (ADR)', link: '/adr/' },
+          { text: '💼 Negócio', link: '/negocio/' },
         ]
       },
     ],
 
+    // Sidebar por seção Diátaxis
     sidebar: {
-      '/backend/': [
+      '/tutoriais/': [
         {
-          text: 'Backend (NestJS)',
+          text: '📖 Tutoriais',
           items: [
-            { text: 'Visão Geral & Módulos', link: '/backend/' },
-            { text: 'Todos os Endpoints', link: '/backend/api' },
-            { text: 'Entidades TypeORM', link: '/backend/entidades' },
+            { text: 'Guia de Aprendizado', link: '/tutoriais/guia-aprendizado' },
           ]
         }
       ],
-      '/mobile/': [
+      '/how-to/': [
         {
-          text: 'Mobile (Expo)',
+          text: '🔧 How-to (Tarefas)',
           items: [
-            { text: 'Telas & Navegação', link: '/mobile/' },
-            { text: 'Hooks & Services', link: '/mobile/servicos' },
+            { text: 'Setup Rápido', link: '/how-to/setup-rapido' },
+            { text: 'Docker Compose', link: '/how-to/docker-compose' },
+            { text: 'Criar Usuário de Teste', link: '/how-to/criar-usuario' },
+            { text: 'Rodar Testes', link: '/how-to/testes' },
+            { text: 'Deploy no VPS', link: '/how-to/deploy-vps' },
           ]
         }
       ],
-      '/frontend/': [
+      '/referencia/': [
         {
-          text: 'Admin Frontend (React)',
+          text: '📚 Referência',
           items: [
-            { text: 'Páginas & Componentes', link: '/frontend/' },
+            {
+              text: 'Backend (NestJS)',
+              items: [
+                { text: 'Visão Geral & Módulos', link: '/referencia/backend/' },
+                { text: 'Todos os Endpoints', link: '/referencia/backend/api' },
+                { text: 'Entidades TypeORM', link: '/referencia/backend/entidades' },
+                { text: 'Endpoints (guia)', link: '/referencia/endpoints' },
+              ]
+            },
+            {
+              text: 'Mobile (Expo)',
+              items: [
+                { text: 'Telas & Navegação', link: '/referencia/mobile/' },
+                { text: 'Hooks & Services', link: '/referencia/mobile/servicos' },
+              ]
+            },
+            {
+              text: 'Admin Frontend (React)',
+              items: [
+                { text: 'Páginas & Componentes', link: '/referencia/frontend/' },
+              ]
+            },
           ]
         }
       ],
-      '/aprendizado/': [
+      '/explicacao/': [
         {
-          text: 'Aprendizado',
+          text: '💡 Explicação',
           items: [
-            { text: 'Guia de Aprendizado', link: '/aprendizado/guia-aprendizado' },
-            { text: 'Roadmap Dev IA', link: '/aprendizado/roadmap-ia' },
+            { text: 'Arquitetura — Visão Geral', link: '/explicacao/arquitetura/visao-geral' },
+            { text: 'Arquitetura — Diagrama Visual', link: '/explicacao/arquitetura/diagrama-visual' },
+            { text: 'Inteligência (IA / RAG)', link: '/explicacao/inteligencia' },
+            { text: 'AWS e Escalabilidade', link: '/explicacao/aws-escalabilidade' },
+            { text: 'Plano Offline First', link: '/explicacao/offline-plan' },
+            { text: 'Roadmap Dev IA', link: '/explicacao/roadmap-ia' },
           ]
         }
       ],
-      '/arquitetura/': [
-        {
-          text: 'Arquitetura',
-          items: [
-            { text: 'Visão Geral', link: '/arquitetura/visao-geral' },
-            { text: 'Diagrama Visual', link: '/arquitetura/diagrama-visual' },
-          ]
-        }
-      ],
-      '/setup/': [
-        {
-          text: 'Configuração',
-          items: [
-            { text: 'Setup Rápido', link: '/setup/setup-rapido' },
-            { text: 'Docker Compose', link: '/setup/docker-compose' },
-            { text: 'Como Criar Usuário', link: '/setup/criar-usuario' },
-          ]
-        }
-      ],
-      '/guides/': [
-        {
-          text: 'Guias',
-          items: [
-            { text: 'AWS e Escalabilidade', link: '/guides/aws-escalabilidade' },
-            { text: 'Endpoints', link: '/guides/endpoints' },
-            { text: 'Testes', link: '/guides/testes' },
-          ]
-        }
-      ]
     },
 
     // Social links

@@ -22,8 +22,8 @@ NestJS 11 + TypeScript + TypeORM + PostgreSQL. Porta **3000**. API prefix `/api`
 
 ## Conteúdo
 
-- [Todos os Endpoints](/backend/api) — referência completa da API
-- [Entidades TypeORM](/backend/entidades) — schema do banco de dados
+- [Todos os Endpoints](/referencia/backend/api) — referência completa da API
+- [Entidades TypeORM](/referencia/backend/entidades) — schema do banco de dados
 
 ## Iniciar
 

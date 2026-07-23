@@ -144,7 +144,7 @@ docker rm redis-cookme postgres-cookme
 
 ## 📚 Documentação Completa
 
-Leia [LEIA_PRIMEIRO.md](LEIA_PRIMEIRO.md) para mais detalhes.
+Veja os demais [guias How-to](/how-to/) e a [Referência](/referencia/).
 
 ---
 

@@ -179,7 +179,7 @@ A senha deve ter pelo menos 6 caracteres
 2. ✅ Faça login
 3. ✅ Copie o token de acesso
 4. ✅ Use o token para testar endpoints protegidos
-5. 📖 Leia [ENDPOINTS_E_PORTAS.md](ENDPOINTS_E_PORTAS.md) para ver todos os endpoints
+5. 📖 Veja a [Referência de Endpoints](/referencia/endpoints) para todos os endpoints
 
 ---
 

@@ -176,8 +176,8 @@ cd mobile && npx expo start
 ## 📚 Próximas Etapas
 
 1. Teste endpoints no Postman
-2. Leia [ENDPOINTS_E_PORTAS.md](ENDPOINTS_E_PORTAS.md) para referência
-3. Explore [VISUAL_SUMMARY.md](VISUAL_SUMMARY.md) para arquitetura
+2. Veja a [Referência de Endpoints](/referencia/endpoints) para a API
+3. Explore a [Arquitetura](/explicacao/arquitetura/visao-geral) do sistema
 4. Leia documentação específica de cada módulo
 
 ---
